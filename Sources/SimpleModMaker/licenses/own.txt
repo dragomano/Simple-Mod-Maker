@@ -1,0 +1,4 @@
+Custom license
+
+Copyright (c) {copyright}
+All rights reserved.

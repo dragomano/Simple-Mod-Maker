@@ -1,0 +1,843 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Handler.php
+ *
+ * @package Simple Mod Maker
+ * @link https://github.com/dragomano/Simple-Mod-Maker
+ * @author Bugo <bugo@dragomano.ru>
+ * @copyright 2022 Bugo
+ * @license https://opensource.org/licenses/BSD-3-Clause BSD
+ *
+ * @version 0.1
+ */
+
+namespace Bugo\SimpleModMaker;
+
+use Nette\PhpGenerator\ClassType;
+use Nette\PhpGenerator\PhpFile;
+use Nette\PhpGenerator\PhpNamespace;
+use Nette\PhpGenerator\Printer;
+
+if (! defined('SMF'))
+	die('No direct access...');
+
+final class Handler
+{
+	private const MOD_NAME_DEFAULT = 'My New Mod';
+
+	private const MOD_FILENAME_PATTERN = '^(?:Class-)?[A-Z][a-zA-Z]+$';
+
+	private const MOD_FILE_TEMPLATE = 'Class-%s';
+
+	private const COLUMN_TYPES = ['tinyint', 'int', 'mediumint', 'varchar', 'text', 'mediumtext'];
+
+	public function generator()
+	{
+		global $context, $txt, $scripturl;
+
+		loadCSSFile('https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.min.css', ['external' => true]);
+		loadCSSFile('simple_mod_maker.css');
+		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js', ['external' => true]);
+		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js', ['external' => true, 'defer' => true]);
+
+		$context['page_title']      = SMM_NAME . ' - ' . $txt['smm_generator'];
+		$context['page_area_title'] = $txt['smm_generator'];
+		$context['canonical_url']   = $scripturl . '?action=admin;area=smm;sa=generator';
+
+		$context[$context['admin_menu_name']]['tab_data'] = [
+			'title'       => SMM_NAME,
+			'description' => $txt['smm_add_desc']
+		];
+
+		$context['smm_column_types'] = self::COLUMN_TYPES;
+
+		$this->validateData();
+		$this->prepareFormFields();
+		$this->setData();
+
+		$context['sub_template'] = 'modification_post';
+	}
+
+	private function validateData()
+	{
+		global $context, $modSettings;
+
+		if (isset($_POST['save'])) {
+			$args = [
+				'name' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
+				'filename' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
+				'hooks' => [
+					'name' => 'hooks',
+					'filter' => FILTER_DEFAULT,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'version' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
+				'site' => FILTER_SANITIZE_URL,
+				'option_names' => [
+					'name' => 'option_names',
+					'filter' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'option_types' => [
+					'name' => 'option_types',
+					'filter' => FILTER_DEFAULT,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'option_defaults' => [
+					'name' => 'option_defaults',
+					'filter' => FILTER_DEFAULT,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'option_variants' => [
+					'name' => 'option_variants',
+					'filter' => FILTER_DEFAULT,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'option_translations' => [
+					'name' => 'option_translations',
+					'filter' => FILTER_DEFAULT,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'table_names' => [
+					'name' => 'table_names',
+					'filter' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'column_names' => [
+					'name' => 'column_names',
+					'filter' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'column_types' => [
+					'name' => 'column_types',
+					'filter' => FILTER_DEFAULT,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'column_null' => [
+					'name' => 'column_null',
+					'filter' => FILTER_VALIDATE_BOOLEAN,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'column_sizes' => [
+					'name' => 'column_sizes',
+					'filter' => FILTER_VALIDATE_INT,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'column_auto' => [
+					'name' => 'column_auto',
+					'filter' => FILTER_VALIDATE_BOOLEAN,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'column_defaults' => [
+					'name' => 'column_defaults',
+					'filter' => FILTER_DEFAULT,
+					'flags' => FILTER_REQUIRE_ARRAY
+				],
+				'license' => FILTER_DEFAULT,
+				'make_dir' => FILTER_VALIDATE_BOOLEAN,
+				'use_strict_typing' => FILTER_VALIDATE_BOOLEAN,
+				'make_template' => FILTER_VALIDATE_BOOLEAN,
+				'make_script' => FILTER_VALIDATE_BOOLEAN,
+				'make_css' => FILTER_VALIDATE_BOOLEAN,
+				'make_readme' => FILTER_VALIDATE_BOOLEAN,
+				'add_copyrights' => FILTER_VALIDATE_BOOLEAN,
+				'min_php_version' => FILTER_DEFAULT,
+			];
+
+			foreach ($context['languages'] as $lang) {
+				$args['title_' . $lang['filename']]       = FILTER_SANITIZE_FULL_SPECIAL_CHARS;
+				$args['description_' . $lang['filename']] = FILTER_SANITIZE_FULL_SPECIAL_CHARS;
+			}
+
+			$post_data = filter_input_array(INPUT_POST, $args);
+
+			$this->findErrors($post_data);
+		}
+
+		$context['smm_skeleton'] = [
+			'name'              => $post_data['name'] ?? self::MOD_NAME_DEFAULT,
+			'filename'          => $post_data['filename'] ?? sprintf(self::MOD_FILE_TEMPLATE, str_replace(' ', '', self::MOD_NAME_DEFAULT)),
+			'hooks'             => $post_data['hooks'] ?? [],
+			'author'            => $modSettings['smm_mod_author'] ?? 'Unknown',
+			'email'             => $modSettings['smm_mod_email'] ?? 'no-reply@simplemachines.org',
+			'readmes'           => smf_json_decode($modSettings['smm_readme'], true),
+			'version'           => $post_data['version'] ?? '0.1',
+			'site'              => $post_data['site'] ?? '',
+			'options'           => $context['smm_skeleton']['options'] ?? [],
+			'tables'            => $context['smm_skeleton']['tables'] ?? [],
+			'license'           => $post_data['license'] ?? 'mit',
+			'make_dir'          => $post_data['make_dir'] ?? false,
+			'use_strict_typing' => $post_data['use_strict_typing'] ?? false,
+			'make_template'     => $post_data['make_template'] ?? false,
+			'make_script'       => $post_data['make_script'] ?? false,
+			'make_css'          => $post_data['make_css'] ?? false,
+			'make_readme'       => $post_data['make_readme'] ?? false,
+			'add_copyrights'    => $post_data['add_copyrights'] ?? false,
+			'min_php_version'   => $post_data['min_php_version'] ?? '',
+			'callbacks'         => $context['smm_skeleton']['callbacks'] ?? [],
+		];
+
+		if (! empty($post_data['option_names'])) {
+			foreach ($post_data['option_names'] as $id => $option) {
+				if (empty($option))
+					continue;
+
+				if ($post_data['option_types'][$id] === 'check') {
+					$default = isset($post_data['option_defaults'][$id]) ? 'on' : 'off';
+				} else {
+					$default = $post_data['option_defaults'][$id] ?? '';
+				}
+
+				$context['smm_skeleton']['options'][$id] = [
+					'name'         => $option,
+					'type'         => $post_data['option_types'][$id],
+					'default'      => $default,
+					'variants'     => $post_data['option_variants'][$id] ?? '',
+					'translations' => []
+				];
+			}
+		}
+
+		if (! empty($post_data['table_names'])) {
+			foreach ($post_data['table_names'] as $id => $table) {
+				if (empty($table))
+					continue;
+
+				$context['smm_skeleton']['tables'][$id] = [
+					'name'    => $table,
+					'columns' => []
+				];
+
+				if (! empty($post_data['column_names'])) {
+					foreach ($post_data['column_names'] as $table_id => $columns) {
+						foreach ($columns as $column_id => $column) {
+							$context['smm_skeleton']['tables'][$table_id]['columns'][$column_id] = [
+								'name'    => $post_data['column_names'][$id][$column_id],
+								'type'    => $post_data['column_types'][$id][$column_id],
+								'null'    => $post_data['column_null'][$id][$column_id] ?? false,
+								'size'    => $post_data['column_sizes'][$id][$column_id],
+								'auto'    => $post_data['column_auto'][$id][$column_id] ?? false,
+								'default' => $post_data['column_defaults'][$id][$column_id] ?? '',
+							];
+						}
+					}
+				}
+			}
+		}
+
+		foreach ($context['languages'] as $lang) {
+			$context['smm_skeleton']['title'][$lang['filename']] = $post_data['title_' . $lang['filename']] ?? '';
+			$context['smm_skeleton']['description'][$lang['filename']] = $post_data['description_' . $lang['filename']] ?? '';
+
+			if (! empty($post_data['option_translations'][$lang['filename']])) {
+				foreach ($post_data['option_translations'][$lang['filename']] as $id => $translation) {
+					if (! empty($translation))
+						$context['smm_skeleton']['options'][$id]['translations'][$lang['filename']] = $translation;
+				}
+			}
+		}
+
+		$context['smm_skeleton']['title']       = array_filter($context['smm_skeleton']['title']);
+		$context['smm_skeleton']['description'] = array_filter($context['smm_skeleton']['description']);
+
+		if (! empty($context['smm_skeleton']['add_copyrights']))
+			$context['smm_skeleton']['hooks'][] = 'integrate_credits';
+
+		if (! empty($context['smm_skeleton']['options']))
+			$context['smm_skeleton']['hooks'][] = 'integrate_modify_modifications';
+
+		$context['smm_skeleton']['hooks'] = array_unique($context['smm_skeleton']['hooks']);
+	}
+
+	private function findErrors(array $data)
+	{
+		global $context, $txt;
+
+		$post_errors = [];
+
+		if (empty($data['name']))
+			$post_errors[] = 'no_name';
+
+		if (empty($data['filename']))
+			$post_errors[] = 'no_filename';
+
+		$addon_name_format['options'] = ['regexp' => '/' . self::MOD_FILENAME_PATTERN . '/'];
+		if (! empty($data['filename']) && empty(filter_var($data['filename'], FILTER_VALIDATE_REGEXP, $addon_name_format)))
+			$post_errors[] = 'no_valid_filename';
+
+		if (! empty($post_errors)) {
+			$context['post_errors'] = [];
+
+			foreach ($post_errors as $error)
+				$context['post_errors'][] = $txt['smm_error_' . $error];
+		}
+	}
+
+	private function prepareFormFields()
+	{
+		global $context, $txt;
+
+		checkSubmitOnce('register');
+
+		$this->prepareHookList();
+		$this->searchHooks();
+
+		$context['posting_fields']['name']['label']['text'] = $txt['smm_name'];
+		$context['posting_fields']['name']['input'] = [
+			'type' => 'text',
+			'attributes' => [
+				'maxlength' => 255,
+				'value'     => $context['smm_skeleton']['name'],
+				'required'  => true,
+				'style'     => 'width: 100%',
+			],
+		];
+
+		$context['posting_fields']['filename']['label']['text'] = $txt['smm_filename'];
+		$context['posting_fields']['filename']['input'] = [
+			'type' => 'text',
+			'after' => $txt['smm_filename_subtext'],
+			'attributes' => [
+				'maxlength' => 255,
+				'value'     => $context['smm_skeleton']['filename'],
+				'required'  => true,
+				'pattern'   => self::MOD_FILENAME_PATTERN,
+				'style'     => 'width: 100%',
+			],
+		];
+
+		$context['posting_fields']['hooks']['label']['text'] = $txt['smm_hooks'];
+		$context['posting_fields']['hooks']['input'] = [
+			'type'    => 'select',
+			'after' => $txt['smm_hooks_subtext'],
+			'attributes' => [
+				'id'       => 'hooks',
+				'name'     => 'hooks[]',
+				'multiple' => true
+			],
+			'options' => [],
+		];
+
+		$context['posting_fields']['version']['label']['text'] = $txt['smm_mod_version'];
+		$context['posting_fields']['version']['input'] = [
+			'type' => 'text',
+			'attributes' => [
+				'maxlength' => 255,
+				'value'     => $context['smm_skeleton']['version'],
+				'required'  => true,
+			],
+		];
+
+		$context['posting_fields']['site']['label']['text'] = $txt['website'];
+		$context['posting_fields']['site']['input'] = [
+			'type' => 'url',
+			'after' => $txt['smm_site_subtext'],
+			'attributes' => [
+				'maxlength'   => 255,
+				'value'       => $context['smm_skeleton']['site'],
+				'style'       => 'width: 100%',
+				'placeholder' => 'https://github.com/dragomano/Simple-Mod-Maker',
+			],
+		];
+
+		foreach ($context['languages'] as $lang) {
+			loadLanguage('SimpleModMaker/', $lang['filename']);
+
+			$context['posting_fields']['title_' . $lang['filename']]['label']['text'] = $txt['smm_mod_title'];
+
+			if (count($context['languages']) > 1)
+				$context['posting_fields']['title_' . $lang['filename']]['label']['text'] .= ' [' . $lang['name'] . ']';
+
+			$context['posting_fields']['title_' . $lang['filename']]['input'] = [
+				'type' => 'text',
+				'attributes' => [
+					'maxlength'   => 255,
+					'value'       => $context['smm_skeleton']['title'][$lang['filename']] ?? '',
+					'style'       => 'width: 100%',
+					'x-ref'       => 'title_' . $lang['filename'],
+					'placeholder' => $txt['smm_mod_title_default'],
+				],
+				'tab' => 'settings',
+			];
+
+			$context['posting_fields']['description_' . $lang['filename']]['label']['text'] = $txt['smm_mod_desc'];
+
+			if (count($context['languages']) > 1)
+				$context['posting_fields']['description_' . $lang['filename']]['label']['text'] .= ' [' . $lang['name'] . ']';
+
+			$context['posting_fields']['description_' . $lang['filename']]['input'] = [
+				'type' => 'text',
+				'attributes' => [
+					'maxlength'   => 255,
+					'value'       => $context['smm_skeleton']['description'][$lang['filename']] ?? '',
+					'style'       => 'width: 100%',
+					'placeholder' => $txt['smm_mod_desc_default'],
+				],
+				'tab' => 'settings',
+			];
+		}
+
+		loadLanguage('SimpleModMaker/');
+
+		$context['posting_fields']['license']['label']['text'] = $txt['smm_license'];
+		$context['posting_fields']['license']['input'] = [
+			'type' => 'select',
+			'tab'  => 'package'
+		];
+
+		foreach ($this->getAvailableLicenses() as $value => $license) {
+			$context['posting_fields']['license']['input']['options'][$license['short_name']] = [
+				'value'    => $value,
+				'selected' => $value === $context['smm_skeleton']['license']
+			];
+		}
+
+		$context['posting_fields']['make_dir']['label']['text'] = $txt['smm_make_dir'];
+		$context['posting_fields']['make_dir']['input'] = [
+			'type' => 'checkbox',
+			'after' => $txt['smm_make_dir_subtext'],
+			'attributes' => [
+				'checked' => (bool) $context['smm_skeleton']['make_dir']
+			],
+			'tab' => 'package',
+		];
+
+		$context['posting_fields']['use_strict_typing']['label']['text'] = $txt['smm_use_strict_typing'];
+		$context['posting_fields']['use_strict_typing']['input'] = [
+			'type' => 'checkbox',
+			'after' => $txt['smm_use_strict_typing_subtext'],
+			'attributes' => [
+				'checked' => (bool) $context['smm_skeleton']['use_strict_typing']
+			],
+			'tab' => 'package',
+		];
+
+		$context['posting_fields']['make_template']['label']['text'] = $txt['smm_make_template'];
+		$context['posting_fields']['make_template']['input'] = [
+			'type' => 'checkbox',
+			'attributes' => [
+				'checked' => (bool) $context['smm_skeleton']['make_template']
+			],
+			'tab' => 'package',
+		];
+
+		$context['posting_fields']['make_script']['label']['text'] = $txt['smm_make_script'];
+		$context['posting_fields']['make_script']['input'] = [
+			'type' => 'checkbox',
+			'attributes' => [
+				'checked' => (bool) $context['smm_skeleton']['make_script']
+			],
+			'tab' => 'package',
+		];
+
+		$context['posting_fields']['make_css']['label']['text'] = $txt['smm_make_css'];
+		$context['posting_fields']['make_css']['input'] = [
+			'type' => 'checkbox',
+			'attributes' => [
+				'checked' => (bool) $context['smm_skeleton']['make_css']
+			],
+			'tab' => 'package',
+		];
+
+		$context['posting_fields']['make_readme']['label']['text'] = $txt['smm_make_readme'];
+		$context['posting_fields']['make_readme']['input'] = [
+			'type' => 'checkbox',
+			'attributes' => [
+				'checked' => (bool) $context['smm_skeleton']['make_readme']
+			],
+			'tab' => 'package',
+		];
+
+		$context['posting_fields']['add_copyrights']['label']['text'] = $txt['smm_add_copyrights'];
+		$context['posting_fields']['add_copyrights']['input'] = [
+			'type' => 'checkbox',
+			'after' => $txt['smm_add_copyrights_subtext'],
+			'attributes' => [
+				'checked' => (bool) $context['smm_skeleton']['add_copyrights']
+			],
+			'tab' => 'package',
+		];
+
+		$context['posting_fields']['min_php_version']['label']['text'] = $txt['smm_min_php_version'];
+		$context['posting_fields']['min_php_version']['input'] = [
+			'type' => 'text',
+			'attributes' => [
+				'maxlength'   => 255,
+				'value'       => $context['smm_skeleton']['min_php_version'],
+				'placeholder' => '7.4',
+			],
+			'tab' => 'package',
+		];
+
+		$this->preparePostFields();
+	}
+
+	private function preparePostFields()
+	{
+		global $context;
+
+		foreach ($context['posting_fields'] as $item => $data) {
+			if (isset($data['input']['after'])) {
+				$tag = 'div';
+
+				if (isset($data['input']['type']) && in_array($data['input']['type'], ['checkbox', 'number']))
+					$tag = 'span';
+
+				$context['posting_fields'][$item]['input']['after'] = "<$tag class=\"descbox alternative2 smalltext\">{$data['input']['after']}</$tag>";
+			}
+
+			if (isset($data['input']['type']) && $data['input']['type'] === 'checkbox') {
+				$data['input']['attributes']['class'] = 'checkbox';
+				$data['input']['after'] = '<label class="label" for="' . $item . '"></label>' . ($context['posting_fields'][$item]['input']['after'] ?? '');
+				$context['posting_fields'][$item] = $data;
+			}
+
+			if (empty($data['input']['tab']))
+				$context['posting_fields'][$item]['input']['tab'] = 'basic';
+		}
+	}
+
+	private function prepareHookList()
+	{
+		global $modSettings, $context;
+
+		$common_used_hooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
+
+		$hooks = array_merge($common_used_hooks, $context['smm_skeleton']['hooks']);
+
+		$context['smm_hook_list'] = [
+			'data'  => [],
+			'items' => [],
+		];
+
+		foreach ($hooks as $hook) {
+			$context['smm_hook_list']['data'][] = '{text: "' . $hook . '", value: "' . $hook . '"}';
+
+			if (in_array($hook, $context['smm_skeleton']['hooks'])) {
+				$context['smm_hook_list']['items'][] = JavaScriptEscape($hook);
+			}
+		}
+	}
+
+	private function searchHooks()
+	{
+		global $smcFunc;
+
+		if (! isset($_REQUEST['hooks']))
+			return;
+
+		$data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+		if (empty($data['search']))
+			return;
+
+		$search = trim($smcFunc['strtolower']($data['search']));
+
+		if (($hooks = cache_get_data('all_smm_hooks', 30 * 24 * 60 * 60)) == null) {
+			$hooks = $this->getHookList();
+
+			cache_put_data('all_smm_hooks', $hooks, 30 * 24 * 60 * 60);
+		}
+
+		$results = array_filter($hooks, fn($item) => str_contains($item, $search));
+		$results = array_map(fn($item) => ['value' => $item], $results);
+
+		exit(json_encode($results));
+	}
+
+	private function getHookList(): array
+	{
+		return [
+			'integrate_actions',
+			'integrate_admin_areas',
+			'integrate_admin_search',
+			'integrate_alert_types',
+			'integrate_autoload',
+			'integrate_bbc_codes',
+			'integrate_before_create_topic',
+			'integrate_buffer',
+			'integrate_create_post',
+			'integrate_credits',
+			'integrate_display_buttons',
+			'integrate_display_topic',
+			'integrate_fetch_alerts',
+			'integrate_forum_stats',
+			'integrate_helpadmin',
+			'integrate_load_illegal_guest_permissions',
+			'integrate_load_permissions',
+			'integrate_load_theme',
+			'integrate_menu_buttons',
+			'integrate_message_index',
+			'integrate_modify_basic_settings',
+			'integrate_modify_modifications',
+			'integrate_modify_post',
+			'integrate_post_end',
+			'integrate_post_quickbuttons',
+			'integrate_pre_css_output',
+			'integrate_prepare_display_context',
+			'integrate_query_message',
+			'integrate_simple_actions',
+			'integrate_theme_context',
+			'integrate_user_info',
+			'integrate_whos_online',
+		];
+	}
+
+	private function setData()
+	{
+		global $context;
+
+		if (! empty($context['post_errors']) || empty($context['smm_skeleton']) || ! isset($_POST['save']))
+			return;
+
+		$this->rememberUsedHooks();
+
+		$classname = strtr($context['smm_skeleton']['filename'], ['Class-' => '', '.php' => '']);
+
+		if (empty($context['smm_skeleton']['make_dir'])) {
+			$namespace = new PhpNamespace($context['smm_skeleton']['author']);
+			$class = $namespace->addClass($classname);
+		} else {
+			$namespace = new PhpNamespace($context['smm_skeleton']['author'] . '\\' . $classname);
+			$class = $namespace->addClass('Integration');
+		}
+
+		$class->addComment('Generated by SimpleModMaker');
+		$class->setFinal();
+
+		$snake_name = $this->getSnakeName($classname);
+
+		$this->prepareUsedHooks($context, $class, $classname, $snake_name);
+
+		$licenses = $this->getAvailableLicenses()[$context['smm_skeleton']['license']];
+		$license_name = $licenses['full_name'];
+		$license_link = $licenses['link'];
+
+		$file = new PhpFile;
+
+		if (! empty($context['smm_skeleton']['use_strict_typing']))
+			$file->setStrictTypes();
+
+		$file->addNamespace($namespace);
+		$file->addComment((empty($context['smm_skeleton']['make_dir']) ? $context['smm_skeleton']['filename'] : 'Integration'). '.php');
+		$file->addComment('');
+		$file->addComment("@package {$context['smm_skeleton']['name']}");
+		$file->addComment("@link {$context['smm_skeleton']['site']}");
+		$file->addComment("@author {$context['smm_skeleton']['author']} <{$context['smm_skeleton']['email']}>");
+		$file->addComment("@copyright " . date('Y') . " {$context['smm_skeleton']['author']}");
+		$file->addComment("@license $license_link $license_name");
+		$file->addComment('');
+		$file->addComment("@version " . $context['smm_skeleton']['version']);
+
+		$content = (new class extends Printer {
+			protected $indentation = "\t";
+			protected $linesBetweenProperties = 1;
+			protected $linesBetweenMethods = 1;
+			protected $returnTypeColon = ': ';
+		})->printFile($file);
+
+		$plugin = new Builder([
+			'skeleton'  => $context['smm_skeleton'],
+			'classname' => $classname,
+			'snakename' => $snake_name,
+			'license'   => $licenses['full_name'],
+			'path'      => __DIR__ . '/output'
+		]);
+
+		$plugin->create($content)
+			->createPackage();
+	}
+
+	private function prepareUsedHooks(array &$context, ClassType $class, string $classname, string $snake_name)
+	{
+		$hooks = $class->addMethod('hooks')
+			->addBody("// add_integration_function('integrate_hook_name', __CLASS__ . '::methodName#', false, __FILE__);");
+
+		foreach ($context['smm_skeleton']['hooks'] as $hook) {
+			$method_name = $this->getMethodName($hook);
+
+			$hooks->addBody("add_integration_function(?, __CLASS__ . '::?#', false, __FILE__);", [$hook, $method_name]);
+
+			$method = $class->addMethod($method_name);
+
+			if (file_exists($hook_file = __DIR__ . '/hooks/' . $hook . '.php')) {
+				$hook_data = require_once $hook_file;
+
+				if (! empty($hook_data['params'])) {
+					foreach ($hook_data['params'] as $param => $data) {
+						$parameter = isset($data[2]) ? $method->addParameter($param, $data[2]) : $method->addParameter($param);
+
+						if (! empty($context['smm_skeleton']['use_strict_typing']))
+							$parameter->setType($data[0]);
+
+						if (! empty($data[1]))
+							$parameter->setReference();
+					}
+				}
+
+				if (! empty($context['smm_skeleton']['use_strict_typing']) && ! empty($hook_data['return']))
+					$method->setReturnType($hook_data['return']);
+
+				if (! empty($hook_data['body'])) {
+					foreach ($hook_data['body'] as $body) {
+						$method->addBody($body);
+					}
+				}
+			}
+		}
+
+		$hook_keys = array_flip($context['smm_skeleton']['hooks']);
+
+		if (isset($hook_keys['integrate_admin_search']) || isset($hook_keys['integrate_modify_modifications'])) {
+			$settings = $class->addMethod('settings');
+
+			if (isset($hook_keys['integrate_admin_search'])) {
+				$settings->addComment('@return array|void');
+
+				$parameter = $settings->addParameter('return_config', false);
+
+				if (! empty($context['smm_skeleton']['use_strict_typing']))
+					$parameter->setType('bool');
+			}
+
+			$settings->addBody("global \$context, \$txt, \$scripturl" . (empty($context['smm_skeleton']['options']) ? '' : ", \$modSettings") . ";" . PHP_EOL);
+			$settings->addBody("loadLanguage(?);" . PHP_EOL, [$classname]);
+			$settings->addBody("\$context['page_title'] = \$context['settings_title'] = \$txt['{$snake_name}_title'];");
+			$settings->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=modsettings;save;sa=$snake_name';");
+			$settings->addBody("\$context[\$context['admin_menu_name']]['tab_data']['description'] = \$txt['{$snake_name}_description'];" . PHP_EOL);
+
+			if (! empty($context['smm_skeleton']['options'])) {
+				$settings->addBody("\$addSettings = [];");
+
+				foreach ($context['smm_skeleton']['options'] as $option) {
+					if (! empty($option['default']) && $option['default'] !== 'off') {
+						$settings->addBody("if (! isset(\$modSettings['{$snake_name}_{$option['name']}']))");
+						$settings->addBody("\t\$addSettings['{$snake_name}_{$option['name']}'] = {$this->getDefaultValue($option)};");
+					}
+				}
+
+				$settings->addBody("if (! empty(\$addSettings))");
+				$settings->addBody("\tupdateSettings(\$addSettings);" . PHP_EOL);
+			}
+
+			$settings->addBody("\$config_vars = array(");
+
+			if (! empty($context['smm_skeleton']['options'])) {
+				foreach ($context['smm_skeleton']['options'] as $option) {
+					if (in_array($option['type'], ['select-multiple', 'select'])) {
+						$is_multiple = var_export($option['type'] === 'select-multiple', true);
+						$option['type'] = 'select';
+
+						$settings->addBody(
+							"\tarray('{$option['type']}', '{$snake_name}_{$option['name']}', \$txt['$snake_name']['{$option['name']}_set'], 'multiple' => $is_multiple),"
+						);
+					} else {
+						$settings->addBody("\tarray('{$option['type']}', '{$snake_name}_{$option['name']}'),");
+					}
+
+					if ($option['type'] === 'callback')
+						$context['smm_skeleton']['callbacks'][] = $option['name'];
+				}
+			} else {
+				$settings->addBody("\t// array('check', '{$snake_name}_enable'),");
+			}
+
+			$settings->addBody(");" . PHP_EOL);
+
+			if (isset($hook_keys['integrate_admin_search'])) {
+				$settings->addBody("if (\$return_config)");
+				$settings->addBody("\treturn \$config_vars;" . PHP_EOL);
+			}
+
+			$settings->addBody("// Saving?");
+			$settings->addBody("if (isset(\$_GET['save'])) {");
+			$settings->addBody("\tcheckSession();" . PHP_EOL);
+			$settings->addBody("\t\$save_vars = \$config_vars;");
+			$settings->addBody("\tsaveDBSettings(\$save_vars);" . PHP_EOL);
+			$settings->addBody("\tredirectexit('action=admin;area=modsettings;sa=$snake_name');");
+			$settings->addBody("}" . PHP_EOL);
+			$settings->addBody("prepareDBSettingContext(\$config_vars);");
+		}
+	}
+
+	private function getAvailableLicenses(): array
+	{
+		global $txt;
+
+		return [
+			'gpl' => [
+				'short_name' => 'GPL 3.0+',
+				'full_name'  => 'GPL-3.0-or-later',
+				'link'       => 'https://spdx.org/licenses/GPL-3.0-or-later.html',
+			],
+			'mit' => [
+				'short_name' => 'MIT',
+				'full_name'  => 'The MIT License',
+				'link'       => 'https://opensource.org/licenses/MIT',
+			],
+			'bsd' => [
+				'short_name' => 'BSD-3-Clause',
+				'full_name'  => 'The 3-Clause BSD License',
+				'link'       => 'https://opensource.org/licenses/BSD-3-Clause',
+			],
+			'mpl' => [
+				'short_name' => 'MPL-2.0',
+				'full_name'  => 'Mozilla Public License 2.0',
+				'link'       => 'https://opensource.org/licenses/MPL-2.0',
+			],
+			'own' => [
+				'short_name' => $txt['smm_license_own'],
+				'full_name'  => $txt['smm_license_name'],
+				'link'       => $txt['smm_license_link'],
+			]
+		];
+	}
+
+	private function getDefaultValue(array $option): string
+	{
+		switch ($option['type']) {
+			case 'int':
+				$default = (int) $option['default'];
+				break;
+
+			case 'float':
+				$default = (float) $option['default'];
+				break;
+
+			case 'check':
+				$default = $option['default'] === 'on';
+				break;
+
+			default:
+				$default = $option['default'];
+		}
+
+		return var_export($default, true);
+	}
+
+	private function getSnakeName(string $value): string
+	{
+		global $smcFunc;
+
+		return $smcFunc['strtolower'](preg_replace('/(?<!^)[A-Z]/', '_$0', $value));
+	}
+
+	private function getMethodName(string $hook): string
+	{
+		return lcfirst(str_replace(' ', '', ucwords(strtr($hook, ['integrate' => '', '_' => ' ']))));
+	}
+
+	private function rememberUsedHooks()
+	{
+		global $context, $modSettings;
+
+		if (empty($context['smm_skeleton']['hooks']))
+			return;
+
+		$used_hooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
+		updateSettings(['smm_hooks' => implode(',', array_unique(array_merge($context['smm_skeleton']['hooks'], $used_hooks)))]);
+	}
+}

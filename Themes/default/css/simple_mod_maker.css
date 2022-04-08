@@ -1,0 +1,246 @@
+.smm_tabs {
+    padding: 0;
+    margin: 0 auto;
+}
+
+.smm_tabs > input {
+    display: none;
+    position: absolute;
+}
+
+.smm_tabs > input:checked + label {
+    color: #555;
+    border-top: 1px solid #f49a3a;
+    border-bottom: 1px solid #fff;
+}
+
+.smm_tabs input:invalid,
+.smm_tabs textarea:invalid {
+    border: 3px double red;
+}
+
+.smm_tabs > label {
+    border-top-right-radius: 6px;
+    border-top-left-radius: 6px;
+    display: inline-block;
+    margin: 0 0 -1px;
+    padding: 15px 25px;
+    font-weight: 600;
+    text-align: center;
+    color: #aaa;
+    border: 1px solid #ddd;
+}
+
+.smm_tabs > label:hover {
+    cursor: pointer;
+    color: #888;
+}
+
+.smm_tabs > label i,
+.smm_tabs > label svg {
+    font-size: 1.2em !important;
+}
+
+@media screen and (max-width: 680px) {
+    .smm_tabs > label i,
+    .smm_tabs > label svg {
+        font-size: 1.6em !important;
+    }
+    .smm_tabs > label span {
+        font-size: 0;
+    }
+}
+
+@media screen and (max-width: 400px) {
+    .smm_tabs > label {
+        padding: 15px;
+    }
+}
+
+#tab_basic:checked ~ #content_tab_basic,
+#tab_settings:checked ~ #content_tab_settings,
+#tab_database:checked ~ #content_tab_database,
+#tab_package:checked ~ #content_tab_package {
+    display: block;
+}
+
+.smm_tabs section {
+    display: none;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-top-left-radius: 0;
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+}
+
+.smm_tabs section > div {
+    margin-top: 1em;
+}
+
+.smm_tabs section #post_header {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    line-height: 1.5;
+    -webkit-animation-duration: 1s;
+    animation-duration: 1s;
+    -webkit-animation-fill-mode: both;
+    animation-fill-mode: both;
+    -webkit-animation-name: fadeIn;
+    animation-name: fadeIn;
+}
+
+@media (max-width: 600px) {
+    .smm_tabs section #post_header {
+        flex-direction: row;
+    }
+}
+
+.smm_tabs section #post_header dt {
+    width: 50%;
+}
+
+.smm_tabs section #post_header dt label {
+    font-weight: bold;
+}
+
+.smm_tabs section #post_header dt,
+.smm_tabs section #post_header dd {
+    margin-block-end: 5px;
+    margin-inline-start: 0;
+    padding-top: 5px;
+    width: auto !important;
+    float: none !important;
+    flex: 2 50%;
+}
+
+.smm_tabs section #post_header dt:first-child,
+.smm_tabs section #post_header dd:first-child {
+    margin-block-start: 0;
+}
+
+.smm_tabs section #post_header dt:last-child,
+.smm_tabs section #post_header dd:last-child {
+    margin-block-end: 0;
+}
+
+.smm_tabs section #post_header dt > *:first-child,
+.smm_tabs section #post_header dd > *:first-child {
+    margin-block-start: 0;
+}
+
+.smm_tabs section #post_header dt > *:last-child,
+.smm_tabs section #post_header dd > *:last-child {
+    margin-block-end: 0;
+}
+
+@media (max-width: 600px) {
+    .smm_tabs section #post_header dt,
+    .smm_tabs section #post_header dd {
+        flex: 1 100%;
+        text-align: center;
+    }
+}
+
+.smm_tabs section #post_header dt.pf_content,
+.smm_tabs section #post_header dd.pf_content {
+    width: 100%;
+}
+
+.smm_tabs section .choices__inner {
+    border-radius: 6px;
+}
+
+.smm_tabs section .add_option {
+    width: 100%;
+}
+
+.smm_tabs section .add_option select,
+.smm_tabs section .add_option input,
+.smm_tabs section .add_option textarea {
+    width: 100%;
+}
+
+@media screen and (max-width: 680px) {
+    .smm_tabs section .add_option .plugin_options td:first-child,
+    .remove_label {
+        display: none;
+    }
+    .smm_tabs td[colspan] {
+        display: table-cell !important;
+    }
+    .smm_tabs .title_bar th:first-child,
+    .smm_tabs .descbox th:first-child,
+    .smm_tabs td > label {
+        display: none;
+    }
+}
+
+/* Checkbox toggler */
+.checkbox {
+    vertical-align: top;
+    margin: 0 3px 0 0;
+    width: 17px;
+    height: 17px;
+}
+
+.checkbox + .label {
+    cursor: pointer;
+}
+
+.checkbox:not(checked) {
+    position: absolute;
+    opacity: 0;
+}
+
+.checkbox:not(checked) + .label {
+    position: relative;
+    padding: 0 0 0 60px;
+}
+
+.checkbox:not(checked) + .label::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 0;
+    width: 50px;
+    height: 26px;
+    border-radius: 13px;
+    background: #cdd1da;
+    box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.2);
+}
+
+.checkbox:not(checked) + .label::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+}
+
+.checkbox:checked + .label::before {
+    background: #00cc33;
+}
+
+.checkbox:checked + .label::after {
+    left: 26px;
+}
+
+/* TomSelect */
+.ts-wrapper .ts-control .item div {
+    margin: 0 !important;
+}
+
+.ts-wrapper .ts-dropdown {
+    position: initial !important;
+}
+
+.ts-wrapper .ts-dropdown .ts-dropdown-content .option div {
+    margin: 0 !important;
+}

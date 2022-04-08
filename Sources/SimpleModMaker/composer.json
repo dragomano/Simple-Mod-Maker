@@ -1,0 +1,12 @@
+{
+    "require": {
+        "nette/php-generator": "^3.6",
+        "nelexa/zip": "^4.0",
+        "ext-dom": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bugo\\SimpleModMaker\\": ""
+        }
+    }
+}
