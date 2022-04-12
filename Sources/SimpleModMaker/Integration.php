@@ -205,6 +205,8 @@ final class Integration
 
 		if (! empty($addSettings))
 			updateSettings($addSettings);
+
+		loadLanguage('SimpleModMaker/');
 	}
 
 	private function extendReadmeDesc()

@@ -29,11 +29,6 @@ function template_modification_post()
 {
 	global $context, $txt;
 
-	if (! empty($context['smm_mod_dir_is_not_writable'])) {
-		echo '
-	<div class="errorbox">', $context['smm_mod_dir_is_not_writable'], '</div>';
-	}
-
 	echo '
 	<div class="cat_bar">
 		<h3 class="catbg">', $context['page_area_title'], '</h3>

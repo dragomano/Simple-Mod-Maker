@@ -185,16 +185,10 @@ final class Handler
 				if (empty($option))
 					continue;
 
-				if ($post_data['option_types'][$id] === 'check') {
-					$default = isset($post_data['option_defaults'][$id]) ? 'on' : 'off';
-				} else {
-					$default = $post_data['option_defaults'][$id] ?? '';
-				}
-
 				$context['smm_skeleton']['options'][$id] = [
 					'name'         => $option,
 					'type'         => $post_data['option_types'][$id],
-					'default'      => $default,
+					'default'      => $post_data['option_types'][$id] === 'check' ? isset($post_data['option_defaults'][$id]) : ($post_data['option_defaults'][$id] ?? ''),
 					'variants'     => $post_data['option_variants'][$id] ?? '',
 					'translations' => []
 				];
@@ -706,14 +700,13 @@ final class Handler
 			$settings->addBody("global \$context, \$txt, \$scripturl" . (empty($context['smm_skeleton']['options']) ? '' : ", \$modSettings") . ";" . PHP_EOL);
 			$settings->addBody("loadLanguage(?);" . PHP_EOL, [$classname]);
 			$settings->addBody("\$context['page_title'] = \$context['settings_title'] = \$txt['{$snake_name}_title'];");
-			$settings->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=modsettings;save;sa=$snake_name';");
-			$settings->addBody("\$context[\$context['admin_menu_name']]['tab_data']['description'] = \$txt['{$snake_name}_description'];" . PHP_EOL);
+			$settings->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=modsettings;save;sa=$snake_name';" . PHP_EOL);
 
 			if (! empty($context['smm_skeleton']['options'])) {
 				$settings->addBody("\$addSettings = [];");
 
 				foreach ($context['smm_skeleton']['options'] as $option) {
-					if (! empty($option['default']) && $option['default'] !== 'off') {
+					if (! empty($option['default'])) {
 						$settings->addBody("if (! isset(\$modSettings['{$snake_name}_{$option['name']}']))");
 						$settings->addBody("\t\$addSettings['{$snake_name}_{$option['name']}'] = {$this->getDefaultValue($option)};");
 					}
@@ -752,6 +745,7 @@ final class Handler
 				$settings->addBody("\treturn \$config_vars;" . PHP_EOL);
 			}
 
+			$settings->addBody("\$context[\$context['admin_menu_name']]['tab_data']['description'] = \$txt['{$snake_name}_description'];" . PHP_EOL);
 			$settings->addBody("// Saving?");
 			$settings->addBody("if (isset(\$_GET['save'])) {");
 			$settings->addBody("\tcheckSession();" . PHP_EOL);
@@ -805,10 +799,6 @@ final class Handler
 
 			case 'float':
 				$default = (float) $option['default'];
-				break;
-
-			case 'check':
-				$default = $option['default'] === 'on';
 				break;
 
 			default:

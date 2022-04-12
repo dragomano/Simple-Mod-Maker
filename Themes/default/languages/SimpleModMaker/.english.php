@@ -36,7 +36,7 @@ $txt['smm_readme_default'] = '[center][color=red][size=16pt][b]{mod_name}[/b][/s
 $txt['smm_add_desc'] = 'The mod wizard will help you to prepare a dummy for further modifications. Carefully fill in the suggested fields.';
 
 $txt['smm_tab_basic'] = 'Basic data';
-$txt['smm_tab_settings'] = 'Mod Setting Constructor';
+$txt['smm_tab_settings'] = 'Setting Constructor';
 $txt['smm_tab_database'] = 'DB Table Constructor';
 $txt['smm_tab_package'] = 'Packaging';
 
