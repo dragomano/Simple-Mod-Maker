@@ -97,7 +97,7 @@ function template_modification_post()
 															x-model="option.name"
 															name="option_names[]"
 															pattern="^[a-z][a-z_]+$"
-															maxlength="255"
+															maxlength="30"
 															placeholder="option_name"
 															required
 														>
