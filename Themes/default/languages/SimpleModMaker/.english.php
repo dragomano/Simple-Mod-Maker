@@ -45,7 +45,7 @@ $txt['smm_filename'] = 'Mod filename';
 $txt['smm_filename_subtext'] = 'In Latin letters, no spaces, no extension!';
 $txt['smm_hooks'] = 'Used hooks';
 $txt['smm_min_search_length'] = 'Please enter at least %d characters';
-$txt['smm_hooks_subtext'] = 'All the hooks you specify will be saved in the database for quick access when creating new projects.';
+$txt['smm_hooks_subtext'] = 'All the hooks you specify will be saved in the database for quick access when creating new projects. You can see the all hook list <a class="bbc_link" href="https://live627.github.io/smf-api-docs-test/hooks/all.html" target="_blank" rel="noopener">here</a>.';
 $txt['smm_mod_version'] = 'Mod version';
 $txt['smm_site_subtext'] = 'E.g. a link to the project on GitHub.';
 
