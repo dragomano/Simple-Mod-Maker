@@ -88,6 +88,7 @@ $txt['smm_table_new'] = 'Add a table';
 $txt['smm_table_name'] = 'Table name (Latin letters, without prefix)';
 $txt['smm_column_new'] = 'Add a column';
 $txt['smm_column_name'] = 'Column name (Latin letters)';
+$txt['smm_column_hint'] = 'Make sure that the name you have chosen is not in the reserved word lists <a href="https://dev.mysql.com/doc/refman/8.0/en/keywords.html" target="_blank" rel="noopener">MySQL</a>, <a href="https://mariadb.com/kb/en/reserved-words/" target="_blank" rel="noopener">MariaDB</a>, and <a href="https://postgrespro.com/docs/postgresql/9.6/sql-keywords-appendix" target="_blank" rel="noopener">PostgreSQL</a>.';
 $txt['smm_column_type'] = 'Column type';
 $txt['smm_column_null'] = 'NULL';
 $txt['smm_column_size'] = 'Column size';

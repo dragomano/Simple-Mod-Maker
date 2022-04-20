@@ -253,6 +253,9 @@ function template_modification_post()
 																	</tr>
 																</thead>
 																<tbody>
+																	<tr>
+																		<td colspan="7"><div class="noticebox">', $txt['smm_column_hint'], '</div></td>
+																	</tr>
 																	<tr class="windowbg">
 																		<td x-text="column_index + 1"></td>
 																		<td colspan="5">
