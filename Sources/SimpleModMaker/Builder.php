@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.1
+ * @version 0.2
  */
 
 namespace Bugo\SimpleModMaker;
@@ -222,9 +222,9 @@ XXX . PHP_EOL;
 
 				$database .= <<<XXX
 		array(
-			'name'    => '{$column['name']}',
-			'type'    => '{$column['type']}',
-			'size'    => {$column['size']},
+			'name' => '{$column['name']}',
+			'type' => '{$column['type']}',
+			'size' => {$column['size']},
 XXX . PHP_EOL;
 
 				if (! empty($column['default']))
@@ -239,12 +239,12 @@ XXX . PHP_EOL;
 
 					if (! empty($column['auto']))
 						$database .= <<<XXX
-			'auto'     => true
+			'auto' => true
 XXX . PHP_EOL;
 				} else {
 					if (! empty($column['null']))
 						$database .= <<<XXX
-			'null'     => true
+			'null' => true
 XXX . PHP_EOL;
 				}
 
@@ -261,7 +261,7 @@ XXX . PHP_EOL;
 				$database .= <<<XXX
 	'indexes' => array(
 		array(
-			'type'    => 'primary',
+			'type' => 'primary',
 			'columns' => array('$table_index')
 		)
 	)

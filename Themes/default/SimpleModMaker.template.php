@@ -231,7 +231,7 @@ function template_modification_post()
 															x-model="table.name"
 															name="table_names[]"
 															pattern="^[a-z][a-z_]+$"
-															maxlength="255"
+															maxlength="64"
 															placeholder="table_name"
 															required
 														>
@@ -261,7 +261,7 @@ function template_modification_post()
 																				x-model="column.name"
 																				:name="`column_names[${index}][]`"
 																				pattern="^[a-z][a-z_]+$"
-																				maxlength="255"
+																				maxlength="64"
 																				placeholder="column_name"
 																				required
 																			>

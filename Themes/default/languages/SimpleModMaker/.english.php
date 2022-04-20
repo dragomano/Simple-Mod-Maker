@@ -115,3 +115,6 @@ $txt['smm_build'] = 'Build';
 $txt['smm_error_no_name'] = 'The mod title is not specified!';
 $txt['smm_error_no_filename'] = 'The mod filename is not specified!';
 $txt['smm_error_no_valid_filename'] = 'The filename does not match the rules!';
+$txt['smm_error_option_name_too_long'] = 'The option name should not be longer than 30 characters.';
+$txt['smm_error_table_name_too_long'] = 'The table name should not be longer than 64 characters.';
+$txt['smm_error_column_name_too_long'] = 'The column name should not be longer than 64 characters.';

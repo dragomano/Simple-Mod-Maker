@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.1
+ * @version 0.2
  */
 
 namespace Bugo\SimpleModMaker;
@@ -262,6 +262,29 @@ final class Handler
 		if (! empty($data['filename']) && empty(filter_var($data['filename'], FILTER_VALIDATE_REGEXP, $addon_name_format)))
 			$post_errors[] = 'no_valid_filename';
 
+		if (! empty($data['option_names'])) {
+			foreach ($data['option_names'] as $id => $option) {
+				if (strlen($option) > 30)
+					$post_errors[] = 'option_name_too_long';
+			}
+		}
+
+		if (! empty($data['table_names'])) {
+			foreach ($data['table_names'] as $id => $table) {
+				if (strlen($table) > 64)
+					$post_errors[] = 'table_name_too_long';
+			}
+		}
+
+		if (! empty($data['column_names'])) {
+			foreach ($data['column_names'] as $table) {
+				foreach ($table as $column) {
+					if (strlen($column) > 64)
+						$post_errors[] = 'column_name_too_long';
+				}
+			}
+		}
+
 		if (! empty($post_errors)) {
 			$context['post_errors'] = [];
 
@@ -305,7 +328,7 @@ final class Handler
 
 		$context['posting_fields']['hooks']['label']['text'] = $txt['smm_hooks'];
 		$context['posting_fields']['hooks']['input'] = [
-			'type'    => 'select',
+			'type'  => 'select',
 			'after' => $txt['smm_hooks_subtext'],
 			'attributes' => [
 				'id'       => 'hooks',

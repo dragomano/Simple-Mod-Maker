@@ -3,7 +3,7 @@
 <package-info xmlns="http://www.simplemachines.org/xml/package-info" xmlns:smf="http://www.simplemachines.org/">
 	<id>Bugo:SimpleModMaker</id>
 	<name>Simple Mod Maker</name>
-	<version>0.1</version>
+	<version>0.2</version>
 	<type>modification</type>
 
 	<install for="2.1.*">
@@ -22,7 +22,7 @@
 					false
 				);
 
-			smf_chmod($sourcedir . '/SimpleModMaker/output', 0755);
+			smf_chmod($sourcedir . '/SimpleModMaker/output');
 		?>]]></code>
 		<redirect url="?action=admin;area=smm" timeout="3000" />
 	</install>
