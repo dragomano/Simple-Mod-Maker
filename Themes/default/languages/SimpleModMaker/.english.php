@@ -3,8 +3,8 @@
 /**
  * .english.php (language file)
  *
- * @package Mod Maker
- * @author Bugo https://dragomano.ru/mods/mod-maker
+ * @package Simple Mod Maker
+ * @author Bugo https://dragomano.ru/mods/simple-mod-maker
  */
 
 $txt['smm_desc'] = 'Welcome to the mod\'s page for creating other mods 😜 <strong>Warning</strong>: this mod will not do all the work for you, it will only provide you with a finished application skeleton that you can adapt to your needs. Take the mod code as a tutorial and create, create more interesting mods for SMF!';
