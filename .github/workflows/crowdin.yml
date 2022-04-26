@@ -31,5 +31,5 @@ jobs:
         upload_sources: true
         upload_translations: false
         download_translations: false
-        crowdin_branch_name: 'next'
+        #crowdin_branch_name: 'next'
         config: '.github/crowdin.yml'
