@@ -6,7 +6,7 @@
 [![Crowdin](https://badges.crowdin.net/simple-mod-maker/localized.svg)](https://crowdin.com/project/simple-mod-maker)
 
 * **Tested on:** PHP 7.4.29
-* **Languages:** English, Russian
+* **Languages:** English, Russian, Spanish
 
 ## Description
 Would you like to spend less time creating localization files, JS/CSS and more on working with the code? This mod provides this opportunity!

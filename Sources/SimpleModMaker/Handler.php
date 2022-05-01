@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.2
+ * @version 0.2.1
  */
 
 namespace Bugo\SimpleModMaker;
@@ -212,7 +212,7 @@ final class Handler
 								'name'    => $post_data['column_names'][$id][$column_id],
 								'type'    => $post_data['column_types'][$id][$column_id],
 								'null'    => $post_data['column_null'][$id][$column_id] ?? false,
-								'size'    => $post_data['column_sizes'][$id][$column_id],
+								'size'    => $post_data['column_sizes'][$id][$column_id] ?? 0,
 								'auto'    => $post_data['column_auto'][$id][$column_id] ?? false,
 								'default' => $post_data['column_defaults'][$id][$column_id] ?? '',
 							];
@@ -678,7 +678,8 @@ final class Handler
 
 			$hooks->addBody("add_integration_function(?, __CLASS__ . '::?#', false, __FILE__);", [$hook, $method_name]);
 
-			$method = $class->addMethod($method_name);
+			$method = $class->addMethod($method_name)
+				->addComment('@hook ' . $hook);;
 
 			if (file_exists($hook_file = __DIR__ . '/hooks/' . $hook . '.php')) {
 				$hook_data = require_once $hook_file;

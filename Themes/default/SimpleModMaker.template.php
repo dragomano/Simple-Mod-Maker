@@ -291,7 +291,7 @@ function template_modification_post()
 																			</select>
 																		</td>
 																		<template x-if="[\'text\', \'mediumtext\'].includes(column.type)">
-																			<td colspan="2">
+																			<td colspan="5">
 																				<label>
 																					<input type="checkbox" x-model="column.null" :name="`column_null[${index}][]`">
 																						', $txt['smm_column_null'], '
@@ -318,27 +318,24 @@ function template_modification_post()
 																				>
 																			</td>
 																		</template>
-																		<td>
-																			<template x-if="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type)">
+																		<template x-if="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type)">
+																			<td>
 																				<label>
 																					<input type="checkbox" x-model="column.auto" :name="`column_auto[${index}][]`">
 																						', $txt['smm_column_auto'], '
 																					</input>
 																				</label>
-																			</template>
-																		</td>
-																		<template x-if="! column.auto">
+																			</td>
+																		</template>
+																		<template x-if="! (column.auto || [\'text\', \'mediumtext\'].includes(column.type))">
 																			<td>
 																				<label :for="default_id"><strong>', $txt['smm_option_default_value'], '</strong></label>
 																			</td>
 																		</template>
-																		<template x-if="! column.auto">
-																			<td>
+																		<template x-if="! (column.auto || [\'text\', \'mediumtext\'].includes(column.type))">
+																			<td colspan="2">
 																				<template x-if="column.type === \'varchar\'">
 																					<input x-model="column.default" :name="`column_defaults[${index}][]`" :id="default_id">
-																				</template>
-																				<template x-if="[\'text\', \'mediumtext\'].includes(column.type)">
-																					<textarea x-model="column.default" :name="`column_defaults[${index}][]`" :id="default_id"></textarea>
 																				</template>
 																				<template x-if="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type)">
 																					<input
