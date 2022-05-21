@@ -302,7 +302,6 @@ function template_modification_post()
 																		<template x-if="! [\'text\', \'mediumtext\'].includes(column.type)">
 																			<td>
 																				<label :for="size_id"><strong>', $txt['smm_column_size'], '</strong></label>
-
 																			</td>
 																		</template>
 																		<template x-if="! [\'text\', \'mediumtext\'].includes(column.type)">
@@ -327,15 +326,23 @@ function template_modification_post()
 																				</label>
 																			</td>
 																		</template>
-																		<template x-if="! (column.auto || [\'text\', \'mediumtext\'].includes(column.type))">
+																		<template x-if="column.auto">
+																			<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][]`">
+																		</template>
+																		<template x-if="! column.auto">
 																			<td>
-																				<label :for="default_id"><strong>', $txt['smm_option_default_value'], '</strong></label>
+																				<template x-if="! [\'text\', \'mediumtext\'].includes(column.type)">
+																					<label :for="default_id"><strong>', $txt['smm_option_default_value'], '</strong></label>
+																				</template>
 																			</td>
 																		</template>
-																		<template x-if="! (column.auto || [\'text\', \'mediumtext\'].includes(column.type))">
+																		<template x-if="! column.auto">
 																			<td colspan="2">
 																				<template x-if="column.type === \'varchar\'">
 																					<input x-model="column.default" :name="`column_defaults[${index}][]`" :id="default_id">
+																				</template>
+																				<template x-if="[\'text\', \'mediumtext\'].includes(column.type)">
+																					<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][]`">
 																				</template>
 																				<template x-if="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type)">
 																					<input
