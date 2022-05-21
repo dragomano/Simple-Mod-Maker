@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.2
+ * @version 0.3
  */
 
 namespace Bugo\SimpleModMaker;
@@ -227,7 +227,7 @@ final class Integration
 
 		require_once dirname(__DIR__) . '/Subs-Editor.php';
 
-		$context['smm_readme'] = smf_json_decode($modSettings['smm_readme'], true);
+		$context['smm_readme'] = smf_json_decode($modSettings['smm_readme'] ?? '', true);
 
 		$context['smm_readme_editor'] = [];
 

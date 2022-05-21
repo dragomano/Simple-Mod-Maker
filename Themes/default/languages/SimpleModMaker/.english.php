@@ -1,10 +1,7 @@
 <?php
 
 /**
- * .english.php (language file)
- *
  * @package Simple Mod Maker
- * @author Bugo https://dragomano.ru/mods/simple-mod-maker
  */
 
 $txt['smm_desc'] = 'Welcome to the mod\'s page for creating other mods 😜 <strong>Warning</strong>: this mod will not do all the work for you, it will only provide you with a finished application skeleton that you can adapt to your needs. Take the mod code as a tutorial and create, create more interesting mods for SMF!';
@@ -108,7 +105,7 @@ $txt['smm_make_css'] = 'Create an empty CSS file';
 $txt['smm_make_readme'] = 'Create a readme file(s) in the package';
 $txt['smm_add_copyrights'] = 'Add author\'s copyright';
 $txt['smm_add_copyrights_subtext'] = 'If you enabled this option after installing the mod, the author\'s copyright will appear on the ?action=credits page.';
-$txt['smm_min_php_version'] = 'Minimum PHP version to install';
+$txt['smm_min_php_version'] = 'Minimum required PHP version';
 
 $txt['smm_build'] = 'Build';
 

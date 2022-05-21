@@ -4,9 +4,9 @@ return [
 	'params' => [
 		'permissionGroups' => ['array', true],
 		'permissionList' => ['array', true],
-		//'leftPermissionGroups' => ['array', true],
-		//'hiddenPermissions' => ['array', true],
-		//'relabelPermissions' => ['array', true],
+		'leftPermissionGroups' => ['array', true],
+		'hiddenPermissions' => ['array', true],
+		'relabelPermissions' => ['array', true],
 	],
 	'body' => [
 		"\$permissionGroups['membergroup']['simple'] = ['{$snake_name}'];",
