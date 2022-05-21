@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.2.1
+ * @version 0.3
  */
 
 namespace Bugo\SimpleModMaker;
@@ -163,7 +163,7 @@ final class Handler
 			'hooks'             => $post_data['hooks'] ?? [],
 			'author'            => $modSettings['smm_mod_author'] ?? 'Unknown',
 			'email'             => $modSettings['smm_mod_email'] ?? 'no-reply@simplemachines.org',
-			'readmes'           => smf_json_decode($modSettings['smm_readme'], true),
+			'readmes'           => smf_json_decode($modSettings['smm_readme'] ?? '', true),
 			'version'           => $post_data['version'] ?? '0.1',
 			'site'              => $post_data['site'] ?? '',
 			'options'           => $context['smm_skeleton']['options'] ?? [],
@@ -573,6 +573,7 @@ final class Handler
 			'integrate_admin_search',
 			'integrate_alert_types',
 			'integrate_autoload',
+			'integrate_bbc_buttons',
 			'integrate_bbc_codes',
 			'integrate_before_create_topic',
 			'integrate_buffer',
@@ -584,6 +585,7 @@ final class Handler
 			'integrate_forum_stats',
 			'integrate_helpadmin',
 			'integrate_load_illegal_guest_permissions',
+			'integrate_load_message_icons',
 			'integrate_load_permissions',
 			'integrate_load_theme',
 			'integrate_menu_buttons',
@@ -596,6 +598,7 @@ final class Handler
 			'integrate_pre_css_output',
 			'integrate_prepare_display_context',
 			'integrate_query_message',
+			'integrate_sceditor_options',
 			'integrate_simple_actions',
 			'integrate_theme_context',
 			'integrate_user_info',
@@ -736,8 +739,7 @@ final class Handler
 					}
 				}
 
-				$settings->addBody("if (! empty(\$addSettings))");
-				$settings->addBody("\tupdateSettings(\$addSettings);" . PHP_EOL);
+				$settings->addBody("updateSettings(\$addSettings);" . PHP_EOL);
 			}
 
 			$settings->addBody("\$config_vars = array(");
