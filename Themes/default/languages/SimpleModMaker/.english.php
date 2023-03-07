@@ -99,6 +99,8 @@ $txt['smm_make_dir'] = 'Create a separate directory in Sources';
 $txt['smm_make_dir_subtext'] = 'Enable this option if you know in advance that your mod will consist of many files.';
 $txt['smm_use_strict_typing'] = 'Use strict typing';
 $txt['smm_use_strict_typing_subtext'] = 'If you enabled this option, a directive <a class="bbc_link" href="https://www.php.net/manual/en/language.types.declarations.php#language.types.declarations.strict" target="_blank" rel="nofollow">declare(strict_types=1);</a> will be added to the header of the mod file.';
+$txt['smm_use_final_class'] = 'Set the mod class as final';
+$txt['smm_use_final_class_subtext'] = 'Class inheritance will be limited by adding the keyword <a class="bbc_link" href="https://www.php.net/manual/en/language.oop5.final.php" target="_blank" rel="noopener">final</a> before its name.';
 $txt['smm_make_template'] = 'Create a template file';
 $txt['smm_make_script'] = 'Create an empty JS file';
 $txt['smm_make_css'] = 'Create an empty CSS file';
