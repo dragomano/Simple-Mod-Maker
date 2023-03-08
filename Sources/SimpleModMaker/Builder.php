@@ -88,8 +88,14 @@ function template_callback_{callback}()
 			}
 		}
 
-		if (! empty($this->skeleton['title']) || ! empty($this->skeleton['description']) || ! empty($this->skeleton['options']))
-			mktree($this->path . '/Themes/default/languages', 0777);
+		$lang_dir = $this->path . '/Themes/default/languages';
+		if (! empty($this->skeleton['title']) || ! empty($this->skeleton['description']) || ! empty($this->skeleton['options'])) {
+			mktree($lang_dir, 0777);
+
+			if (! empty($this->skeleton['use_lang_dir'])) {
+				mktree($lang_dir . '/' . $this->classname, 0777);
+			}
+		}
 
 		if (! empty($this->skeleton['make_script'])) {
 			mktree($this->path . '/Themes/default/scripts', 0777);
@@ -108,6 +114,10 @@ function template_callback_{callback}()
 		$this->createLangs();
 
 		mktree($this->path . '/Sources', 0777);
+
+		if (! empty($this->skeleton['use_lang_dir'])) {
+			copy(__DIR__ . '/index.php', $lang_dir . '/' . $this->classname . '/index.php');
+		}
 
 		if (empty($this->skeleton['make_dir'])) {
 			file_put_contents($this->path . '/Sources/' . $this->skeleton['filename'] . '.php', $content, LOCK_EX);
@@ -142,6 +152,9 @@ function template_callback_{callback}()
 				ZipOptions::COMPRESSION_METHOD => ZipCompressionMethod::DEFLATED,
 				ZipOptions::MODIFIED_TIME => new DateTimeImmutable('-1 day 5 min')
 			]);
+
+			$zipFile->addDirRecursive($this->path . '/Sources', 'Sources');
+			$zipFile->addDirRecursive($this->path . '/Themes', 'Themes');
 
 			$zipFile->outputAsAttachment($this->snake_name . '_' . $this->skeleton['version'] . '_smf21.zip');
 		} catch(ZipException $e) {
@@ -337,9 +350,11 @@ XXX . PHP_EOL;
 			}
 		}
 
+		$lang_dir = $this->path . '/Themes/default/languages/' . $this->classname . ($this->skeleton['use_lang_dir'] ? '/.' : '.');
+
 		foreach ($languages as $lang => $data) {
 			foreach ($data as $content) {
-				if (! is_file($lang_file = $this->path . '/Themes/default/languages/' . $this->classname . '.' . $lang . '.php'))
+				if (! is_file($lang_file = $lang_dir . $lang . '.php'))
 					$content = '<?php' . PHP_EOL . PHP_EOL . "/**
  * @package {$this->skeleton['name']}
 */" . PHP_EOL . $content;

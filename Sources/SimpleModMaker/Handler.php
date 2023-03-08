@@ -140,6 +140,7 @@ final class Handler
 				'make_dir' => FILTER_VALIDATE_BOOLEAN,
 				'use_strict_typing' => FILTER_VALIDATE_BOOLEAN,
 				'use_final_class' => FILTER_VALIDATE_BOOLEAN,
+				'use_lang_dir' => FILTER_VALIDATE_BOOLEAN,
 				'make_template' => FILTER_VALIDATE_BOOLEAN,
 				'make_script' => FILTER_VALIDATE_BOOLEAN,
 				'make_css' => FILTER_VALIDATE_BOOLEAN,
@@ -173,6 +174,7 @@ final class Handler
 			'make_dir'          => $post_data['make_dir'] ?? false,
 			'use_strict_typing' => $post_data['use_strict_typing'] ?? false,
 			'use_final_class'   => $post_data['use_final_class'] ?? false,
+			'use_lang_dir'      => $post_data['use_lang_dir'] ?? false,
 			'make_template'     => $post_data['make_template'] ?? false,
 			'make_script'       => $post_data['make_script'] ?? false,
 			'make_css'          => $post_data['make_css'] ?? false,
@@ -440,6 +442,15 @@ final class Handler
 			'after' => $txt['smm_use_final_class_subtext'],
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['use_final_class']
+			],
+			'tab' => 'package',
+		];
+
+		$context['posting_fields']['use_lang_dir']['label']['text'] = $txt['smm_use_lang_dir'];
+		$context['posting_fields']['use_lang_dir']['input'] = [
+			'type' => 'checkbox',
+			'attributes' => [
+				'checked' => (bool) $context['smm_skeleton']['use_lang_dir']
 			],
 			'tab' => 'package',
 		];
@@ -739,7 +750,7 @@ final class Handler
 			}
 
 			$settings->addBody("global \$context, \$txt, \$scripturl" . (empty($context['smm_skeleton']['options']) ? '' : ", \$modSettings") . ";" . PHP_EOL);
-			$settings->addBody("loadLanguage(?);" . PHP_EOL, [$classname]);
+			$settings->addBody("loadLanguage(?);" . PHP_EOL, [$classname . (empty($context['smm_skeleton']['use_lang_dir']) ? '' : '/')]);
 			$settings->addBody("\$context['page_title'] = \$context['settings_title'] = \$txt['{$snake_name}_title'];");
 			$settings->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=modsettings;save;sa=$snake_name';" . PHP_EOL);
 
