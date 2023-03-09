@@ -313,7 +313,6 @@ final class Handler
 				'maxlength' => 255,
 				'value'     => $context['smm_skeleton']['name'],
 				'required'  => true,
-				'style'     => 'width: 100%',
 			],
 		];
 
@@ -326,7 +325,6 @@ final class Handler
 				'value'     => $context['smm_skeleton']['filename'],
 				'required'  => true,
 				'pattern'   => self::MOD_FILENAME_PATTERN,
-				'style'     => 'width: 100%',
 			],
 		];
 
@@ -364,44 +362,43 @@ final class Handler
 			],
 		];
 
+		$context['posting_fields']['title']['label']['html'] = '<label>' . $txt['smm_mod_title_and_desc'] . '</label>';
+		$context['posting_fields']['title']['input']['tab']  = 'settings';
+		$context['posting_fields']['title']['input']['html'] = '
+			<div>';
+
+		$context['posting_fields']['title']['input']['html'] .= '
+			<nav' . ($context['right_to_left'] ? '' : ' class="floatleft"') . '>';
+
 		foreach ($context['languages'] as $lang) {
-			loadLanguage('SimpleModMaker/', $lang['filename']);
-
-			$context['posting_fields']['title_' . $lang['filename']]['label']['text'] = $txt['smm_mod_title'];
-
-			if (count($context['languages']) > 1)
-				$context['posting_fields']['title_' . $lang['filename']]['label']['text'] .= ' [' . $lang['name'] . ']';
-
-			$context['posting_fields']['title_' . $lang['filename']]['input'] = [
-				'type' => 'text',
-				'attributes' => [
-					'maxlength'   => 255,
-					'value'       => $context['smm_skeleton']['title'][$lang['filename']] ?? '',
-					'style'       => 'width: 100%',
-					'x-ref'       => 'title_' . $lang['filename'],
-					'placeholder' => $txt['smm_mod_title_default'],
-				],
-				'tab' => 'settings',
-			];
-
-			$context['posting_fields']['description_' . $lang['filename']]['label']['text'] = $txt['smm_mod_desc'];
-
-			if (count($context['languages']) > 1)
-				$context['posting_fields']['description_' . $lang['filename']]['label']['text'] .= ' [' . $lang['name'] . ']';
-
-			$context['posting_fields']['description_' . $lang['filename']]['input'] = [
-				'type' => 'text',
-				'attributes' => [
-					'maxlength'   => 255,
-					'value'       => $context['smm_skeleton']['description'][$lang['filename']] ?? '',
-					'style'       => 'width: 100%',
-					'placeholder' => $txt['smm_mod_desc_default'],
-				],
-				'tab' => 'settings',
-			];
+			$context['posting_fields']['title']['input']['html'] .= '
+				<a class="button floatnone" :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }" @click.prevent="tab = \'' . $lang['filename'] . '\'; window.location.hash = \'' . $lang['filename'] . '\'">' . $lang['name'] . '</a>';
 		}
 
-		loadLanguage('SimpleModMaker/');
+		$context['posting_fields']['title']['input']['html'] .= '
+			</nav>';
+
+		foreach ($context['languages'] as $lang) {
+			$context['posting_fields']['title']['input']['html'] .= '
+				<div x-show="tab === \'' . $lang['filename'] . '\'">
+					<input
+						type="text"
+						name="title_' . $lang['filename'] . '"
+						value="' . ($context['smm_skeleton']['title'][$lang['filename']] ?? '') . '"
+						placeholder="' . $txt['smm_mod_title_default'] . '"
+						x-ref="title_' . $lang['filename'] . '"
+					>
+					<input
+						type="text"
+						name="description_' . $lang['filename'] . '"
+						value="' . ($context['smm_skeleton']['description'][$lang['filename']] ?? '') . '"
+						placeholder="' . $txt['smm_mod_desc_default'] . '"
+					>
+				</div>';
+		}
+
+		$context['posting_fields']['title']['input']['html'] .= '
+			</div>';
 
 		$context['posting_fields']['license']['label']['text'] = $txt['smm_license'];
 		$context['posting_fields']['license']['input'] = [

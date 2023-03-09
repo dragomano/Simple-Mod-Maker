@@ -27,7 +27,7 @@ function template_callback_smm_readme_editor()
 
 function template_modification_post()
 {
-	global $context, $txt;
+	global $context, $language, $txt;
 
 	echo '
 	<div class="cat_bar">
@@ -52,7 +52,7 @@ function template_modification_post()
 	$fields = $context['posting_fields'];
 
 	echo '
-	<form action="', $context['canonical_url'], '" method="post" accept-charset="', $context['character_set'], '" onsubmit="submitonce(this);" x-data>
+	<form action="', $context['canonical_url'], '" method="post" accept-charset="', $context['character_set'], '" onsubmit="submitonce(this);" x-data="{ tab: window.location.hash ? window.location.hash.substring(1) : \'', $language, '\' }">
 		<div class="roundframe noup">
 			<div class="smm_tabs">
 				<input id="tab_basic" type="radio" name="tabs" checked>

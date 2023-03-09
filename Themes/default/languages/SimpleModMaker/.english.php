@@ -47,9 +47,8 @@ $txt['smm_mod_version'] = 'Mod version';
 $txt['smm_site_subtext'] = 'E.g. a link to the project on GitHub.';
 
 $txt['smm_tab_settings_desc'] = 'Not all mods need customization, but if yours is one of those that do, this wizard will help you create it.';
-$txt['smm_mod_title'] = 'Tab title in the admin area';
+$txt['smm_mod_title_and_desc'] = 'Tab title and the mod description in the admin area';
 $txt['smm_mod_title_default'] = 'Super-duper mod';
-$txt['smm_mod_desc'] = 'Mod description in the admin area';
 $txt['smm_mod_desc_default'] = 'Description of the super-duper mod.';
 
 $txt['smm_option_new'] = 'Add an option';
