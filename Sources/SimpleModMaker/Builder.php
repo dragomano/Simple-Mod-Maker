@@ -154,7 +154,9 @@ function template_callback_{callback}()
 			]);
 
 			$zipFile->addDirRecursive($this->path . '/Sources', 'Sources');
-			$zipFile->addDirRecursive($this->path . '/Themes', 'Themes');
+
+			if (is_dir($this->path . '/Themes'))
+				$zipFile->addDirRecursive($this->path . '/Themes', 'Themes');
 
 			$zipFile->outputAsAttachment($this->snake_name . '_' . $this->skeleton['version'] . '_smf21.zip');
 		} catch(ZipException $e) {
