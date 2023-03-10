@@ -55,6 +55,14 @@ final class Builder
 
 		require_once dirname(__DIR__) . '/Subs-Package.php';
 
+		deltree($this->path . '/readme');
+		deltree($this->path . '/Themes');
+		deltree($this->path . '/Sources');
+
+		@unlink($this->path . '/package-info.xml');
+		@unlink($this->path . '/license.txt');
+		@unlink($this->path . '/database.php');
+
 		file_put_contents(
 			$this->path . '/license.txt',
 			str_replace(
@@ -91,10 +99,6 @@ function template_callback_{callback}()
 		$lang_dir = $this->path . '/Themes/default/languages';
 		if (! empty($this->skeleton['title']) || ! empty($this->skeleton['description']) || ! empty($this->skeleton['options'])) {
 			mktree($lang_dir, 0777);
-
-			if (! empty($this->skeleton['use_lang_dir'])) {
-				mktree($lang_dir . '/' . $this->classname, 0777);
-			}
 		}
 
 		if (! empty($this->skeleton['make_script'])) {
@@ -116,6 +120,7 @@ function template_callback_{callback}()
 		mktree($this->path . '/Sources', 0777);
 
 		if (! empty($this->skeleton['use_lang_dir'])) {
+			mktree($lang_dir . '/' . $this->classname, 0777);
 			copy(__DIR__ . '/index.php', $lang_dir . '/' . $this->classname . '/index.php');
 		}
 
@@ -159,19 +164,11 @@ function template_callback_{callback}()
 				$zipFile->addDirRecursive($this->path . '/Themes', 'Themes');
 
 			$zipFile->outputAsAttachment($this->snake_name . '_' . $this->skeleton['version'] . '_smf21.zip');
-		} catch(ZipException $e) {
+		} catch (ZipException $e) {
 			fatal_error($e->getMessage());
 		} finally {
 			$zipFile->close();
 		}
-
-		deltree($this->path . '/readme');
-		deltree($this->path . '/Themes');
-		deltree($this->path . '/Sources');
-
-		@unlink($this->path . '/package-info.xml');
-		@unlink($this->path . '/license.txt');
-		@unlink($this->path . '/database.php');
 	}
 
 	private function createReadmes()

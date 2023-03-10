@@ -628,7 +628,7 @@ final class Handler
 
 	private function setData()
 	{
-		global $context;
+		global $context, $packagesdir;
 
 		if (! empty($context['post_errors']) || empty($context['smm_skeleton']) || ! isset($_POST['save']))
 			return;
@@ -686,7 +686,7 @@ final class Handler
 			'classname' => $classname,
 			'snakename' => $snake_name,
 			'license'   => $licenses['full_name'],
-			'path'      => __DIR__ . '/output'
+			'path'      => $packagesdir . '/' . $snake_name . '_' . $context['smm_skeleton']['version']
 		]);
 
 		$plugin->create($content)
