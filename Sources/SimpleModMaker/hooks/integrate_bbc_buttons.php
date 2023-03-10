@@ -6,9 +6,9 @@ return [
 		'editor_tag_map' => ['array', true],
 	],
 	'body' => [
-		"\$bbc_tags[] = [";
-		"\tcode' => 'button_code',";
-		"\t'description' => 'button desc'";
+		"\$bbc_tags[] = [",
+		"\t'code' => 'button_code',",
+		"\t'description' => 'button desc'",
 		"];" . PHP_EOL,
 		"//\$var_dump(\$editor_tag_map);",
 	]
