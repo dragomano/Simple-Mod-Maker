@@ -101,6 +101,11 @@ function template_callback_{callback}()
 			mktree($lang_dir, 0777);
 		}
 
+		if (! empty($this->skeleton['use_lang_dir'])) {
+			mktree($lang_dir . '/' . $this->classname, 0777);
+			copy(__DIR__ . '/index.php', $lang_dir . '/' . $this->classname . '/index.php');
+		}
+
 		if (! empty($this->skeleton['make_script'])) {
 			mktree($this->path . '/Themes/default/scripts', 0777);
 
@@ -118,11 +123,6 @@ function template_callback_{callback}()
 		$this->createLangs();
 
 		mktree($this->path . '/Sources', 0777);
-
-		if (! empty($this->skeleton['use_lang_dir'])) {
-			mktree($lang_dir . '/' . $this->classname, 0777);
-			copy(__DIR__ . '/index.php', $lang_dir . '/' . $this->classname . '/index.php');
-		}
 
 		if (empty($this->skeleton['make_dir'])) {
 			file_put_contents($this->path . '/Sources/' . $this->skeleton['filename'] . '.php', $content, LOCK_EX);
