@@ -26,9 +26,9 @@ final class Integration
 	 */
 	public function hooks()
 	{
-		add_integration_function('integrate_user_info', __CLASS__ . '::userInfo#', false, __FILE__);
-		add_integration_function('integrate_admin_areas', __CLASS__ . '::adminAreas#', false, __FILE__);
-		add_integration_function('integrate_admin_search', __CLASS__ . '::adminSearch#', false, __FILE__);
+		add_integration_function('integrate_user_info', self::class . '::userInfo#', false, __FILE__);
+		add_integration_function('integrate_admin_areas', self::class . '::adminAreas#', false, __FILE__);
+		add_integration_function('integrate_admin_search', self::class . '::adminSearch#', false, __FILE__);
 	}
 
 	/**
@@ -146,7 +146,8 @@ final class Integration
 			}
 
 			if (isset($_POST['smm_readme'])) {
-				$_POST['smm_readme'] = json_encode($_POST['smm_readme']);
+				$_POST['smm_readme'] = json_encode($_POST['smm_readme'], JSON_THROW_ON_ERROR);
+
 				$save_vars[] = ['large_text', 'smm_readme'];
 			}
 
@@ -201,10 +202,9 @@ final class Integration
 			$readme[$lang['filename']] = $context['smm_readme'][$lang['filename']] ?? $txt['smm_readme_default'] ?? '';
 		}
 
-		$addSettings['smm_readme'] = json_encode($readme);
+		$addSettings['smm_readme'] = json_encode($readme, JSON_THROW_ON_ERROR);
 
-		if (! empty($addSettings))
-			updateSettings($addSettings);
+		updateSettings($addSettings);
 
 		loadLanguage('SimpleModMaker/');
 	}
@@ -213,9 +213,7 @@ final class Integration
 	{
 		global $txt;
 
-		$variables = array_map(function($k, $v) {
-			return "{<strong>$k</strong>} - $v";
-		}, array_keys($txt['smm_readme_vars']), $txt['smm_readme_vars']);
+		$variables = array_map(fn($k, $v) => "{<strong>$k</strong>} - $v", array_keys($txt['smm_readme_vars']), $txt['smm_readme_vars']);
 
 		$txt['smm_readme_desc'] .= '<br><ul class="bbc_list"><li>' . implode('</li><li>', $variables) . '</ul>';
 

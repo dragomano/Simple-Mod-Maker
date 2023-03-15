@@ -181,12 +181,12 @@ function template_callback_{callback}()
 		foreach ($this->skeleton['readmes'] as $lang => $text) {
 			file_put_contents(
 				$this->path . '/readme/' . $lang . '.txt',
-				strtr($text, array(
+				strtr($text, [
 					'{mod_name}'    => $this->skeleton['name'],
 					'{author}'      => $this->skeleton['author'],
 					'{description}' => $this->skeleton['description'][$lang] ?? '',
 					'{license}'     => $this->license
-				))
+				])
 			);
 		}
 	}

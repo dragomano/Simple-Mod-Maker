@@ -262,19 +262,18 @@ final class Handler
 		if (empty($data['filename']))
 			$post_errors[] = 'no_filename';
 
-		$addon_name_format['options'] = ['regexp' => '/' . self::MOD_FILENAME_PATTERN . '/'];
-		if (! empty($data['filename']) && empty(filter_var($data['filename'], FILTER_VALIDATE_REGEXP, $addon_name_format)))
+		if (! empty($data['filename']) && empty(filter_var($data['filename'], FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => '/' . self::MOD_FILENAME_PATTERN . '/']])))
 			$post_errors[] = 'no_valid_filename';
 
 		if (! empty($data['option_names'])) {
-			foreach ($data['option_names'] as $id => $option) {
+			foreach ($data['option_names'] as $option) {
 				if (strlen($option) > 30)
 					$post_errors[] = 'option_name_too_long';
 			}
 		}
 
 		if (! empty($data['table_names'])) {
-			foreach ($data['table_names'] as $id => $table) {
+			foreach ($data['table_names'] as $table) {
 				if (strlen($table) > 64)
 					$post_errors[] = 'table_name_too_long';
 			}
@@ -566,7 +565,7 @@ final class Handler
 		if (! isset($_REQUEST['hooks']))
 			return;
 
-		$data = json_decode(file_get_contents('php://input'), true) ?? [];
+		$data = json_decode(file_get_contents('php://input'), true, 512, JSON_THROW_ON_ERROR) ?? [];
 
 		if (empty($data['search']))
 			return;
@@ -582,7 +581,7 @@ final class Handler
 		$results = array_filter($hooks, fn($item) => str_contains($item, $search));
 		$results = array_map(fn($item) => ['value' => $item], $results);
 
-		exit(json_encode($results));
+		exit(json_encode($results, JSON_THROW_ON_ERROR));
 	}
 
 	private function getHookList(): array
