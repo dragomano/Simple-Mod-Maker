@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace Bugo\SimpleModMaker;
 
+use Exception;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
@@ -34,6 +35,9 @@ final class Handler
 
 	private const COLUMN_TYPES = ['tinyint', 'int', 'mediumint', 'varchar', 'text', 'mediumtext'];
 
+	/**
+	 * @throws Exception
+	 */
 	public function generator()
 	{
 		global $context, $txt, $scripturl;
@@ -625,6 +629,9 @@ final class Handler
 		];
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	private function setData()
 	{
 		global $context, $packagesdir;

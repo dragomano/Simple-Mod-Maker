@@ -2,7 +2,6 @@
     "require": {
         "php": "^7.4|^8.0",
         "nette/php-generator": "^3.6",
-        "nelexa/zip": "^4.0",
         "ext-dom": "*"
     },
     "autoload": {

@@ -16,14 +16,11 @@ declare(strict_types=1);
 
 namespace Bugo\SimpleModMaker;
 
-use DateTimeImmutable;
 use DOMException;
 use DOMImplementation;
-use PhpZip\Constants\ZipCompressionMethod;
-use PhpZip\Constants\ZipOptions;
-use PhpZip\Exception\ZipException;
-use PhpZip\ZipFile;
-use Symfony\Component\Finder\Finder;
+use Exception;
+use Phar;
+use PharData;
 
 if (! defined('SMF'))
 	die('No direct access...');
@@ -139,36 +136,56 @@ function template_callback_{callback}()
 		return $this;
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	public function createPackage()
 	{
 		$this->preparePackageInfo();
 
-		$zipFile = new ZipFile();
+		$filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . bin2hex(random_bytes(5)) . '_smf21';
 
 		try {
-			$finder = new Finder();
-			$finder
-				->files()
-				->notName('index.php')
-				->notName('*.zip')
-				->in($this->path);
+			$phar = new PharData($filename . '.tmp');
+			$phar->buildFromDirectory($this->path);
+			$phar->convertToData(Phar::ZIP, Phar::NONE, 'zip');
 
-			$zipFile->addFromFinder($finder, [
-				ZipOptions::COMPRESSION_METHOD => ZipCompressionMethod::DEFLATED,
-				ZipOptions::MODIFIED_TIME => new DateTimeImmutable('-1 day 5 min')
-			]);
-
-			$zipFile->addDirRecursive($this->path . '/Sources', 'Sources');
-
-			if (is_dir($this->path . '/Themes'))
-				$zipFile->addDirRecursive($this->path . '/Themes', 'Themes');
-
-			$zipFile->outputAsAttachment($this->snake_name . '_' . $this->skeleton['version'] . '_smf21.zip');
-		} catch (ZipException $e) {
+			$this->download($filename . '.zip');
+		} catch (Exception $e) {
 			fatal_error($e->getMessage());
-		} finally {
-			$zipFile->close();
 		}
+	}
+
+	private function download(string $file): void
+	{
+		if (file_exists($file) === false)
+			return;
+
+		ob_end_clean();
+
+		$pretty_name = $this->snake_name . '_' . $this->skeleton['version'] . '_smf21.zip';
+
+		header_remove('content-encoding');
+		header('Content-Description: File Transfer');
+		header('Content-Type: application/octet-stream');
+		header('Content-Disposition: attachment; filename=' . $pretty_name);
+		header('Content-Transfer-Encoding: binary');
+		header('Expires: 0');
+		header('Cache-Control: must-revalidate');
+		header('Pragma: public');
+		header('Content-Length: ' . filesize($file));
+
+		if ($fd = fopen($file, 'rb')) {
+			while (! feof($fd))
+				print fread($fd, 1024);
+
+			fclose($fd);
+		}
+
+		unlink($file);
+		unlink(str_replace('.zip', '.tmp', $file));
+
+		exit;
 	}
 
 	private function createReadmes()
