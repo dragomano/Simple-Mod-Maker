@@ -548,6 +548,8 @@ final class Handler
 
 		$hooks = array_merge($common_used_hooks, $context['smm_skeleton']['hooks']);
 
+		sort($hooks);
+
 		$context['smm_hook_list'] = [
 			'data'  => [],
 			'items' => [],
@@ -590,43 +592,22 @@ final class Handler
 
 	private function getHookList(): array
 	{
-		return [
-			'integrate_actions',
-			'integrate_admin_areas',
-			'integrate_admin_search',
-			'integrate_alert_types',
-			'integrate_autoload',
-			'integrate_bbc_buttons',
-			'integrate_bbc_codes',
-			'integrate_before_create_topic',
-			'integrate_buffer',
-			'integrate_create_post',
-			'integrate_credits',
-			'integrate_display_buttons',
-			'integrate_display_topic',
-			'integrate_fetch_alerts',
+		$files = glob(__DIR__ . DIRECTORY_SEPARATOR . 'hooks' . DIRECTORY_SEPARATOR . 'integrate_*.php');
+		$files = array_map(fn($item): string => str_replace('.php', '', basename($item)), $files);
+
+		$list = array_merge($files, [
 			'integrate_forum_stats',
 			'integrate_helpadmin',
-			'integrate_load_illegal_guest_permissions',
-			'integrate_load_message_icons',
-			'integrate_load_permissions',
 			'integrate_load_theme',
-			'integrate_menu_buttons',
-			'integrate_message_index',
-			'integrate_modify_basic_settings',
-			'integrate_modify_modifications',
-			'integrate_modify_post',
 			'integrate_post_end',
-			'integrate_post_quickbuttons',
 			'integrate_pre_css_output',
-			'integrate_prepare_display_context',
-			'integrate_query_message',
-			'integrate_sceditor_options',
-			'integrate_simple_actions',
 			'integrate_theme_context',
 			'integrate_user_info',
-			'integrate_whos_online',
-		];
+		]);
+
+		sort($list);
+
+		return $list;
 	}
 
 	/**
