@@ -2,7 +2,8 @@
     "require": {
         "php": "^7.4|^8.0",
         "nette/php-generator": "^3.6",
-        "ext-dom": "*"
+        "ext-dom": "*",
+        "symfony/polyfill-php80": "^1.27"
     },
     "autoload": {
         "psr-4": {
