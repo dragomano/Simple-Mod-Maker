@@ -4,7 +4,7 @@
  * @package Simple Mod Maker
  */
 
-$txt['smm_desc'] = 'Welcome to the mod\'s page for creating other mods 😜 <strong>Warning</strong>: this mod will not do all the work for you, it will only provide you with a finished application skeleton that you can adapt to your needs. Take the mod code as a tutorial and create, create more interesting mods for SMF!';
+$txt['smm_desc'] = '😜 Welcome to the mod\'s page for creating other mods. <strong>Warning</strong>: this mod will not do all the work for you, it will only provide you with a finished application skeleton that you can adapt to your needs. Take the mod code as a tutorial and create, create more interesting mods for SMF!';
 $txt['smm_basic'] = 'Basic settings';
 $txt['smm_generator'] = 'Generator';
 
@@ -30,7 +30,7 @@ $txt['smm_readme_default'] = '[center][color=red][size=16pt][b]{mod_name}[/b][/s
 
 [hr][b]It is released under {license}.[/b]';
 
-$txt['smm_add_desc'] = 'The mod wizard will help you to prepare a dummy for further modifications. Carefully fill in the suggested fields.';
+$txt['smm_add_desc'] = '🐼 The mod wizard will help you to prepare a dummy for further modifications. Carefully fill in the suggested fields. <strong>Note</strong>: a subdirectory with generated files will be created in the <em>Packages</em> directory. Using <a class="bbc_link" href="https://custom.simplemachines.org/index.php?mod=4358">Developer Tools</a> you can immediately test the installation and operation of your modification.';
 
 $txt['smm_tab_basic'] = 'Basic data';
 $txt['smm_tab_settings'] = 'Setting Constructor';
