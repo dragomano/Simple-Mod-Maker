@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2023 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.4
+ * @version 0.5
  */
 
 namespace Bugo\SimpleModMaker;
@@ -38,10 +38,10 @@ final class Handler
 	{
 		global $context, $txt, $scripturl;
 
+		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js', ['external' => true]);
+
 		loadCSSFile('https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.min.css', ['external' => true]);
 		loadCSSFile('simple_mod_maker.css');
-		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js', ['external' => true]);
-		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js', ['external' => true, 'defer' => true]);
 
 		$context['page_title']      = SMM_NAME . ' - ' . $txt['smm_generator'];
 		$context['page_area_title'] = $txt['smm_generator'];
@@ -565,7 +565,7 @@ final class Handler
 		if (! isset($_REQUEST['hooks']))
 			return;
 
-		$data = json_decode(file_get_contents('php://input'), true, 512, JSON_THROW_ON_ERROR) ?? [];
+		$data = json_decode(file_get_contents('php://input'), true) ?? [];
 
 		if (empty($data['search']))
 			return;
@@ -581,7 +581,7 @@ final class Handler
 		$results = array_filter($hooks, fn($item) => str_contains($item, $search));
 		$results = array_map(fn($item) => ['value' => $item], $results);
 
-		exit(json_encode($results, JSON_THROW_ON_ERROR));
+		exit(json_encode($results));
 	}
 
 	private function getHookList(): array
@@ -703,7 +703,7 @@ final class Handler
 			$hooks->addBody("add_integration_function(?, __CLASS__ . '::?#', false, __FILE__);", [$hook, $method_name]);
 
 			$method = $class->addMethod($method_name)
-				->addComment('@hook ' . $hook);;
+				->addComment('@hook ' . $hook);
 
 			if (file_exists($hook_file = __DIR__ . '/hooks/' . $hook . '.php')) {
 				$hook_data = require_once $hook_file;

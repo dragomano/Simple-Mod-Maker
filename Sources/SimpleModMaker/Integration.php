@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2023 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.4
+ * @version 0.5
  */
 
 namespace Bugo\SimpleModMaker;
@@ -28,11 +28,10 @@ final class Integration
 	{
 		add_integration_function('integrate_user_info', self::class . '::userInfo#', false, __FILE__);
 		add_integration_function('integrate_admin_areas', self::class . '::adminAreas#', false, __FILE__);
-		add_integration_function('integrate_admin_search', self::class . '::adminSearch#', false, __FILE__);
 	}
 
 	/**
-	 * Implements integrate_user_info
+	 * @hook integrate_user_info
 	 */
 	public function userInfo()
 	{
@@ -40,13 +39,15 @@ final class Integration
 	}
 
 	/**
-	 * Implements integrate_admin_areas
+	 * @hook integrate_admin_areas
 	 */
 	public function adminAreas(array &$admin_areas)
 	{
 		global $txt;
 
 		loadLanguage('SimpleModMaker/');
+
+		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js', ['external' => true, 'defer' => true]);
 
 		$admin_areas['config']['areas']['smm'] = [
 			'label'       => SMM_NAME,
@@ -57,14 +58,6 @@ final class Integration
 				'generator' => [$txt['smm_generator']],
 			]
 		];
-	}
-
-	/**
-	 * Easy access to mod settings via the quick search in the admin panel
-	 */
-	public function adminSearch(array &$language_files, array &$include_files, array &$settings_search)
-	{
-		$settings_search[] = [[$this, 'basicSettings'], 'area=smm;sa=basic'];
 	}
 
 	/**
@@ -146,7 +139,7 @@ final class Integration
 			}
 
 			if (isset($_POST['smm_readme'])) {
-				$_POST['smm_readme'] = json_encode($_POST['smm_readme'], JSON_THROW_ON_ERROR);
+				$_POST['smm_readme'] = json_encode($_POST['smm_readme']);
 
 				$save_vars[] = ['large_text', 'smm_readme'];
 			}
@@ -202,7 +195,7 @@ final class Integration
 			$readme[$lang['filename']] = $context['smm_readme'][$lang['filename']] ?? $txt['smm_readme_default'] ?? '';
 		}
 
-		$addSettings['smm_readme'] = json_encode($readme, JSON_THROW_ON_ERROR);
+		$addSettings['smm_readme'] = json_encode($readme);
 
 		updateSettings($addSettings);
 

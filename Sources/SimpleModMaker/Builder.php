@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2023 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.4
+ * @version 0.5
  */
 
 namespace Bugo\SimpleModMaker;
@@ -67,7 +67,7 @@ final class Builder
 			$this->path . '/license.txt',
 			str_replace(
 				'{copyright}', date('Y') . ' ' . $this->skeleton['author'],
-				file_get_contents(__DIR__ . '/licenses/' . $this->skeleton['license'] . '.txt')
+				file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'licenses' . DIRECTORY_SEPARATOR . $this->skeleton['license'] . '.txt')
 			)
 		);
 
@@ -304,7 +304,7 @@ XXX . PHP_EOL;
 		file_put_contents($this->path . '/database.php', $database);
 	}
 
-	private function getDefaultValue(array $column)
+	private function getDefaultValue(array $column): ?string
 	{
 		switch ($column['type']) {
 			case 'tinyint':
@@ -375,100 +375,48 @@ XXX . PHP_EOL;
 			$root->setAttributeNS('http://www.w3.org/2000/xmlns/' ,'xmlns:smf', 'http://www.simplemachines.org/');
 			$xml->appendChild($root);
 
-			$xml->preserveWhiteSpace = false;
+			$xml->preserveWhiteSpace = true;
 			$xml->formatOutput = true;
 
-			$id = $root->appendChild($xml->createElement('id', $this->skeleton['author'] . ':' . $this->classname));
-			$root->appendChild($id);
+			$data = $this->getProperData();
 
-			$name = $root->appendChild($xml->createElement('name', $this->skeleton['name']));
-			$root->appendChild($name);
+			foreach ($data as $key => $value) {
+				if (is_array($value)) {
+					$root->appendChild($root->appendChild($xml->createElement('empty')));
 
-			$version = $root->appendChild($xml->createElement('version', $this->skeleton['version']));
-			$root->appendChild($version);
+					$element = $root->appendChild($xml->createElement($key));
 
-			$type = $root->appendChild($xml->createElement('type', 'modification'));
-			$root->appendChild($type);
-
-			$install = $root->appendChild($xml->createElement('install'));
-			($install->appendChild($xml->createAttribute('for')))->appendChild($xml->createTextNode('2.1.*'));
-
-			if (! empty($this->skeleton['tables']) || ! empty($this->skeleton['min_php_version']))
-				$install->appendChild($xml->createElement('database', 'database.php'));
-
-			if ($this->skeleton['make_readme'] && ! empty($this->skeleton['readmes'])) {
-				foreach (array_keys($this->skeleton['readmes']) as $lang) {
-					$readme = $install->appendChild($xml->createElement('readme', 'readme/' . $lang . '.txt'));
-					($readme->appendChild($xml->createAttribute('parsebbc')))->appendChild($xml->createTextNode('true'));
-
-					if ($lang !== 'english')
-						($readme->appendChild($xml->createAttribute('lang')))->appendChild($xml->createTextNode($lang));
-				}
-			}
-
-			$sources = $install->appendChild($xml->createElement('require-dir'));
-			($sources->appendChild($xml->createAttribute('name')))->appendChild($xml->createTextNode('Sources'));
-			($sources->appendChild($xml->createAttribute('destination')))->appendChild($xml->createTextNode('$boarddir'));
-
-			$themes = $install->appendChild($xml->createElement('require-dir'));
-			($themes->appendChild($xml->createAttribute('name')))->appendChild($xml->createTextNode('Themes'));
-			($themes->appendChild($xml->createAttribute('destination')))->appendChild($xml->createTextNode('$boarddir'));
-
-			$filename = empty($this->skeleton['make_dir']) ? $this->skeleton['filename'] : $this->classname . '/Integration';
-			$coreclass = $this->skeleton['author'] . '\\' . $this->classname . (empty($this->skeleton['make_dir']) ? '' : '\Integration');
-
-			$hook = $install->appendChild($xml->createElement('hook'));
-			($hook->appendChild($xml->createAttribute('hook')))->appendChild($xml->createTextNode('integrate_pre_load'));
-			($hook->appendChild($xml->createAttribute('function')))->appendChild($xml->createTextNode($coreclass . '::hooks#'));
-			($hook->appendChild($xml->createAttribute('file')))->appendChild($xml->createTextNode('$sourcedir/' . $filename . '.php'));
-
-			if (! empty($this->skeleton['options'])) {
-				$redirect = $install->appendChild($xml->createElement('redirect'));
-				($redirect->appendChild($xml->createAttribute('url')))->appendChild($xml->createTextNode('?action=admin;area=modsettings;sa=' . $this->snake_name));
-				($redirect->appendChild($xml->createAttribute('timeout')))->appendChild($xml->createTextNode('3000'));
-			}
-
-			$uninstall = $root->appendChild($xml->createElement('uninstall'));
-			($uninstall->appendChild($xml->createAttribute('for')))->appendChild($xml->createTextNode('2.1.*'));
-
-			$hook = $uninstall->appendChild($xml->createElement('hook'));
-			($hook->appendChild($xml->createAttribute('hook')))->appendChild($xml->createTextNode('integrate_pre_load'));
-			($hook->appendChild($xml->createAttribute('function')))->appendChild($xml->createTextNode($coreclass . '::hooks#'));
-			($hook->appendChild($xml->createAttribute('file')))->appendChild($xml->createTextNode('$sourcedir/' . $filename . '.php'));
-			($hook->appendChild($xml->createAttribute('reverse')))->appendChild($xml->createTextNode('true'));
-
-			if (! empty($this->skeleton['make_template'])) {
-				$template = $uninstall->appendChild($xml->createElement('remove-file'));
-				($template->appendChild($xml->createAttribute('name')))->appendChild($xml->createTextNode('$themedir/' . $this->classname . '.template.php'));
-			}
-
-			if (! empty($this->skeleton['make_script'])) {
-				$scripts = $uninstall->appendChild($xml->createElement('remove-file'));
-				($scripts->appendChild($xml->createAttribute('name')))->appendChild($xml->createTextNode('$themedir/scripts/' . $this->snake_name . '.js'));
-			}
-
-			if (! empty($this->skeleton['make_css'])) {
-				$styles = $uninstall->appendChild($xml->createElement('remove-file'));
-				($styles->appendChild($xml->createAttribute('name')))->appendChild($xml->createTextNode('$themedir/css/' . $this->snake_name . '.css'));
-			}
-
-			if (empty($this->skeleton['make_dir'])) {
-				$core = $uninstall->appendChild($xml->createElement('remove-file'));
-				($core->appendChild($xml->createAttribute('name')))->appendChild($xml->createTextNode('$sourcedir/' . $filename . '.php'));
-			} else {
-				$core = $uninstall->appendChild($xml->createElement('remove-dir'));
-				($core->appendChild($xml->createAttribute('name')))->appendChild($xml->createTextNode('$sourcedir/' . $this->classname));
-			}
-
-			foreach (array_keys($this->skeleton['readmes']) as $lang) {
-				if (is_file($this->path . '/Themes/default/languages/' . $this->classname . '.' . $lang . '.php')) {
-					$languages = $uninstall->appendChild($xml->createElement('remove-file'));
-					($languages->appendChild($xml->createAttribute('name')))->appendChild($xml->createTextNode('$languagedir/' . $this->classname . '.' . $lang . '.php'));
+					foreach ($value as $k => $v) {
+						if (is_array($v)) {
+							if ($k === '@attributes') {
+								foreach ($v as $i => $j) {
+									($element->appendChild($xml->createAttribute($i)))->appendChild($xml->createTextNode($j));
+								}
+							} else {
+								foreach ($v as $r => $s) {
+									$e = $element->appendChild($xml->createElement($k, is_string($r) ? $r : ''));
+									foreach ($s as $x => $y) {
+										($e->appendChild($xml->createAttribute($x)))->appendChild($xml->createTextNode($y));
+									}
+								}
+							}
+						} else {
+							$element->appendChild($xml->createElement($k, $v));
+						}
+					}
+				} else {
+					$element = $root->appendChild($xml->createElement($key, $value));
+					$root->appendChild($element);
 				}
 			}
 
 			$xml_string = $xml->saveXML();
-			$xml_string = preg_replace_callback('/^(?:[ ]{2})+/m', function ($m) {
+
+			// Make empty string
+			$xml_string = str_replace('  <empty/>', '', $xml_string);
+
+			// Replace spaces with tabs
+			$xml_string = preg_replace_callback('/^(?: {2})+/m', function ($m) {
 				$spaces = strlen($m[0]);
 				$tabs = $spaces / 2;
 				return str_repeat("\t", $tabs);
@@ -478,6 +426,126 @@ XXX . PHP_EOL;
 		} catch (DOMException $e) {
 			fatal_error($e->getMessage());
 		}
+	}
+
+	private function getProperData(): array
+	{
+		$data = [
+			'id' => $this->skeleton['author'] . ':' . $this->classname,
+			'name' => $this->skeleton['name'],
+			'version' => $this->skeleton['version'],
+			'type' => 'modification',
+		];
+
+		$data['install'] = [
+			'@attributes' => [
+				'for' => '2.1.*',
+			]
+		];
+
+		if (! empty($this->skeleton['tables']) || ! empty($this->skeleton['min_php_version']))
+			$data['install']['database'] = 'database.php';
+
+		if ($this->skeleton['make_readme'] && ! empty($this->skeleton['readmes'])) {
+			foreach (array_keys($this->skeleton['readmes']) as $lang) {
+				$data['install']['readme']['readme/' . $lang . '.txt'] = $lang !== 'english' ? [
+					'parsebbc' => 'true',
+					'lang' => $lang,
+				] : [
+					'parsebbc' => 'true',
+				];
+			}
+		}
+
+		$data['install']['require-dir'] = [
+			[
+				'name' => 'Sources',
+				'destination' => '$boarddir',
+			],
+		];
+
+		if (is_dir($this->path . '/Themes')) {
+			$data['install']['require-dir'][] = [
+				'name' => 'Themes',
+				'destination' => '$boarddir',
+			];
+		}
+
+		$filename = empty($this->skeleton['make_dir']) ? $this->skeleton['filename'] : $this->classname . '/Integration';
+		$coreclass = $this->skeleton['author'] . '\\' . $this->classname . (empty($this->skeleton['make_dir']) ? '' : '\Integration');
+
+		$data['install']['hook'][] = [
+			'hook' => 'integrate_pre_load',
+			'function' => $coreclass . '::hooks#',
+			'file' => '$sourcedir/' . $filename . '.php',
+		];
+
+		if (! empty($this->skeleton['options'])) {
+			$data['install']['redirect'] = [
+				'url' => '?action=admin;area=modsettings;sa=' . $this->snake_name,
+				'timeout' => '3000',
+			];
+		}
+
+		$data['uninstall'] = [
+			'@attributes' => [
+				'for' => '2.1.*',
+			],
+			'hook' => [
+				array_merge((array) $data['install']['hook'][0], [
+					'reverse' => 'true',
+				]),
+			],
+		];
+
+		if (! empty($this->skeleton['make_template'])) {
+			$data['uninstall']['remove-file'][] = [
+				'name' => '$themedir/' . $this->classname . '.template.php',
+			];
+		}
+
+		if (! empty($this->skeleton['make_script'])) {
+			$data['uninstall']['remove-file'][] = [
+				'name' => '$themedir/scripts/' . $this->snake_name . '.js',
+			];
+		}
+
+		if (! empty($this->skeleton['make_css'])) {
+			$data['uninstall']['remove-file'][] = [
+				'name' => '$themedir/css/' . $this->snake_name . '.css',
+			];
+		}
+
+		foreach (array_keys($this->skeleton['readmes']) as $lang) {
+			if (is_file($this->path . '/Themes/default/languages/' . $this->classname . '.' . $lang . '.php')) {
+				$data['uninstall']['remove-file'][] = [
+					'name' => '$languagedir/' . $this->classname . '.' . $lang . '.php',
+				];
+			}
+		}
+
+		if (empty($this->skeleton['make_dir'])) {
+			$data['uninstall']['remove-file'][] = [
+				'name' => '$sourcedir/' . $filename . '.php',
+			];
+		} else {
+			$data['uninstall']['remove-dir'][] = [
+				'name' => '$sourcedir/' . $this->classname,
+			];
+		}
+
+		if (! empty($this->skeleton['use_lang_dir'])) {
+			$data['uninstall']['remove-dir'][] = [
+				'name' => '$languagedir/' . $this->classname,
+			];
+		}
+
+		// Compatibility with Developer Tools
+		/*$data['devtools'] = [
+			'packagename' => '{CUSTOMIZATION_NAME}_{VERSION}',
+		];*/
+
+		return $data;
 	}
 
 	private function addSecurityCheck(string &$content)

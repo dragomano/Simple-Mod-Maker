@@ -2,27 +2,29 @@
 
 function template_callback_smm_readme_editor()
 {
-	global $context;
+	global $language, $context, $txt;
 
 	echo '
-		<table class="table_grid">
-			<tbody>';
+	<div x-data="{ tab: window.location.hash ? window.location.hash.substring(1) : \'', $language, '\' }">
+		<nav' . ($context['right_to_left'] ? '' : ' class="floatleft"') . '>';
 
 	foreach ($context['languages'] as $lang) {
 		echo '
-				<tr class="windowbg">
-					<td>
-						<label for="smm_readme_', $lang['filename'], '">
-							<strong>' . $lang['name'] . '</strong>
-						</label>
-					</td>
-					<td>', template_control_richedit($context['smm_readme_editor'][$lang['filename']], null, 'bbcBox_message'), '</td>
-				</tr>';
+			<a class="button floatnone" :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }" @click.prevent="tab = \'' . $lang['filename'] . '\'; window.location.hash = \'' . $lang['filename'] . '\'">' . $lang['name'] . '</a>';
 	}
 
 	echo '
-			</tbody>
-		</table>';
+		</nav>';
+
+	foreach ($context['languages'] as $lang) {
+		echo '
+		<div x-show="tab === \'' . $lang['filename'] . '\'">
+			', template_control_richedit($context['smm_readme_editor'][$lang['filename']], null, 'bbcBox_message'), '
+		</div>';
+	}
+
+	echo '
+	</div>';
 }
 
 function template_modification_post()
