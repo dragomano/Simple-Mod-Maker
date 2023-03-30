@@ -2,7 +2,7 @@
 [![SMF 2.1](https://img.shields.io/badge/SMF-2.1-ed6033.svg?style=flat)](https://github.com/SimpleMachines/SMF2.1)
 ![License](https://img.shields.io/github/license/dragomano/simple-mod-maker)
 ![Hooks only: Yes](https://img.shields.io/badge/Hooks%20only-YES-blue)
-![PHP](https://img.shields.io/badge/PHP-^7.4-blue.svg?style=flat)
+![PHP](https://img.shields.io/badge/PHP-^8.0-blue.svg?style=flat)
 [![Crowdin](https://badges.crowdin.net/simple-mod-maker/localized.svg)](https://crowdin.com/project/simple-mod-maker)
 
 * **Tested on:** PHP 8.0.24
@@ -24,7 +24,6 @@ You just need to set the necessary options, click "Build" and get a modification
 ## What's under the hood?
 * [Nette PHP Generator](https://github.com/nette/php-generator), for generating the working class of modifications.
 * [Alpine.js](https://github.com/alpinejs/alpine), for the wizards in the frontend.
-* [PhpZip](https://github.com/Ne-Lexa/php-zip), for packaging received files into a zip archive.
 * [TomSelect](https://github.com/orchidjs/tom-select), for the hook list search field.
 
 If you liked this mod, then give a star ⭐️ to this project.
