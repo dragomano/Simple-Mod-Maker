@@ -38,7 +38,7 @@ final class Handler
 	/**
 	 * @throws Exception
 	 */
-	public function generator()
+	public function generator(): void
 	{
 		global $context, $txt, $scripturl;
 
@@ -65,7 +65,7 @@ final class Handler
 		$context['sub_template'] = 'modification_post';
 	}
 
-	private function validateData()
+	private function validateData(): void
 	{
 		global $context, $modSettings;
 
@@ -254,7 +254,7 @@ final class Handler
 		$context['smm_skeleton']['hooks'] = array_unique($context['smm_skeleton']['hooks']);
 	}
 
-	private function findErrors(array $data)
+	private function findErrors(array $data): void
 	{
 		global $context, $txt;
 
@@ -300,7 +300,7 @@ final class Handler
 		}
 	}
 
-	private function prepareFormFields()
+	private function prepareFormFields(): void
 	{
 		global $context, $txt;
 
@@ -515,7 +515,7 @@ final class Handler
 		$this->preparePostFields();
 	}
 
-	private function preparePostFields()
+	private function preparePostFields(): void
 	{
 		global $context;
 
@@ -540,7 +540,7 @@ final class Handler
 		}
 	}
 
-	private function prepareHookList()
+	private function prepareHookList(): void
 	{
 		global $modSettings, $context;
 
@@ -564,7 +564,7 @@ final class Handler
 		}
 	}
 
-	private function searchHooks()
+	private function searchHooks(): void
 	{
 		global $smcFunc;
 
@@ -613,7 +613,7 @@ final class Handler
 	/**
 	 * @throws Exception
 	 */
-	private function setData()
+	private function setData(): void
 	{
 		global $context, $packagesdir;
 
@@ -680,7 +680,7 @@ final class Handler
 			->createPackage();
 	}
 
-	private function prepareUsedHooks(array &$context, ClassType $class, string $classname, string $snake_name)
+	private function prepareUsedHooks(array &$context, ClassType $class, string $classname, string $snake_name): void
 	{
 		$hooks = $class->addMethod('hooks')
 			->addBody("// add_integration_function('integrate_hook_name', __CLASS__ . '::methodName#', false, __FILE__);");
@@ -831,11 +831,9 @@ final class Handler
 			case 'int':
 				$default = (int) $option['default'];
 				break;
-
 			case 'float':
 				$default = (float) $option['default'];
 				break;
-
 			default:
 				$default = $option['default'];
 		}
@@ -855,7 +853,7 @@ final class Handler
 		return lcfirst(str_replace(' ', '', ucwords(strtr($hook, ['integrate' => '', '_' => ' ']))));
 	}
 
-	private function rememberUsedHooks()
+	private function rememberUsedHooks(): void
 	{
 		global $context, $modSettings;
 

@@ -2,7 +2,7 @@
 [![SMF 2.1](https://img.shields.io/badge/SMF-2.1-ed6033.svg?style=flat)](https://github.com/SimpleMachines/SMF2.1)
 ![License](https://img.shields.io/github/license/dragomano/simple-mod-maker)
 ![Hooks only: Yes](https://img.shields.io/badge/Hooks%20only-YES-blue)
-![PHP](https://img.shields.io/badge/PHP-^8.0-blue.svg?style=flat)
+![PHP](https://img.shields.io/badge/PHP-^7.4-blue.svg?style=flat)
 [![Crowdin](https://badges.crowdin.net/simple-mod-maker/localized.svg)](https://crowdin.com/project/simple-mod-maker)
 
 * **Tested on:** PHP 8.0.24

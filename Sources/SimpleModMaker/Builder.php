@@ -52,26 +52,22 @@ final class Builder
 
 		require_once dirname(__DIR__) . '/Subs-Package.php';
 
-		deltree($this->path . '/readme');
-		deltree($this->path . '/Themes');
-		deltree($this->path . '/Sources');
+		deltree($this->path);
 
-		@unlink($this->path . '/package-info.xml');
-		@unlink($this->path . '/license.txt');
-		@unlink($this->path . '/database.php');
+		mktree($this->path, 0777);
 
-		file_put_contents(
+		package_put_contents(
 			$this->path . '/license.txt',
 			str_replace(
 				'{copyright}', date('Y') . ' ' . $this->skeleton['author'],
-				file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'licenses' . DIRECTORY_SEPARATOR . $this->skeleton['license'] . '.txt')
+				package_get_contents(__DIR__ . '/licenses/' . $this->skeleton['license'] . '.txt')
 			)
 		);
 
 		if (! empty($this->skeleton['make_template']) || ! empty($this->skeleton['callbacks'])) {
 			mktree($this->path . '/Themes/default', 0777);
 
-			file_put_contents($this->path . '/Themes/default/' . $this->classname . '.template.php', "<?php
+			package_put_contents($this->path . '/Themes/default/' . $this->classname . '.template.php', "<?php
 
 function template_my_area()
 {
@@ -106,13 +102,13 @@ function template_callback_{callback}()
 		if (! empty($this->skeleton['make_script'])) {
 			mktree($this->path . '/Themes/default/scripts', 0777);
 
-			file_put_contents($this->path . '/Themes/default/scripts/' . $this->snake_name . '.js', "/* Put your JS here */");
+			package_put_contents($this->path . '/Themes/default/scripts/' . $this->snake_name . '.js', "/* Put your JS here */");
 		}
 
 		if (! empty($this->skeleton['make_css'])) {
 			mktree($this->path . '/Themes/default/css', 0777);
 
-			file_put_contents($this->path . '/Themes/default/css/' . $this->snake_name . '.css', "/* Put your CSS here */");
+			package_put_contents($this->path . '/Themes/default/css/' . $this->snake_name . '.css', "/* Put your CSS here */");
 		}
 
 		$this->createReadmes();
@@ -139,7 +135,7 @@ function template_callback_{callback}()
 	/**
 	 * @throws Exception
 	 */
-	public function createPackage()
+	public function createPackage(): void
 	{
 		$this->preparePackageInfo();
 
@@ -188,7 +184,7 @@ function template_callback_{callback}()
 		exit;
 	}
 
-	private function createReadmes()
+	private function createReadmes(): void
 	{
 		if (empty($this->skeleton['make_readme']) || empty($this->skeleton['readmes']))
 			return;
@@ -196,7 +192,7 @@ function template_callback_{callback}()
 		mktree($this->path . '/readme', 0777);
 
 		foreach ($this->skeleton['readmes'] as $lang => $text) {
-			file_put_contents(
+			package_put_contents(
 				$this->path . '/readme/' . $lang . '.txt',
 				strtr($text, [
 					'{mod_name}'    => $this->skeleton['name'],
@@ -208,7 +204,7 @@ function template_callback_{callback}()
 		}
 	}
 
-	private function createTables()
+	private function createTables(): void
 	{
 		if (empty($this->skeleton['tables']) && empty($this->skeleton['min_php_version']))
 			return;
@@ -318,7 +314,7 @@ if (SMF === 'SSI')
 XXX . PHP_EOL;
 		}
 
-		file_put_contents($this->path . '/database.php', $database);
+		package_put_contents($this->path . '/database.php', $database);
 	}
 
 	private function getDefaultValue(array $column): ?string
@@ -329,7 +325,6 @@ XXX . PHP_EOL;
 			case 'mediumint':
 				$value = (int) $column['default'];
 				break;
-
 			default:
 				$value = $column['default'];
 		}
@@ -337,7 +332,7 @@ XXX . PHP_EOL;
 		return var_export($value, true);
 	}
 
-	private function createLangs()
+	private function createLangs(): void
 	{
 		$languages = [];
 
@@ -380,7 +375,7 @@ XXX . PHP_EOL;
 		}
 	}
 
-	private function preparePackageInfo()
+	private function preparePackageInfo(): void
 	{
 		try {
 			$imp = new DOMImplementation();
@@ -439,7 +434,7 @@ XXX . PHP_EOL;
 				return str_repeat("\t", $tabs);
 			}, $xml_string);
 
-			file_put_contents($this->path . '/package-info.xml', rtrim($xml_string, PHP_EOL));
+			package_put_contents($this->path . '/package-info.xml', rtrim($xml_string, PHP_EOL));
 		} catch (DOMException $e) {
 			fatal_error($e->getMessage());
 		}
@@ -565,7 +560,7 @@ XXX . PHP_EOL;
 		return $data;
 	}
 
-	private function addSecurityCheck(string &$content)
+	private function addSecurityCheck(string &$content): void
 	{
 		$message = <<<XXX
 	if (! defined('SMF'))

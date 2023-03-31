@@ -24,7 +24,7 @@ final class Integration
 	/**
 	 * Runs the mod's hooks
 	 */
-	public function hooks()
+	public function hooks(): void
 	{
 		add_integration_function('integrate_user_info', self::class . '::userInfo#', false, __FILE__);
 		add_integration_function('integrate_admin_areas', self::class . '::adminAreas#', false, __FILE__);
@@ -33,7 +33,7 @@ final class Integration
 	/**
 	 * @hook integrate_user_info
 	 */
-	public function userInfo()
+	public function userInfo(): void
 	{
 		defined('SMM_NAME') || define('SMM_NAME', 'Simple Mod Maker');
 	}
@@ -41,7 +41,7 @@ final class Integration
 	/**
 	 * @hook integrate_admin_areas
 	 */
-	public function adminAreas(array &$admin_areas)
+	public function adminAreas(array &$admin_areas): void
 	{
 		global $txt;
 
@@ -63,7 +63,7 @@ final class Integration
 	/**
 	 * Directs the admin to the proper page of settings for the Mod Maker
 	 */
-	public function settings()
+	public function settings(): void
 	{
 		global $context, $txt;
 
@@ -152,7 +152,7 @@ final class Integration
 		prepareDBSettingContext($config_vars);
 	}
 
-	private function prepareForumLanguages()
+	private function prepareForumLanguages(): void
 	{
 		global $context, $modSettings, $language, $user_info;
 
@@ -177,7 +177,7 @@ final class Integration
 		);
 	}
 
-	private function addDefaultSettings()
+	private function addDefaultSettings(): void
 	{
 		global $modSettings, $user_info, $context, $txt;
 
@@ -202,7 +202,7 @@ final class Integration
 		loadLanguage('SimpleModMaker/');
 	}
 
-	private function extendReadmeDesc()
+	private function extendReadmeDesc(): void
 	{
 		global $txt;
 
@@ -212,7 +212,7 @@ final class Integration
 
 	}
 
-	private function prepareBbcEditor()
+	private function prepareBbcEditor(): void
 	{
 		global $context, $modSettings;
 
