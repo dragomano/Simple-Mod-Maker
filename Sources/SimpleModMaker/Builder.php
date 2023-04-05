@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2023 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.5
+ * @version 0.5.2
  */
 
 namespace Bugo\SimpleModMaker;
@@ -67,25 +67,24 @@ final class Builder
 		if (! empty($this->skeleton['make_template']) || ! empty($this->skeleton['callbacks'])) {
 			mktree($this->path . '/Themes/default', 0777);
 
-			package_put_contents($this->path . '/Themes/default/' . $this->classname . '.template.php', "<?php
+			$template = "<?php\n\n";
+			$template .= "function template_my_area()\n";
+			$template .= "{\n";
+			$template .= "\t// Add your code here\n\n";
+			$template .= "\t// Example of using:\n";
+			$template .= "\t// loadTemplate('$this->classname');\n";
+			$template .= "\t// \$context['sub_template'] = 'my_area';\n";
+			$template .= "}\n";
 
-function template_my_area()
-{
-	// Add your code here
+			file_put_contents($this->path . '/Themes/default/' . $this->classname . '.template.php', $template);
 
-	// Example of using:
-	// loadTemplate('$this->classname');
-	// \$context['sub_template'] = 'my_area';
-}" . PHP_EOL);
+			foreach ($this->skeleton['callbacks'] as $callback) {
+				$callbackTemplate = "\nfunction template_callback_{$callback}()\n";
+				$callbackTemplate .= "{\n";
+				$callbackTemplate .= "\t// Add your code here\n";
+				$callbackTemplate .= "}\n";
 
-			if (! empty($this->skeleton['callbacks'])) {
-				foreach ($this->skeleton['callbacks'] as $callback) {
-					file_put_contents($this->path . '/Themes/default/' . $this->classname . '.template.php', str_replace('{callback}', $callback, "
-function template_callback_{callback}()
-{
-	// Add your code here
-}") . PHP_EOL, FILE_APPEND);
-				}
+				file_put_contents($this->path . '/Themes/default/' . $this->classname . '.template.php', $callbackTemplate, FILE_APPEND);
 			}
 		}
 
@@ -206,112 +205,90 @@ function template_callback_{callback}()
 
 	private function createTables(): void
 	{
-		if (empty($this->skeleton['tables']) && empty($this->skeleton['min_php_version']))
+		if (empty($this->skeleton['tables']) && empty($this->skeleton['min_php_version'])) {
 			return;
+		}
 
-		$database = <<<XXX
-<?php
-
-if (file_exists(dirname(__FILE__) . '/SSI.php') && ! defined('SMF'))
-	require_once(dirname(__FILE__) . '/SSI.php');
-elseif(! defined('SMF'))
-	die('<b>Error:</b> Cannot install - please verify that you put this file in the same place as SMF\'s index.php and SSI.php files.');
-XXX . PHP_EOL . PHP_EOL;
+		$database = "<?php\n\n";
+		$database .= "if (file_exists(dirname(__FILE__) . '/SSI.php') && ! defined('SMF'))\n";
+		$database .= "\trequire_once(dirname(__FILE__) . '/SSI.php');\n";
+		$database .= "elseif (! defined('SMF'))\n";
+		$database .= "\tdie('<b>Error:</b> Cannot install - please verify that you put this file in the same place as SMF\'s index.php and SSI.php files.');";
+		$database .= "\n\n";
 
 		if (! empty($this->skeleton['min_php_version'])) {
-			$database .= <<<XXX
-if (version_compare(PHP_VERSION, '{$this->skeleton['min_php_version']}', '<'))
-	die('This mod needs PHP {$this->skeleton['min_php_version']} or greater. You will not be able to install/use this mod. Please, contact your host and ask for a php upgrade.');
-XXX . PHP_EOL . PHP_EOL;
+			$minPhpVersion = $this->skeleton['min_php_version'];
+			$database .= "if (version_compare(PHP_VERSION, '{$minPhpVersion}', '<')) {\n";
+			$database .= "\tdie('This mod needs PHP {$minPhpVersion} or greater. You will not be able to install/use this mod. Please, contact your host and ask for a php upgrade.');\n";
+			$database .= "}\n\n";
 		}
 
 		if (! empty($this->skeleton['tables'])) {
-			$database .= <<<XXX
-if (SMF === 'SSI' && ! \$user_info['is_admin'])
-	die('Admin privileges required.');
-XXX . PHP_EOL . PHP_EOL;
+			$database .= "if (SMF === 'SSI' && ! \$user_info['is_admin'])\n";
+			$database .= "\tdie('Admin privileges required.');";
+			$database .= "\n\n";
 		}
 
 		foreach ($this->skeleton['tables'] as $table) {
-			$database .= <<<XXX
-\$tables[] = array(
-	'name' => '{$table['name']}',
-	'columns' => array(
-XXX . PHP_EOL;
+			$database .= "\$tables[] = [\n";
+			$database .= "\t'name' => '{$table['name']}',\n";
+			$database .= "\t'columns' => [\n";
 
 			$table_index = false;
 
 			foreach ($table['columns'] as $column) {
-				if (! empty($column['auto']))
+				if (! empty($column['auto'])) {
 					$table_index = $column['name'];
+				}
 
-				$database .= <<<XXX
-		array(
-			'name' => '{$column['name']}',
-			'type' => '{$column['type']}',
-XXX . PHP_EOL;
+				$database .= "\t\t[\n";
+				$database .= "\t\t\t'name' => '{$column['name']}',\n";
+				$database .= "\t\t\t'type' => '{$column['type']}',\n";
 
 				if (! in_array($column['type'], ['text', 'mediumtext'])) {
-					if (! empty($column['size']))
-						$database .= <<<XXX
-			'size' => {$column['size']},
-XXX . PHP_EOL;
+					if (! empty($column['size'])) {
+						$database .= "\t\t\t'size' => {$column['size']},\n";
+					}
 
-					if (empty($column['auto']) && strlen($column['default']))
-						$database .= <<<XXX
-			'default' => {$this->getDefaultValue($column)},
-XXX . PHP_EOL;
+					if (empty($column['auto']) && strlen($column['default'])) {
+						$default = $this->getDefaultValue($column);
+						$database .= "\t\t\t'default' => {$default},\n";
+					}
 				}
 
 				if (in_array($column['type'], ['tinyint', 'int', 'mediumint'])) {
-					$database .= <<<XXX
-			'unsigned' => true,
-XXX . PHP_EOL;
+					$database .= "\t\t\t'unsigned' => true,\n";
 
-					if (! empty($column['auto']))
-						$database .= <<<XXX
-			'auto' => true
-XXX . PHP_EOL;
+					if (! empty($column['auto'])) {
+						$database .= "\t\t\t'auto' => true,\n";
+					}
 				} elseif (! empty($column['null'])) {
-					$database .= <<<XXX
-			'null' => true
-XXX . PHP_EOL;
+					$database .= "\t\t\t'null' => true,\n";
 				}
 
-				$database .= <<<XXX
-		),
-XXX . PHP_EOL;
+				$database .= "\t\t],\n";
 			}
 
-			$database .= <<<XXX
-	),
-XXX . PHP_EOL;
+			$database .= "\t],\n";
 
-			if (! empty($table_index))
-				$database .= <<<XXX
-	'indexes' => array(
-		array(
-			'type' => 'primary',
-			'columns' => array('$table_index')
-		)
-	)
-XXX . PHP_EOL;
+			if (! empty($table_index)) {
+				$database .= "\t'indexes' => [\n";
+				$database .= "\t\t[\n";
+				$database .= "\t\t\t'type' => 'primary',\n";
+				$database .= "\t\t\t'columns' => ['{$table_index}'],\n";
+				$database .= "\t\t]\n";
+				$database .= "\t],\n";
+			}
 
-			$database .= <<<XXX
-);
-
-XXX . PHP_EOL;
+			$database .= "];\n\n";
 		}
 
 		if (! empty($this->skeleton['tables'])) {
-			$database .= <<<XXX
-foreach (\$tables as \$table) {
-	\$smcFunc['db_create_table']('{db_prefix}' . \$table['name'], \$table['columns'], \$table['indexes']);
-}
-
-if (SMF === 'SSI')
-	echo 'Database changes are complete!';
-XXX . PHP_EOL;
+			$database .= "foreach (\$tables as \$table) {\n";
+			$database .= "\t\$smcFunc['db_create_table']('{db_prefix}' . \$table['name'], \$table['columns'], \$table['indexes']);\n";
+			$database .= "}\n\n";
+			$database .= "if (SMF === 'SSI')\n";
+			$database .= "\techo 'Database changes are complete!';\n";
 		}
 
 		package_put_contents($this->path . '/database.php', $database);
@@ -365,10 +342,13 @@ XXX . PHP_EOL;
 
 		foreach ($languages as $lang => $data) {
 			foreach ($data as $content) {
-				if (! is_file($lang_file = $lang_dir . $lang . '.php'))
-					$content = '<?php' . PHP_EOL . PHP_EOL . "/**
- * @package {$this->skeleton['name']}
-*/" . PHP_EOL . $content;
+				if (! is_file($lang_file = $lang_dir . $lang . '.php')) {
+					$header = "<?php\n\n";
+					$header .= "/**\n";
+					$header .= " * @package {$this->skeleton['name']}\n";
+					$header .= " */\n";
+					$content = $header . $content;
+				}
 
 				file_put_contents($lang_file, $content, FILE_APPEND | LOCK_EX);
 			}
@@ -384,7 +364,7 @@ XXX . PHP_EOL;
 			$xml->appendChild($xml->createComment(' Generated by Simple Mod Maker '));
 
 			$root = $xml->createElementNS('http://www.simplemachines.org/xml/package-info', 'package-info');
-			$root->setAttributeNS('http://www.w3.org/2000/xmlns/' ,'xmlns:smf', 'http://www.simplemachines.org/');
+			$root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:smf', 'http://www.simplemachines.org/');
 			$xml->appendChild($root);
 
 			$xml->preserveWhiteSpace = true;
@@ -394,7 +374,7 @@ XXX . PHP_EOL;
 
 			foreach ($data as $key => $value) {
 				if (is_array($value)) {
-					$root->appendChild($root->appendChild($xml->createElement('empty')));
+					$root->appendChild($xml->createElement('empty'));
 
 					$element = $root->appendChild($xml->createElement($key));
 
@@ -443,61 +423,28 @@ XXX . PHP_EOL;
 	private function getProperData(): array
 	{
 		$data = [
-			'id' => $this->skeleton['author'] . ':' . $this->classname,
-			'name' => $this->skeleton['name'],
+			'id'      => $this->skeleton['author'] . ':' . $this->classname,
+			'name'    => $this->skeleton['name'],
 			'version' => $this->skeleton['version'],
-			'type' => 'modification',
+			'type'    => 'modification',
 		];
+
+		$filename  = empty($this->skeleton['make_dir']) ? $this->skeleton['filename'] : $this->classname . '/Integration';
+		$coreclass = $this->skeleton['author'] . '\\' . $this->classname . (empty($this->skeleton['make_dir']) ? '' : '\Integration');
+		$languages = array_keys($this->skeleton['readmes']);
 
 		$data['install'] = [
 			'@attributes' => [
 				'for' => '2.1.*',
-			]
-		];
-
-		if (! empty($this->skeleton['tables']) || ! empty($this->skeleton['min_php_version']))
-			$data['install']['database'] = 'database.php';
-
-		if ($this->skeleton['make_readme'] && ! empty($this->skeleton['readmes'])) {
-			foreach (array_keys($this->skeleton['readmes']) as $lang) {
-				$data['install']['readme']['readme/' . $lang . '.txt'] = $lang !== 'english' ? [
-					'parsebbc' => 'true',
-					'lang' => $lang,
-				] : [
-					'parsebbc' => 'true',
-				];
-			}
-		}
-
-		$data['install']['require-dir'] = [
-			[
-				'name' => 'Sources',
-				'destination' => '$boarddir',
+			],
+			'hook' => [
+				[
+					'hook' => 'integrate_pre_load',
+					'function' => $coreclass . '::hooks#',
+					'file' => '$sourcedir/' . $filename . '.php',
+				],
 			],
 		];
-
-		if (is_dir($this->path . '/Themes')) {
-			$data['install']['require-dir'][] = [
-				'name' => 'Themes',
-				'destination' => '$boarddir',
-			];
-		}
-
-		$filename = empty($this->skeleton['make_dir']) ? $this->skeleton['filename'] : $this->classname . '/Integration';
-		$coreclass = $this->skeleton['author'] . '\\' . $this->classname . (empty($this->skeleton['make_dir']) ? '' : '\Integration');
-
-		$data['install']['hook'][] = [
-			'hook' => 'integrate_pre_load',
-			'function' => $coreclass . '::hooks#',
-			'file' => '$sourcedir/' . $filename . '.php',
-		];
-
-		if (! empty($this->skeleton['options'])) {
-			$data['install']['redirect'] = [
-				'url' => '?action=admin;area=modsettings;sa=' . $this->snake_name,
-				'timeout' => '3000',
-			];
-		}
 
 		$data['uninstall'] = [
 			'@attributes' => [
@@ -510,69 +457,132 @@ XXX . PHP_EOL;
 			],
 		];
 
+		if (! empty($this->skeleton['tables']) || ! empty($this->skeleton['min_php_version']))
+			$data['install']['database'] = 'database.php';
+
+		if ($this->skeleton['make_readme']) {
+			foreach ($languages as $lang) {
+				$readmeData = [
+					'parsebbc' => 'true'
+				];
+
+				if ($lang !== 'english') {
+					$readmeData['lang'] = $lang;
+				}
+
+				$data['install']['readme']["readme/{$lang}.txt"] = $readmeData;
+			}
+		}
+
+		if (empty($this->skeleton['make_dir'])) {
+			$data['install']['require-file'][] = [
+				'name' => 'Sources/' . $this->skeleton['filename'] . '.php',
+				'destination' => '$sourcedir',
+			];
+
+			$data['uninstall']['remove-file'][] = [
+				'name' => '$sourcedir/' . $filename . '.php',
+			];
+		} else {
+			$data['install']['require-dir'][] = [
+				'name' => 'Sources/' . $this->classname,
+				'destination' => '$sourcedir',
+			];
+
+			$data['uninstall']['remove-dir'][] = [
+				'name' => '$sourcedir/' . $this->classname,
+			];
+		}
+
 		if (! empty($this->skeleton['make_template'])) {
+			$data['install']['require-file'][] = [
+				'name' => 'Themes/default/' . $this->classname . '.template.php',
+				'destination' => '$themedir',
+			];
+
 			$data['uninstall']['remove-file'][] = [
 				'name' => '$themedir/' . $this->classname . '.template.php',
 			];
 		}
 
 		if (! empty($this->skeleton['make_script'])) {
+			$data['install']['require-file'][] = [
+				'name' => 'Themes/default/scripts/' . $this->snake_name . '.js',
+				'destination' => '$themedir/scripts',
+			];
+
 			$data['uninstall']['remove-file'][] = [
 				'name' => '$themedir/scripts/' . $this->snake_name . '.js',
 			];
 		}
 
 		if (! empty($this->skeleton['make_css'])) {
+			$data['install']['require-file'][] = [
+				'name' => 'Themes/default/css/' . $this->snake_name . '.css',
+				'destination' => '$themedir/css',
+			];
+
 			$data['uninstall']['remove-file'][] = [
 				'name' => '$themedir/css/' . $this->snake_name . '.css',
 			];
 		}
 
-		foreach (array_keys($this->skeleton['readmes']) as $lang) {
-			if (is_file($this->path . '/Themes/default/languages/' . $this->classname . '.' . $lang . '.php')) {
-				$data['uninstall']['remove-file'][] = [
-					'name' => '$languagedir/' . $this->classname . '.' . $lang . '.php',
-				];
+		if (empty($this->skeleton['use_lang_dir'])) {
+			$languagedir = '$languagedir';
+
+			foreach ($languages as $lang) {
+				$language_file = 'Themes/default/languages/' . $this->classname . '.' . $lang . '.php';
+				$language_filepath = $this->path . '/' . $language_file;
+
+				if (is_file($language_filepath)) {
+					$data['install']['require-file'][] = [
+						'name' => $language_file,
+						'destination' => $languagedir,
+					];
+
+					$data['uninstall']['remove-file'][] = [
+						'name' => $languagedir . '/' . $this->classname . '.' . $lang . '.php',
+					];
+				}
 			}
-		}
-
-		if (empty($this->skeleton['make_dir'])) {
-			$data['uninstall']['remove-file'][] = [
-				'name' => '$sourcedir/' . $filename . '.php',
-			];
 		} else {
-			$data['uninstall']['remove-dir'][] = [
-				'name' => '$sourcedir/' . $this->classname,
+			$data['install']['require-dir'][] = [
+				'name' => 'Themes/default/languages/' . $this->classname,
+				'destination' => '$languagedir',
 			];
-		}
 
-		if (! empty($this->skeleton['use_lang_dir'])) {
 			$data['uninstall']['remove-dir'][] = [
 				'name' => '$languagedir/' . $this->classname,
 			];
 		}
 
+		if (! empty($this->skeleton['options'])) {
+			$data['install']['redirect'][] = [
+				'url' => '?action=admin;area=modsettings;sa=' . $this->snake_name,
+				'timeout' => '3000',
+			];
+		}
+
 		// Compatibility with Developer Tools
-		/*$data['devtools'] = [
+		/* $data['devtools'] = [
 			'packagename' => '{CUSTOMIZATION_NAME}_{VERSION}',
-		];*/
+		]; */
 
 		return $data;
 	}
 
 	private function addSecurityCheck(string &$content): void
 	{
-		$message = <<<XXX
-	if (! defined('SMF'))
+		$message = <<<EOT
+	if (!defined('SMF'))
 		die('No direct access...');
 
 	/**
 	 * Generated by Simple Mod Maker
 	 */
-	XXX;
+	EOT;
 
-		$content = str_replace('/**
- * Generated by Simple Mod Maker
- */', $message, $content);
+		$content = str_replace('/**' . PHP_EOL . ' * Generated by Simple Mod Maker' . PHP_EOL . ' */', $message, $content);
 	}
+
 }
