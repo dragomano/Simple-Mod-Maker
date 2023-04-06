@@ -475,54 +475,54 @@ final class Builder
 		}
 
 		if (empty($this->skeleton['make_dir'])) {
-			$data['install']['require-file'][] = [
+			$data['install']['require-file']['Adding main source file'] = [
 				'name' => 'Sources/' . $this->skeleton['filename'] . '.php',
 				'destination' => '$sourcedir',
 			];
 
-			$data['uninstall']['remove-file'][] = [
+			$data['uninstall']['remove-file']['Removing main source file'] = [
 				'name' => '$sourcedir/' . $filename . '.php',
 			];
 		} else {
-			$data['install']['require-dir'][] = [
+			$data['install']['require-dir']['Adding main source files'] = [
 				'name' => 'Sources/' . $this->classname,
 				'destination' => '$sourcedir',
 			];
 
-			$data['uninstall']['remove-dir'][] = [
+			$data['uninstall']['remove-dir']['Removing main source files'] = [
 				'name' => '$sourcedir/' . $this->classname,
 			];
 		}
 
 		if (! empty($this->skeleton['make_template'])) {
-			$data['install']['require-file'][] = [
+			$data['install']['require-file']['Adding main template file'] = [
 				'name' => 'Themes/default/' . $this->classname . '.template.php',
 				'destination' => '$themedir',
 			];
 
-			$data['uninstall']['remove-file'][] = [
+			$data['uninstall']['remove-file']['Removing main template file'] = [
 				'name' => '$themedir/' . $this->classname . '.template.php',
 			];
 		}
 
 		if (! empty($this->skeleton['make_script'])) {
-			$data['install']['require-file'][] = [
+			$data['install']['require-file']['Adding JS file'] = [
 				'name' => 'Themes/default/scripts/' . $this->snake_name . '.js',
 				'destination' => '$themedir/scripts',
 			];
 
-			$data['uninstall']['remove-file'][] = [
+			$data['uninstall']['remove-file']['Removing JS file'] = [
 				'name' => '$themedir/scripts/' . $this->snake_name . '.js',
 			];
 		}
 
 		if (! empty($this->skeleton['make_css'])) {
-			$data['install']['require-file'][] = [
+			$data['install']['require-file']['Adding CSS file'] = [
 				'name' => 'Themes/default/css/' . $this->snake_name . '.css',
 				'destination' => '$themedir/css',
 			];
 
-			$data['uninstall']['remove-file'][] = [
+			$data['uninstall']['remove-file']['Removing CSS file'] = [
 				'name' => '$themedir/css/' . $this->snake_name . '.css',
 			];
 		}
@@ -535,23 +535,23 @@ final class Builder
 				$language_filepath = $this->path . '/' . $language_file;
 
 				if (is_file($language_filepath)) {
-					$data['install']['require-file'][] = [
+					$data['install']['require-file']['Adding ' . ucfirst($lang) . ' language file'] = [
 						'name' => $language_file,
 						'destination' => $languagedir,
 					];
 
-					$data['uninstall']['remove-file'][] = [
+					$data['uninstall']['remove-file']['Removing ' . ucfirst($lang) . ' language file'] = [
 						'name' => $languagedir . '/' . $this->classname . '.' . $lang . '.php',
 					];
 				}
 			}
 		} else {
-			$data['install']['require-dir'][] = [
+			$data['install']['require-dir']['Adding language files'] = [
 				'name' => 'Themes/default/languages/' . $this->classname,
 				'destination' => '$languagedir',
 			];
 
-			$data['uninstall']['remove-dir'][] = [
+			$data['uninstall']['remove-dir']['Removing language files'] = [
 				'name' => '$languagedir/' . $this->classname,
 			];
 		}
