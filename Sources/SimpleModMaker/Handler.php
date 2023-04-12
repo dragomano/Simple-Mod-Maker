@@ -592,6 +592,9 @@ final class Handler
 
 	private function getHookList(): array
 	{
+		require_once dirname(__DIR__) . '/ManageMaintenance.php';
+
+		$hooks = array_keys(get_integration_hooks());
 		$files = glob(__DIR__ . DIRECTORY_SEPARATOR . 'hooks' . DIRECTORY_SEPARATOR . 'integrate_*.php');
 		$files = array_map(fn($item): string => str_replace('.php', '', basename($item)), $files);
 
@@ -603,7 +606,7 @@ final class Handler
 			'integrate_pre_css_output',
 			'integrate_theme_context',
 			'integrate_user_info',
-		]);
+		], $hooks);
 
 		sort($list);
 
