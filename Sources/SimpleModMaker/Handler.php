@@ -31,8 +31,6 @@ final class Handler
 
 	private const MOD_FILENAME_PATTERN = '^(?:Class-)?[A-Z][a-zA-Z]+$';
 
-	private const MOD_FILE_TEMPLATE = 'Class-%s';
-
 	private const COLUMN_TYPES = ['tinyint', 'int', 'mediumint', 'varchar', 'text', 'mediumtext'];
 
 	/**
@@ -165,7 +163,7 @@ final class Handler
 
 		$context['smm_skeleton'] = [
 			'name'              => $post_data['name'] ?? self::MOD_NAME_DEFAULT,
-			'filename'          => $post_data['filename'] ?? sprintf(self::MOD_FILE_TEMPLATE, str_replace(' ', '', self::MOD_NAME_DEFAULT)),
+			'filename'          => $post_data['filename'] ?? '',
 			'hooks'             => $post_data['hooks'] ?? [],
 			'author'            => $modSettings['smm_mod_author'] ?? 'Unknown',
 			'email'             => $modSettings['smm_mod_email'] ?? 'no-reply@simplemachines.org',
@@ -316,6 +314,7 @@ final class Handler
 				'maxlength' => 255,
 				'value'     => $context['smm_skeleton']['name'],
 				'required'  => true,
+				'x-model'   => 'className',
 			],
 		];
 
@@ -325,9 +324,9 @@ final class Handler
 			'after' => $txt['smm_filename_subtext'],
 			'attributes' => [
 				'maxlength' => 255,
-				'value'     => $context['smm_skeleton']['filename'],
 				'required'  => true,
 				'pattern'   => self::MOD_FILENAME_PATTERN,
+				':value'    => "'Class-' + className.replace(/ /g, '')",
 			],
 		];
 

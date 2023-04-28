@@ -54,7 +54,13 @@ function template_modification_post()
 	$fields = $context['posting_fields'];
 
 	echo '
-	<form action="', $context['canonical_url'], '" method="post" accept-charset="', $context['character_set'], '" onsubmit="submitonce(this);" x-data="{ tab: window.location.hash ? window.location.hash.substring(1) : \'', $language, '\' }">
+	<form
+		action="', $context['canonical_url'], '"
+		method="post"
+		accept-charset="', $context['character_set'], '"
+		onsubmit="submitonce(this);"
+		x-data="{ tab: window.location.hash ? window.location.hash.substring(1) : \'', $language, '\', className: \'', $context['smm_skeleton']['name'], '\' }"
+	>
 		<div class="roundframe noup">
 			<div class="smm_tabs">
 				<input id="tab_basic" type="radio" name="tabs" checked>
