@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2023 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.5
+ * @version 0.5.3
  */
 
 namespace Bugo\SimpleModMaker;
@@ -68,95 +68,9 @@ final class Handler
 		global $context, $modSettings;
 
 		if (isset($_POST['save'])) {
-			$args = [
-				'name' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
-				'filename' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
-				'hooks' => [
-					'name' => 'hooks',
-					'filter' => FILTER_DEFAULT,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'version' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
-				'site' => FILTER_SANITIZE_URL,
-				'option_names' => [
-					'name' => 'option_names',
-					'filter' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'option_types' => [
-					'name' => 'option_types',
-					'filter' => FILTER_DEFAULT,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'option_defaults' => [
-					'name' => 'option_defaults',
-					'filter' => FILTER_DEFAULT,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'option_variants' => [
-					'name' => 'option_variants',
-					'filter' => FILTER_DEFAULT,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'option_translations' => [
-					'name' => 'option_translations',
-					'filter' => FILTER_DEFAULT,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'table_names' => [
-					'name' => 'table_names',
-					'filter' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'column_names' => [
-					'name' => 'column_names',
-					'filter' => FILTER_SANITIZE_FULL_SPECIAL_CHARS,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'column_types' => [
-					'name' => 'column_types',
-					'filter' => FILTER_DEFAULT,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'column_null' => [
-					'name' => 'column_null',
-					'filter' => FILTER_VALIDATE_BOOLEAN,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'column_sizes' => [
-					'name' => 'column_sizes',
-					'filter' => FILTER_VALIDATE_INT,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'column_auto' => [
-					'name' => 'column_auto',
-					'filter' => FILTER_VALIDATE_BOOLEAN,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'column_defaults' => [
-					'name' => 'column_defaults',
-					'filter' => FILTER_DEFAULT,
-					'flags' => FILTER_REQUIRE_ARRAY
-				],
-				'license' => FILTER_DEFAULT,
-				'make_dir' => FILTER_VALIDATE_BOOLEAN,
-				'use_strict_typing' => FILTER_VALIDATE_BOOLEAN,
-				'use_final_class' => FILTER_VALIDATE_BOOLEAN,
-				'use_lang_dir' => FILTER_VALIDATE_BOOLEAN,
-				'make_template' => FILTER_VALIDATE_BOOLEAN,
-				'make_script' => FILTER_VALIDATE_BOOLEAN,
-				'make_css' => FILTER_VALIDATE_BOOLEAN,
-				'make_readme' => FILTER_VALIDATE_BOOLEAN,
-				'add_copyrights' => FILTER_VALIDATE_BOOLEAN,
-				'min_php_version' => FILTER_DEFAULT,
-			];
+			$post_data = $_POST;
 
-			foreach ($context['languages'] as $lang) {
-				$args['title_' . $lang['filename']]       = FILTER_SANITIZE_FULL_SPECIAL_CHARS;
-				$args['description_' . $lang['filename']] = FILTER_SANITIZE_FULL_SPECIAL_CHARS;
-			}
-
-			$post_data = filter_input_array(INPUT_POST, $args);
+			array_walk_recursive($post_data, fn(&$value) => $value = htmlspecialchars($value));
 
 			$this->findErrors($post_data);
 		}
@@ -845,9 +759,7 @@ final class Handler
 
 	private function getSnakeName(string $value): string
 	{
-		global $smcFunc;
-
-		return $smcFunc['strtolower'](preg_replace('/(?<!^)[A-Z]/', '_$0', $value));
+		return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $value));
 	}
 
 	private function getMethodName(string $hook): string

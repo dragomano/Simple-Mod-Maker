@@ -104,7 +104,7 @@ $txt['smm_use_lang_dir'] = 'Use a separate folder for languages';
 $txt['smm_make_template'] = 'Create a template file';
 $txt['smm_make_script'] = 'Create an empty JS file';
 $txt['smm_make_css'] = 'Create an empty CSS file';
-$txt['smm_make_readme'] = 'Create a readme file(s) in the package';
+$txt['smm_make_readme'] = 'Create readme files in the package';
 $txt['smm_add_copyrights'] = 'Add author\'s copyright';
 $txt['smm_add_copyrights_subtext'] = 'If you enabled this option after installing the mod, the author\'s copyright will appear on the ?action=credits page.';
 $txt['smm_min_php_version'] = 'Minimum required PHP version';
