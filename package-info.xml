@@ -9,7 +9,8 @@
 	<install for="2.1.*">
 		<require-dir name="Sources/SimpleModMaker" destination="$sourcedir"/>
 		<require-file name="Themes/default/SimpleModMaker.template.php" destination="$themedir"/>
-		<require-file name="Themes/default/css/simple_mod_maker.css" destination="$themedir/css"/>
+		<require-dir name="Themes/default/css/simple_mod_maker" destination="$themedir/css"/>
+		<require-dir name="Themes/default/scripts/simple_mod_maker" destination="$themedir/scripts"/>
 		<require-dir name="Themes/default/languages/SimpleModMaker" destination="$languagedir"/>
 		<hook hook="integrate_pre_load" function="Bugo\SimpleModMaker\Integration::hooks#" file="$sourcedir/SimpleModMaker/Integration.php"/>
 		<code type="inline"><![CDATA[<?php
@@ -32,7 +33,8 @@
 	<uninstall for="2.1.*">
 		<hook hook="integrate_pre_load" function="Bugo\SimpleModMaker\Integration::hooks#" file="$sourcedir/SimpleModMaker/Integration.php" reverse="true"/>
 		<remove-file name="$themedir/SimpleModMaker.template.php"/>
-		<remove-file name="$themedir/css/simple_mod_maker.css"/>
+		<remove-dir name="$themedir/css/simple_mod_maker"/>
+		<remove-dir name="$themedir/scripts/simple_mod_maker"/>
 		<remove-dir name="$sourcedir/SimpleModMaker"/>
 		<remove-dir name="$languagedir/SimpleModMaker"/>
 	</uninstall>

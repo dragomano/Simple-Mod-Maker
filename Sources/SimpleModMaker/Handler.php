@@ -40,10 +40,11 @@ final class Handler
 	{
 		global $context, $txt, $scripturl;
 
-		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js', ['external' => true]);
+		loadCSSFile('simple_mod_maker/tom-select.min.css');
+		loadJavaScriptFile('simple_mod_maker/tom-select.complete.min.js');
 
-		loadCSSFile('https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.min.css', ['external' => true]);
-		loadCSSFile('simple_mod_maker.css');
+		loadCSSFile('simple_mod_maker/main.css');
+		loadJavaScriptFile('simple_mod_maker/alpine.min.js', ['defer' => true]);
 
 		$context['page_title']      = SMM_NAME . ' - ' . $txt['smm_generator'];
 		$context['page_area_title'] = $txt['smm_generator'];

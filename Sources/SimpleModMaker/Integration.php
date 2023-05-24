@@ -47,8 +47,6 @@ final class Integration
 
 		loadLanguage('SimpleModMaker/');
 
-		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js', ['external' => true, 'defer' => true]);
-
 		$admin_areas['config']['areas']['smm'] = [
 			'label'       => SMM_NAME,
 			'function'    => [$this, 'settings'],
@@ -104,6 +102,8 @@ final class Integration
 	public function basicSettings(bool $return_config = false)
 	{
 		global $context, $txt, $scripturl;
+
+		loadJavaScriptFile('simple_mod_maker/alpine.min.js', ['defer' => true]);
 
 		require_once dirname(__DIR__) . '/ManageServer.php';
 
