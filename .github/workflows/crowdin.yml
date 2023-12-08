@@ -19,17 +19,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        if: env.CROWDIN_API_TOKEN != null
+        uses: actions/checkout@v4
 
-    - name: Checkout
-      if: env.CROWDIN_API_TOKEN != null
-      uses: actions/checkout@v3
-
-    - name: Crowdin Action
-      if: env.CROWDIN_API_TOKEN != null
-      uses: crowdin/github-action@1
-      with:
-        upload_sources: true
-        upload_translations: false
-        download_translations: false
-        #crowdin_branch_name: 'next'
-        config: '.github/crowdin.yml'
+      - name: Crowdin Action
+        if: env.CROWDIN_API_TOKEN != null
+        uses: crowdin/github-action@1
+        with:
+          upload_sources: true
+          upload_translations: false
+          download_translations: false
+          #crowdin_branch_name: 'next'
+          config: '.github/crowdin.yml'
