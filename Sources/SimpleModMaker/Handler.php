@@ -18,6 +18,7 @@ namespace Bugo\SimpleModMaker;
 
 use Exception;
 use Nette\PhpGenerator\ClassType;
+use Nette\PhpGenerator\Method;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
 use Nette\PhpGenerator\Printer;
@@ -85,6 +86,7 @@ final class Handler
 			'readmes'           => smf_json_decode($modSettings['smm_readme'] ?? '', true),
 			'version'           => $post_data['version'] ?? '0.1',
 			'site'              => $post_data['site'] ?? '',
+			'settings_area'     => (int) ($post_data['settings_area'] ?? 0),
 			'options'           => $context['smm_skeleton']['options'] ?? [],
 			'tables'            => $context['smm_skeleton']['tables'] ?? [],
 			'license'           => $post_data['license'] ?? 'mit',
@@ -113,6 +115,10 @@ final class Handler
 					'variants'     => $post_data['option_variants'][$id] ?? '',
 					'translations' => []
 				];
+			}
+
+			if (empty($context['smm_skeleton']['settings_area'])) {
+				$context['smm_skeleton']['settings_area'] = 1;
 			}
 		}
 
@@ -158,11 +164,25 @@ final class Handler
 		$context['smm_skeleton']['title']       = array_filter($context['smm_skeleton']['title']);
 		$context['smm_skeleton']['description'] = array_filter($context['smm_skeleton']['description']);
 
+		if (! empty($context['smm_skeleton']['settings_area'])) {
+			switch ($context['smm_skeleton']['settings_area']) {
+				case 1:
+					$context['smm_skeleton']['hooks'][] = 'integrate_general_mod_settings';
+					break;
+
+				case 2:
+					$context['smm_skeleton']['hooks'][] = 'integrate_admin_areas';
+					$context['smm_skeleton']['hooks'][] = 'integrate_admin_search';
+					$context['smm_skeleton']['hooks'][] = 'integrate_modify_modifications';
+					break;
+
+				default:
+					$context['smm_skeleton']['hooks'][] = 'integrate_admin_areas';
+			}
+		}
+
 		if (! empty($context['smm_skeleton']['add_copyrights']))
 			$context['smm_skeleton']['hooks'][] = 'integrate_credits';
-
-		if (! empty($context['smm_skeleton']['options']))
-			$context['smm_skeleton']['hooks'][] = 'integrate_modify_modifications';
 
 		$context['smm_skeleton']['hooks'] = array_unique($context['smm_skeleton']['hooks']);
 	}
@@ -279,24 +299,36 @@ final class Handler
 			],
 		];
 
+		$context['posting_fields']['settings_area']['label']['text'] = $txt['smm_settings_area'];
+		$context['posting_fields']['settings_area']['input'] = [
+			'type' => 'select',
+			'tab'  => 'settings'
+		];
+
+		foreach ($txt['smm_settings_area_set'] as $key => $value) {
+			$context['posting_fields']['settings_area']['input']['options'][$value] = [
+				'value'    => $key,
+				'selected' => $key === $context['smm_skeleton']['settings_area']
+			];
+		}
+
 		$context['posting_fields']['title']['label']['html'] = '<label>' . $txt['smm_mod_title_and_desc'] . '</label>';
 		$context['posting_fields']['title']['input']['tab']  = 'settings';
-		$context['posting_fields']['title']['input']['html'] = '
-			<div>';
+		$context['posting_fields']['title']['input']['html'] = '<div>';
 
 		$context['posting_fields']['title']['input']['html'] .= '
 			<nav' . ($context['right_to_left'] ? '' : ' class="floatleft"') . '>';
 
 		foreach ($context['languages'] as $lang) {
-			$context['posting_fields']['title']['input']['html'] .= '
-				<a class="button floatnone" :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }" @click.prevent="tab = \'' . $lang['filename'] . '\'; window.location.hash = \'' . $lang['filename'] . '\'">' . $lang['name'] . '</a>';
+			$context['posting_fields']['title']['input']['html'] .= /** @lang text */
+				'<a class="button floatnone" :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }" @click.prevent="tab = \'' . $lang['filename'] . '\'; window.location.hash = \'' . $lang['filename'] . '\'">' . $lang['name'] . '</a>';
 		}
 
-		$context['posting_fields']['title']['input']['html'] .= '
-			</nav>';
+		$context['posting_fields']['title']['input']['html'] .= '</nav>';
 
 		foreach ($context['languages'] as $lang) {
-			$context['posting_fields']['title']['input']['html'] .= '
+			$context['posting_fields']['title']['input']['html'] .= /** @lang text */
+				'
 				<div x-show="tab === \'' . $lang['filename'] . '\'">
 					<input
 						type="text"
@@ -314,8 +346,7 @@ final class Handler
 				</div>';
 		}
 
-		$context['posting_fields']['title']['input']['html'] .= '
-			</div>';
+		$context['posting_fields']['title']['input']['html'] .= '</div>';
 
 		$context['posting_fields']['license']['label']['text'] = $txt['smm_license'];
 		$context['posting_fields']['license']['input'] = [
@@ -445,7 +476,8 @@ final class Handler
 
 			if (isset($data['input']['type']) && $data['input']['type'] === 'checkbox') {
 				$data['input']['attributes']['class'] = 'checkbox';
-				$data['input']['after'] = '<label class="label" for="' . $item . '"></label>' . ($context['posting_fields'][$item]['input']['after'] ?? '');
+				$data['input']['after'] = /** @lang text */
+					'<label class="label" for="' . $item . '"></label>' . ($context['posting_fields'][$item]['input']['after'] ?? '');
 				$context['posting_fields'][$item] = $data;
 			}
 
@@ -556,7 +588,7 @@ final class Handler
 
 		$snake_name = $this->getSnakeName($classname);
 
-		$this->prepareUsedHooks($context, $class, $classname, $snake_name);
+		$this->prepareUsedHooks($class, $classname, $snake_name);
 
 		$licenses = $this->getAvailableLicenses()[$context['smm_skeleton']['license']];
 		$license_name = $licenses['full_name'];
@@ -597,8 +629,10 @@ final class Handler
 			->createPackage();
 	}
 
-	private function prepareUsedHooks(array &$context, ClassType $class, string $classname, string $snake_name): void
+	private function prepareUsedHooks(ClassType $class, string $classname, string $snake_name): void
 	{
+		global $context;
+
 		$hooks = $class->addMethod('hooks')
 			->addBody("// add_integration_function('integrate_hook_name', __CLASS__ . '::methodName#', false, __FILE__);");
 
@@ -633,12 +667,16 @@ final class Handler
 						$method->addBody($body);
 					}
 				}
+
+				if ($hook === 'integrate_general_mod_settings' && $context['smm_skeleton']['settings_area'] === 1) {
+					$this->fillConfigVars($method, $snake_name);
+				}
 			}
 		}
 
 		$hook_keys = array_flip($context['smm_skeleton']['hooks']);
 
-		if (isset($hook_keys['integrate_admin_search']) || isset($hook_keys['integrate_modify_modifications'])) {
+		if ($context['smm_skeleton']['settings_area'] === 2) {
 			$settings = $class->addMethod('settings');
 
 			if (isset($hook_keys['integrate_admin_search'])) {
@@ -656,6 +694,7 @@ final class Handler
 			$settings->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=modsettings;save;sa=$snake_name';" . PHP_EOL);
 
 			if (! empty($context['smm_skeleton']['options'])) {
+				$settings->addBody("// Add default settings");
 				$settings->addBody("\$addSettings = [];");
 
 				foreach ($context['smm_skeleton']['options'] as $option) {
@@ -668,29 +707,7 @@ final class Handler
 				$settings->addBody("updateSettings(\$addSettings);" . PHP_EOL);
 			}
 
-			$settings->addBody("\$config_vars = array(");
-
-			if (! empty($context['smm_skeleton']['options'])) {
-				foreach ($context['smm_skeleton']['options'] as $option) {
-					if (in_array($option['type'], ['select-multiple', 'select'])) {
-						$is_multiple = var_export($option['type'] === 'select-multiple', true);
-						$option['type'] = 'select';
-
-						$settings->addBody(
-							"\tarray('{$option['type']}', '{$snake_name}_{$option['name']}', \$txt['$snake_name']['{$option['name']}_set'], 'multiple' => $is_multiple),"
-						);
-					} else {
-						$settings->addBody("\tarray('{$option['type']}', '{$snake_name}_{$option['name']}'),");
-					}
-
-					if ($option['type'] === 'callback')
-						$context['smm_skeleton']['callbacks'][] = $option['name'];
-				}
-			} else {
-				$settings->addBody("\t// array('check', '{$snake_name}_enable'),");
-			}
-
-			$settings->addBody(");" . PHP_EOL);
+			$this->fillConfigVars($settings, $snake_name);
 
 			if (isset($hook_keys['integrate_admin_search'])) {
 				$settings->addBody("if (\$return_config)");
@@ -707,6 +724,84 @@ final class Handler
 			$settings->addBody("}" . PHP_EOL);
 			$settings->addBody("prepareDBSettingContext(\$config_vars);");
 		}
+
+		if ($context['smm_skeleton']['settings_area'] === 3) {
+			$settings = $class->addMethod('settings');
+
+			$settings->addBody("global \$context, \$txt;" . PHP_EOL);
+
+			if ($context['smm_skeleton']['make_template']) {
+				$settings->addBody("loadTemplate($classname);" . PHP_EOL);
+			}
+
+			$settings->addBody("require_once dirname(__DIR__) . '/ManageSettings.php';" . PHP_EOL);
+			$settings->addBody("\$context['page_title'] = \$txt['{$snake_name}_title'];");
+			$settings->addBody("\$subActions = [");
+			$settings->addBody("\t'section1'  => [\$this, 'sectionExample1'],");
+			$settings->addBody("\t//'section2' => [\$this, 'sectionExample2'],");
+			$settings->addBody("];" . PHP_EOL);
+			$settings->addBody("\$context[\$context['admin_menu_name']]['tab_data'] = [");
+			$settings->addBody("\t'title' => \$txt['{$snake_name}_title'],");
+			$settings->addBody("\t'description' => \$txt['{$snake_name}_description'],");
+			$settings->addBody("\t'tabs' => [");
+			$settings->addBody("\t\t'section1'  => [],");
+			$settings->addBody("\t\t//'section2'  => [],");
+			$settings->addBody("\t];");
+			$settings->addBody("];" . PHP_EOL);
+			$settings->addBody("loadGeneralSettingParameters(\$subActions, 'section1');" . PHP_EOL);
+			$settings->addBody("call_helper(\$subActions[\$context['sub_action']]);");
+
+			$section = $class->addMethod('sectionExample1');
+			$section->addComment('@return array|void');
+			$parameter = $section->addParameter('return_config', false);
+			if (! empty($context['smm_skeleton']['use_strict_typing']))
+				$parameter->setType('bool');
+
+			$section->addBody("global \$context, \$txt, \$scripturl;" . PHP_EOL);
+			$section->addBody("require_once dirname(__DIR__) . '/ManageServer.php';" . PHP_EOL);
+			$section->addBody("\$context['page_title'] .= ' - ' . \$txt['{$snake_name}_section1_title'];");
+			$section->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=$snake_name;sa=section1;save';" . PHP_EOL);
+
+			$this->fillConfigVars($section, $snake_name);
+
+			$section->addBody("if (\$return_config)");
+			$section->addBody("\treturn \$config_vars;" . PHP_EOL);
+			$section->addBody("if (isset(\$_GET['save'])) {");
+			$section->addBody("\tcheckSession();" . PHP_EOL);
+			$section->addBody("\tsaveDBSettings(\$config_vars);" . PHP_EOL);
+			$section->addBody("\tredirectexit('action=admin;area=$snake_name;sa=section1');");
+			$section->addBody("}" . PHP_EOL);
+			$section->addBody("prepareDBSettingContext(\$config_vars);");
+		}
+	}
+
+	private function fillConfigVars(Method $method, string $snake_name): void
+	{
+		global $context;
+
+		$method->addBody("\$config_vars = [");
+
+		if (! empty($context['smm_skeleton']['options'])) {
+			foreach ($context['smm_skeleton']['options'] as $option) {
+				if (in_array($option['type'], ['select-multiple', 'select'])) {
+					$is_multiple = var_export($option['type'] === 'select-multiple', true);
+					$option['type'] = 'select';
+
+					$method->addBody(
+						"\tarray('{$option['type']}', '{$snake_name}_{$option['name']}', \$txt['$snake_name']['{$option['name']}_set'], 'multiple' => $is_multiple),"
+					);
+				} else {
+					$method->addBody("\tarray('{$option['type']}', '{$snake_name}_{$option['name']}'),");
+				}
+
+				if ($option['type'] === 'callback')
+					$context['smm_skeleton']['callbacks'][] = $option['name'];
+			}
+		} else {
+			$method->addBody("\t// array('check', '{$snake_name}_enable'),");
+		}
+
+		$method->addBody("];" . PHP_EOL);
 	}
 
 	private function getAvailableLicenses(): array

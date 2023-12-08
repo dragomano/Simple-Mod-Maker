@@ -311,6 +311,8 @@ final class Builder
 
 	private function createLangs(): void
 	{
+		global $txt;
+
 		$languages = [];
 
 		foreach ($this->skeleton['title'] as $lang => $value) {
@@ -321,6 +323,13 @@ final class Builder
 		foreach ($this->skeleton['description'] as $lang => $value) {
 			$description = $value ?: '';
 			$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_description'] = '$description';";
+
+			if ($this->skeleton['settings_area'] === 3) {
+				loadLanguage('SimpleModMaker/', $lang);
+
+				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section1_title'] = '" . sprintf($txt['smm_tab_example'], 1) . "';";
+				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section2_title'] = '" . sprintf($txt['smm_tab_example'], 2) . "';";
+			}
 		}
 
 		foreach ($this->skeleton['options'] as $option) {
