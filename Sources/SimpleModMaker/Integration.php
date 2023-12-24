@@ -103,8 +103,6 @@ final class Integration
 	{
 		global $context, $txt, $scripturl;
 
-		loadJavaScriptFile('simple_mod_maker/alpine.min.js', ['defer' => true]);
-
 		require_once dirname(__DIR__) . '/ManageServer.php';
 
 		$context['page_title'] .= ' - ' . $txt['smm_basic'];
@@ -224,11 +222,11 @@ final class Integration
 
 		foreach ($context['languages'] as $lang) {
 			$editorOptions = [
-				'id'           => 'smm_readme_' . $lang['filename'],
-				'value'        => $context['smm_readme'][$lang['filename']] ?? '',
-				'height'       => '150px',
-				'width'        => '100%',
-				'preview_type' => 2,
+				'id'                 => 'smm_readme_' . $lang['filename'],
+				'value'              => $context['smm_readme'][$lang['filename']] ?? '',
+				'height'             => '150px',
+				'width'              => '100%',
+				'disable_smiley_box' => true,
 			];
 
 			create_control_richedit($editorOptions);

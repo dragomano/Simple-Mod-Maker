@@ -2,29 +2,17 @@
 
 function template_callback_smm_readme_editor()
 {
-	global $language, $context, $txt;
-
-	echo '
-	<div x-data="{ tab: window.location.hash ? window.location.hash.substring(1) : \'', $language, '\' }">
-		<nav' . ($context['right_to_left'] ? '' : ' class="floatleft"') . '>';
+	global $context;
 
 	foreach ($context['languages'] as $lang) {
 		echo '
-			<a class="button floatnone" :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }" @click.prevent="tab = \'' . $lang['filename'] . '\'; window.location.hash = \'' . $lang['filename'] . '\'">' . $lang['name'] . '</a>';
-	}
-
-	echo '
-		</nav>';
-
-	foreach ($context['languages'] as $lang) {
-		echo '
-		<div x-show="tab === \'' . $lang['filename'] . '\'">
+		<div class="title_bar">
+			<h3 class="titlebg">', $lang['name'], '</h3>
+		</div>
+		<div class="windowbg">
 			', template_control_richedit($context['smm_readme_editor'][$lang['filename']], null, 'bbcBox_message'), '
 		</div>';
 	}
-
-	echo '
-	</div>';
 }
 
 function template_modification_post()
@@ -59,7 +47,7 @@ function template_modification_post()
 		method="post"
 		accept-charset="', $context['character_set'], '"
 		onsubmit="submitonce(this);"
-		x-data="{ tab: window.location.hash ? window.location.hash.substring(1) : \'', $language, '\', className: \'', $context['smm_skeleton']['name'], '\' }"
+		x-data="{ tab: \'', $language, '\', className: \'', $context['smm_skeleton']['name'], '\' }"
 	>
 		<div class="roundframe noup">
 			<div class="smm_tabs">
@@ -407,11 +395,21 @@ function template_modification_post()
 			<div class="centertext">
 				<input type="hidden" name="', $context['session_var'], '" value="', $context['session_id'], '">
 				<input type="hidden" name="seqnum" value="', $context['form_sequence_number'], '">
-				<button type="submit" class="button" name="save" @click="smm.post($root)"><i class="main_icons valid"></i> ', $txt['smm_build'], '</button>
+				<button type="submit" class="button" name="save" @click="smm.post($root)">
+					<i class="main_icons valid"></i> ', $txt['smm_build'], '
+				</button>
 			</div>
 		</div>
 	</form>
 
+	<script type="module">
+		if (window.Alpine === undefined) {
+			const script = document.createElement("script");
+			script.defer = true;
+			script.src = "https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js";
+			document.body.appendChild(script);
+		}
+	</script>
 	<script>
 		new TomSelect("#hooks", {
 			plugins: {

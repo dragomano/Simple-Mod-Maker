@@ -41,11 +41,13 @@ final class Handler
 	{
 		global $context, $txt, $scripturl;
 
-		loadCSSFile('simple_mod_maker/tom-select.min.css');
-		loadJavaScriptFile('simple_mod_maker/tom-select.complete.min.js');
-
-		loadCSSFile('simple_mod_maker/main.css');
-		loadJavaScriptFile('simple_mod_maker/alpine.min.js', ['defer' => true]);
+		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js', [
+			'external' => true
+		]);
+		loadCSSFile('https://cdn.jsdelivr.net/npm/tom-select@2/dist/css/tom-select.min.css', [
+			'external' => true
+		]);
+		loadCSSFile('simple_mod_maker.css');
 
 		$context['page_title']      = SMM_NAME . ' - ' . $txt['smm_generator'];
 		$context['page_area_title'] = $txt['smm_generator'];
@@ -321,7 +323,7 @@ final class Handler
 
 		foreach ($context['languages'] as $lang) {
 			$context['posting_fields']['title']['input']['html'] .= /** @lang text */
-				'<a class="button floatnone" :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }" @click.prevent="tab = \'' . $lang['filename'] . '\'; window.location.hash = \'' . $lang['filename'] . '\'">' . $lang['name'] . '</a>';
+				'<a class="button floatnone" :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }" @click.prevent="tab = \'' . $lang['filename'] . '\'">' . $lang['name'] . '</a>';
 		}
 
 		$context['posting_fields']['title']['input']['html'] .= '</nav>';
