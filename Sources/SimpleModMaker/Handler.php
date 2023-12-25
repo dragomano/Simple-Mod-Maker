@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2023 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.6
+ * @version 0.6.1
  */
 
 namespace Bugo\SimpleModMaker;
