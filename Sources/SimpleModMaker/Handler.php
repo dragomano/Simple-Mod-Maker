@@ -311,7 +311,10 @@ final class Handler
 		$context['posting_fields']['settings_area']['label']['text'] = $txt['smm_settings_area'];
 		$context['posting_fields']['settings_area']['input'] = [
 			'type' => 'select',
-			'tab'  => 'settings'
+			'tab'  => 'settings',
+			'attributes' => [
+				'@change' => 'smm.changeSettingPlacement($event.target.value)',
+			]
 		];
 
 		foreach ($txt['smm_settings_area_set'] as $key => $value) {

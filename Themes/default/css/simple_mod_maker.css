@@ -41,6 +41,10 @@
     font-size: 1.2em !important;
 }
 
+.smm_tabs .pf_title {
+    display: none;
+}
+
 @media screen and (max-width: 680px) {
     .smm_tabs > label i,
     .smm_tabs > label svg {

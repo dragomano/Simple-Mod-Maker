@@ -491,6 +491,16 @@ function template_modification_post()
 				}
 			}
 
+			changeSettingPlacement(target) {
+				const settingTabFields = document.querySelectorAll(".pf_title")
+
+				if (target > 0) {
+					settingTabFields.forEach(setting => setting.style.display = "block")
+				} else {
+					settingTabFields.forEach(setting => setting.style.display = "none")
+				}
+			}
+
 			handleOptions() {
 				return {
 					options: ', json_encode($context['smm_skeleton']['options']), ',
