@@ -188,12 +188,13 @@ final class Integration
 
 		$readme = [];
 		foreach ($context['languages'] as $lang) {
-			loadLanguage('SimpleModMaker/', $lang['filename']);
+			loadLanguage('SimpleModMaker/', $lang['filename'], false, true);
 
-			$readme[$lang['filename']] = $context['smm_readme'][$lang['filename']] ?? $txt['smm_readme_default'] ?? '';
+			$readme[$lang['filename']] = $txt['smm_readme_default'] ?? '';
 		}
 
-		$addSettings['smm_readme'] = json_encode($readme);
+		if (! isset($modSettings['smm_readme']))
+			$addSettings['smm_readme'] = json_encode($readme);
 
 		updateSettings($addSettings);
 
