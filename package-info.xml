@@ -23,8 +23,6 @@
 					),
 					false
 				);
-
-			smf_chmod($sourcedir . '/SimpleModMaker/output');
 		?>]]></code>
 		<redirect url="?action=admin;area=smm" timeout="3000" />
 	</install>
