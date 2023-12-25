@@ -71,6 +71,8 @@ final class Handler
 	{
 		global $context, $modSettings;
 
+		$post_data = [];
+
 		if (isset($_POST['save'])) {
 			$post_data = $_POST;
 
@@ -247,6 +249,7 @@ final class Handler
 		$context['posting_fields']['name']['label']['text'] = $txt['smm_name'];
 		$context['posting_fields']['name']['input'] = [
 			'type' => 'text',
+			'tab' => 'basic',
 			'attributes' => [
 				'maxlength' => 255,
 				'value'     => $context['smm_skeleton']['name'],
@@ -258,6 +261,7 @@ final class Handler
 		$context['posting_fields']['filename']['label']['text'] = $txt['smm_filename'];
 		$context['posting_fields']['filename']['input'] = [
 			'type' => 'text',
+			'tab' => 'basic',
 			'after' => $txt['smm_filename_subtext'],
 			'attributes' => [
 				'maxlength' => 255,
@@ -270,6 +274,7 @@ final class Handler
 		$context['posting_fields']['hooks']['label']['text'] = $txt['smm_hooks'];
 		$context['posting_fields']['hooks']['input'] = [
 			'type'  => 'select',
+			'tab' => 'basic',
 			'after' => $txt['smm_hooks_subtext'],
 			'attributes' => [
 				'id'       => 'hooks',
@@ -282,6 +287,7 @@ final class Handler
 		$context['posting_fields']['version']['label']['text'] = $txt['smm_mod_version'];
 		$context['posting_fields']['version']['input'] = [
 			'type' => 'text',
+			'tab' => 'basic',
 			'attributes' => [
 				'maxlength' => 255,
 				'value'     => $context['smm_skeleton']['version'],
@@ -292,6 +298,7 @@ final class Handler
 		$context['posting_fields']['site']['label']['text'] = $txt['website'];
 		$context['posting_fields']['site']['input'] = [
 			'type' => 'url',
+			'tab' => 'basic',
 			'after' => $txt['smm_site_subtext'],
 			'attributes' => [
 				'maxlength'   => 255,
@@ -329,8 +336,7 @@ final class Handler
 		$context['posting_fields']['title']['input']['html'] .= '</nav>';
 
 		foreach ($context['languages'] as $lang) {
-			$context['posting_fields']['title']['input']['html'] .= /** @lang text */
-				'
+			$context['posting_fields']['title']['input']['html'] .= /** @lang text */ '
 				<div x-show="tab === \'' . $lang['filename'] . '\'">
 					<input
 						type="text"
@@ -352,8 +358,7 @@ final class Handler
 
 		$context['posting_fields']['license']['label']['text'] = $txt['smm_license'];
 		$context['posting_fields']['license']['input'] = [
-			'type' => 'select',
-			'tab'  => 'package'
+			'type' => 'select'
 		];
 
 		foreach ($this->getAvailableLicenses() as $value => $license) {
@@ -370,7 +375,6 @@ final class Handler
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['make_dir']
 			],
-			'tab' => 'package',
 		];
 
 		$context['posting_fields']['use_strict_typing']['label']['text'] = $txt['smm_use_strict_typing'];
@@ -380,7 +384,6 @@ final class Handler
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['use_strict_typing']
 			],
-			'tab' => 'package',
 		];
 
 		$context['posting_fields']['use_final_class']['label']['text'] = $txt['smm_use_final_class'];
@@ -390,7 +393,6 @@ final class Handler
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['use_final_class']
 			],
-			'tab' => 'package',
 		];
 
 		$context['posting_fields']['use_lang_dir']['label']['text'] = $txt['smm_use_lang_dir'];
@@ -399,7 +401,6 @@ final class Handler
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['use_lang_dir']
 			],
-			'tab' => 'package',
 		];
 
 		$context['posting_fields']['make_template']['label']['text'] = $txt['smm_make_template'];
@@ -408,7 +409,6 @@ final class Handler
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['make_template']
 			],
-			'tab' => 'package',
 		];
 
 		$context['posting_fields']['make_script']['label']['text'] = $txt['smm_make_script'];
@@ -417,7 +417,6 @@ final class Handler
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['make_script']
 			],
-			'tab' => 'package',
 		];
 
 		$context['posting_fields']['make_css']['label']['text'] = $txt['smm_make_css'];
@@ -426,7 +425,6 @@ final class Handler
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['make_css']
 			],
-			'tab' => 'package',
 		];
 
 		$context['posting_fields']['make_readme']['label']['text'] = $txt['smm_make_readme'];
@@ -435,7 +433,6 @@ final class Handler
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['make_readme']
 			],
-			'tab' => 'package',
 		];
 
 		$context['posting_fields']['add_copyrights']['label']['text'] = $txt['smm_add_copyrights'];
@@ -445,7 +442,6 @@ final class Handler
 			'attributes' => [
 				'checked' => (bool) $context['smm_skeleton']['add_copyrights']
 			],
-			'tab' => 'package',
 		];
 
 		$context['posting_fields']['min_php_version']['label']['text'] = $txt['smm_min_php_version'];
@@ -456,7 +452,6 @@ final class Handler
 				'value'       => $context['smm_skeleton']['min_php_version'],
 				'placeholder' => '7.4',
 			],
-			'tab' => 'package',
 		];
 
 		$this->preparePostFields();
@@ -484,7 +479,7 @@ final class Handler
 			}
 
 			if (empty($data['input']['tab']))
-				$context['posting_fields'][$item]['input']['tab'] = 'basic';
+				$context['posting_fields'][$item]['input']['tab'] = 'package';
 		}
 	}
 
