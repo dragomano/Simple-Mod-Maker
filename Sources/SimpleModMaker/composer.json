@@ -1,27 +1,27 @@
 {
-    "require": {
-        "php": "^7.4|^8.0",
-        "ext-dom": "*",
-        "nette/php-generator": "^3.6",
-        "symfony/polyfill-php80": "^1.27"
-    },
-    "autoload": {
-        "psr-4": {
-            "Bugo\\SimpleModMaker\\": ""
-        }
-    },
-    "require-dev": {
-        "rector/rector": "^0.15.21"
-    },
-    "scripts": {
-        "check": "vendor/bin/rector process --dry-run --clear-cache",
-        "build": "composer update --no-dev -o"
-    },
-    "config": {
-        "optimize-autoloader": true,
-        "preferred-install": "dist",
-        "sort-packages": true
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+  "require": {
+    "php": "^7.4|^8.0",
+    "ext-dom": "*",
+    "nette/php-generator": "^3.6",
+    "symfony/polyfill-php80": "^1.27"
+  },
+  "autoload": {
+    "psr-4": {
+      "Bugo\\SimpleModMaker\\": ""
+    }
+  },
+  "require-dev": {
+    "rector/rector": "^0.18"
+  },
+  "scripts": {
+    "check": "vendor/bin/rector process --dry-run --clear-cache",
+    "build": "composer update --no-dev -o"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }
