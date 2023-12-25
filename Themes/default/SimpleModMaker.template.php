@@ -49,28 +49,30 @@ function template_modification_post()
 		onsubmit="submitonce(this);"
 		x-data="{ tab: \'', $language, '\', className: \'', $context['smm_skeleton']['name'], '\' }"
 	>
-		<div class="roundframe noup">
+		<div class="windowbg">
 			<div class="smm_tabs">
 				<input id="tab_basic" type="radio" name="tabs" checked>
-				<label for="tab_basic" class="bg odd"><i class="main_icons check"></i><span> ', $txt['smm_tab_basic'], '</span></label>
+				<label for="tab_basic" class="bg odd">
+					<i class="main_icons check"></i><span> ', $txt['smm_tab_basic'], '</span>
+				</label>
 				<input id="tab_settings" type="radio" name="tabs">
-				<label for="tab_settings" class="bg odd"><i class="main_icons corefeatures"></i><span> ', $txt['smm_tab_settings'], '</span></label>
+				<label for="tab_settings" class="bg odd">
+					<i class="main_icons corefeatures"></i><span> ', $txt['smm_tab_settings'], '</span>
+				</label>
 				<input id="tab_database" type="radio" name="tabs">
-				<label for="tab_database" class="bg odd"><i class="main_icons server"></i><span> ', $txt['smm_tab_database'], '</span></label>
+				<label for="tab_database" class="bg odd">
+					<i class="main_icons server"></i><span> ', $txt['smm_tab_database'], '</span>
+				</label>
 				<input id="tab_package" type="radio" name="tabs">
-				<label for="tab_package" class="bg odd"><i class="main_icons packages"></i><span> ', $txt['smm_tab_package'], '</span></label>
-				<section id="content_tab_basic" class="bg even">';
-
-	template_post_tab($fields);
-
-	echo '
+				<label for="tab_package" class="bg odd">
+					<i class="main_icons packages"></i><span> ', $txt['smm_tab_package'], '</span>
+				</label>
+				<section id="content_tab_basic" class="bg even">
+					', template_post_tab($fields), '
 				</section>
 				<section id="content_tab_settings" class="bg even">
-					<div class="infobox">', $txt['smm_tab_settings_desc'], '</div>';
-
-	template_post_tab($fields, 'settings');
-
-	echo '
+					<div class="infobox">', $txt['smm_tab_settings_desc'], '</div>
+					', template_post_tab($fields, 'settings'), '
 					<hr>
 					<table class="add_option centertext" x-data="smm.handleOptions()">
 						<tbody>
@@ -384,11 +386,8 @@ function template_modification_post()
 						</tfoot>
 					</table>
 				</section>
-				<section id="content_tab_package" class="bg even">';
-
-	template_post_tab($fields, 'package');
-
-	echo '
+				<section id="content_tab_package" class="bg even">
+					', template_post_tab($fields, 'package'), '
 				</section>
 			</div>
 			<br class="clear">
@@ -550,7 +549,7 @@ function template_modification_post()
 	</script>';
 }
 
-function template_post_tab(array $fields, string $tab = 'basic')
+function template_post_tab(array $fields, string $tab = 'basic'): bool
 {
 	global $context;
 
@@ -569,4 +568,6 @@ function template_post_tab(array $fields, string $tab = 'basic')
 	LoadTemplate('Post');
 
 	template_post_header();
+
+	return false;
 }
