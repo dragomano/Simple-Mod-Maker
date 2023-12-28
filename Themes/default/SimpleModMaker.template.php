@@ -77,138 +77,140 @@ function template_modification_post()
 				<section id="content_tab_settings" class="bg even">
 					<div class="infobox">', $txt['smm_tab_settings_desc'], '</div>
 					', template_post_tab($fields, 'settings'), '
-					<hr>
-					<table class="add_option centertext" x-data="smm.handleOptions()">
-						<tbody>
-							<template x-for="(option, index) in options" :key="index">
-								<tr class="windowbg">
-									<td colspan="4">
-										<table class="plugin_options table_grid">
-											<thead>
-												<tr class="title_bar">
-													<th>#</th>
-													<th colspan="3">', $txt['smm_option_name'], '</th>
-												</tr>
-											</thead>
-											<tbody>
-												<tr class="windowbg">
-													<td x-text="index + 1"></td>
-													<td colspan="2">
-														<input
-															type="text"
-															x-model="option.name"
-															name="option_names[]"
-															pattern="^[a-z][a-z_]+$"
-															maxlength="30"
-															placeholder="option_name"
-															required
-														>
-													</td>
-													<td>
-														<button type="button" class="button" @click="removeOption(index)" style="width: 100%">
-															<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
-														</button>
-													</td>
-												</tr>
-												<tr class="windowbg" x-data="{ type_id: $id(\'option-type\'), default_id: $id(\'option-default\') }">
-													<td>
-														<label :for="type_id"><strong>', $txt['smm_option_type'], '</strong></label>
-													</td>
-													<td>
-														<select x-model="option.type" name="option_types[]" :id="type_id">';
+					<div class="tab_setting_tables" style="display: none">
+						<hr>
+						<table class="add_option centertext" x-data="smm.handleOptions()">
+							<tbody>
+								<template x-for="(option, index) in options" :key="index">
+									<tr class="windowbg">
+										<td colspan="4">
+											<table class="plugin_options table_grid">
+												<thead>
+													<tr class="title_bar">
+														<th>#</th>
+														<th colspan="3">', $txt['smm_option_name'], '</th>
+													</tr>
+												</thead>
+												<tbody>
+													<tr class="windowbg">
+														<td x-text="index + 1"></td>
+														<td colspan="2">
+															<input
+																type="text"
+																x-model="option.name"
+																name="option_names[]"
+																pattern="^[a-z][a-z_]+$"
+																maxlength="30"
+																placeholder="option_name"
+																required
+															>
+														</td>
+														<td>
+															<button type="button" class="button" @click="removeOption(index)" style="width: 100%">
+																<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
+															</button>
+														</td>
+													</tr>
+													<tr class="windowbg" x-data="{ type_id: $id(\'option-type\'), default_id: $id(\'option-default\') }">
+														<td>
+															<label :for="type_id"><strong>', $txt['smm_option_type'], '</strong></label>
+														</td>
+														<td>
+															<select x-model="option.type" name="option_types[]" :id="type_id">';
 
 	foreach ($txt['smm_option_types'] as $type => $name) {
 		echo '
-															<option value="', $type, '">', $name, '</option>';
+																<option value="', $type, '">', $name, '</option>';
 	}
 
 	echo '
-														</select>
-													</td>
-													<td>
-														<template x-if="! [\'bbc\', \'boards\', \'permissions\', \'callback\'].includes(option.type)">
-															<label :for="default_id"><strong>', $txt['smm_option_default_value'], '</strong></label>
-														</template>
-													</td>
-													<td>
-														<template x-if="option.type === \'check\'">
-															<input type="checkbox" x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
-														</template>
-														<template x-if="[\'text\', \'password\', \'color\'].includes(option.type)">
-															<input x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
-														</template>
-														<template x-if="option.type === \'large_text\'">
-															<textarea x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id"></textarea>
-														</template>
-														<template x-if="option.type === \'select\'">
-															<input x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
-														</template>
-														<template x-if="option.type === \'select-multiple\'">
-															<input x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
-														</template>
-														<template x-if="option.type === \'int\'">
-															<input type="number" min="0" step="1" x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
-														</template>
-														<template x-if="option.type === \'float\'">
-															<input type="number" min="0" step="0.1" x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
-														</template>
-														<template x-if="[\'url\', \'date\', \'datetime-local\', \'email\', \'time\'].includes(option.type)">
-															<input :type="option.type" x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
-														</template>
-													</td>
-												</tr>
-												<template x-if="! [\'select-multiple\', \'select\'].includes(option.type)">
-													<tr class="windowbg" style="display: none">
-														<td colspan="4">
-															<input x-model="option.variants" name="option_variants[]">
+															</select>
+														</td>
+														<td>
+															<template x-if="! [\'bbc\', \'boards\', \'permissions\', \'callback\'].includes(option.type)">
+																<label :for="default_id"><strong>', $txt['smm_option_default_value'], '</strong></label>
+															</template>
+														</td>
+														<td>
+															<template x-if="option.type === \'check\'">
+																<input type="checkbox" x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
+															</template>
+															<template x-if="[\'text\', \'password\', \'color\'].includes(option.type)">
+																<input x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
+															</template>
+															<template x-if="option.type === \'large_text\'">
+																<textarea x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id"></textarea>
+															</template>
+															<template x-if="option.type === \'select\'">
+																<input x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
+															</template>
+															<template x-if="option.type === \'select-multiple\'">
+																<input x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
+															</template>
+															<template x-if="option.type === \'int\'">
+																<input type="number" min="0" step="1" x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
+															</template>
+															<template x-if="option.type === \'float\'">
+																<input type="number" min="0" step="0.1" x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
+															</template>
+															<template x-if="[\'url\', \'date\', \'datetime-local\', \'email\', \'time\'].includes(option.type)">
+																<input :type="option.type" x-model="option.default" :name="`option_defaults[${index}]`" :id="default_id">
+															</template>
 														</td>
 													</tr>
-												</template>
-												<template x-if="[\'select-multiple\', \'select\'].includes(option.type)">
+													<template x-if="! [\'select-multiple\', \'select\'].includes(option.type)">
+														<tr class="windowbg" style="display: none">
+															<td colspan="4">
+																<input x-model="option.variants" name="option_variants[]">
+															</td>
+														</tr>
+													</template>
+													<template x-if="[\'select-multiple\', \'select\'].includes(option.type)">
+														<tr class="windowbg">
+															<td colspan="1"><strong>', $txt['smm_option_variants'], '</strong></td>
+															<td colspan="3">
+																<input x-model="option.variants" name="option_variants[]" placeholder="', $txt['smm_option_variants_placeholder'], '">
+															</td>
+														</tr>
+													</template>
 													<tr class="windowbg">
-														<td colspan="1"><strong>', $txt['smm_option_variants'], '</strong></td>
+														<td colspan="1"><strong>', $txt['smm_option_translations'], '</strong></td>
 														<td colspan="3">
-															<input x-model="option.variants" name="option_variants[]" placeholder="', $txt['smm_option_variants_placeholder'], '">
-														</td>
-													</tr>
-												</template>
-												<tr class="windowbg">
-													<td colspan="1"><strong>', $txt['smm_option_translations'], '</strong></td>
-													<td colspan="3">
-														<table class="table_grid">
-															<tbody>';
+															<table class="table_grid">
+																<tbody>';
 
 	foreach ($context['languages'] as $lang) {
 		echo '
-																<tr class="windowbg">
-																	<td><strong>', $lang['name'], '</strong></td>
-																	<td>
-																		<input type="text" x-model="option.translations[\'', $lang['filename'], '\']" name="option_translations[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['filename'], '">
-																	</td>
-																</tr>';
+																	<tr class="windowbg">
+																		<td><strong>', $lang['name'], '</strong></td>
+																		<td>
+																			<input type="text" x-model="option.translations[\'', $lang['filename'], '\']" name="option_translations[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['filename'], '">
+																		</td>
+																	</tr>';
 	}
 
 	echo '
-															</tbody>
-														</table>
-													</td>
-												</tr>
-											</tbody>
-										</table>
+																</tbody>
+															</table>
+														</td>
+													</tr>
+												</tbody>
+											</table>
+										</td>
+									</tr>
+								</template>
+							</tbody>
+							<tfoot>
+								<tr>
+									<td colspan="4">
+										<button type="button" class="button" @click="addOption()">
+											<span class="main_icons plus"></span> ', $txt['smm_option_new'], '
+										</button>
 									</td>
 								</tr>
-							</template>
-						</tbody>
-						<tfoot>
-							<tr>
-								<td colspan="4">
-									<button type="button" class="button" @click="addOption()">
-										<span class="main_icons plus"></span> ', $txt['smm_option_new'], '
-									</button>
-								</td>
-							</tr>
-						</tfoot>
-					</table>
+							</tfoot>
+						</table>
+					</div>
 				</section>
 				<section id="content_tab_database" class="bg even">
 					<div class="infobox">', $txt['smm_tab_database_desc'], '</div>
@@ -788,11 +790,14 @@ function template_modification_post()
 
 			changeSettingPlacement(target) {
 				const settingTabFields = document.querySelectorAll(".pf_title")
+				const tabSettingTables = document.querySelector(".tab_setting_tables")
 
 				if (target > 0) {
 					settingTabFields.forEach(setting => setting.style.display = "block")
+					tabSettingTables.style.display = "block"
 				} else {
 					settingTabFields.forEach(setting => setting.style.display = "none")
+					tabSettingTables.style.display = "none"
 				}
 			}
 
