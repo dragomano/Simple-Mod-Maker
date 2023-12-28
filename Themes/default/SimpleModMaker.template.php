@@ -87,33 +87,40 @@ function template_modification_post()
 											<table class="plugin_options table_grid">
 												<thead>
 													<tr class="title_bar">
-														<th>#</th>
-														<th colspan="3">', $txt['smm_option_name'], '</th>
+														<th style="width: 20%"></th>
+														<th colspan="3">
+															<span>', $txt['smm_option'], '</span>
+															<button type="button" class="button" @click="removeOption(index)">
+																<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
+															</button>
+														</th>
 													</tr>
 												</thead>
 												<tbody>
-													<tr class="windowbg">
-														<td x-text="index + 1"></td>
-														<td colspan="2">
+													<tr class="windowbg" x-data="{ option_name: $id(\'option-name\') }">
+														<td>
+															<label :for="option_name">
+																<strong>', $txt['smm_option_name'], '</strong>
+															</label>
+														</td>
+														<td colspan="3">
 															<input
 																type="text"
 																x-model="option.name"
 																name="option_names[]"
+																:id="option_name"
 																pattern="^[a-z][a-z_]+$"
 																maxlength="30"
 																placeholder="option_name"
 																required
 															>
 														</td>
-														<td>
-															<button type="button" class="button" @click="removeOption(index)" style="width: 100%">
-																<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
-															</button>
-														</td>
 													</tr>
 													<tr class="windowbg" x-data="{ type_id: $id(\'option-type\'), default_id: $id(\'option-default\') }">
 														<td>
-															<label :for="type_id"><strong>', $txt['smm_option_type'], '</strong></label>
+															<label :for="type_id">
+																<strong>', $txt['smm_option_type'], '</strong>
+															</label>
 														</td>
 														<td>
 															<select x-model="option.type" name="option_types[]" :id="type_id">';
@@ -167,14 +174,18 @@ function template_modification_post()
 													</template>
 													<template x-if="[\'select-multiple\', \'select\'].includes(option.type)">
 														<tr class="windowbg">
-															<td colspan="1"><strong>', $txt['smm_option_variants'], '</strong></td>
+															<td>
+																<strong>', $txt['smm_option_variants'], '</strong>
+															</td>
 															<td colspan="3">
 																<input x-model="option.variants" name="option_variants[]" placeholder="', $txt['smm_option_variants_placeholder'], '">
 															</td>
 														</tr>
 													</template>
 													<tr class="windowbg">
-														<td colspan="1"><strong>', $txt['smm_option_translations'], '</strong></td>
+														<td>
+															<strong>', $txt['smm_option_translations'], '</strong>
+														</td>
 														<td colspan="3">
 															<table class="table_grid">
 																<tbody>';
@@ -182,9 +193,8 @@ function template_modification_post()
 	foreach ($context['languages'] as $lang) {
 		echo '
 																	<tr class="windowbg">
-																		<td><strong>', $lang['name'], '</strong></td>
 																		<td>
-																			<input type="text" x-model="option.translations[\'', $lang['filename'], '\']" name="option_translations[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['filename'], '">
+																			<input type="text" x-model="option.translations[\'', $lang['filename'], '\']" name="option_translations[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['name'], '">
 																		</td>
 																	</tr>';
 	}
@@ -222,68 +232,102 @@ function template_modification_post()
 										<table class="plugin_options table_grid">
 											<thead>
 												<tr class="title_bar">
-													<th>#</th>
-													<th colspan="3">', $txt['smm_table_name'], '</th>
+													<th style="width: 20%"></th>
+													<th colspan="3">
+														<span>', $txt['smm_table'], '</span>
+														<button type="button" class="button" @click="removeTable(index)">
+															<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
+														</button>
+													</th>
 												</tr>
 											</thead>
 											<tbody>
-												<tr class="windowbg">
-													<td x-text="index + 1"></td>
+												<tr class="windowbg" x-data="{ table_name: $id(\'table-name\') }">
+													<td>
+														<label :for="table_name">
+															<strong>', $txt['smm_table_name'], '</strong>
+														</label>
+													</td>
 													<td colspan="2">
 														<input
 															type="text"
 															x-model="table.name"
 															name="table_names[]"
+															:id="table_name"
 															pattern="^[a-z][a-z_]+$"
 															maxlength="64"
 															placeholder="table_name"
 															required
 														>
 													</td>
-													<td>
-														<button type="button" class="button" @click="removeTable(index)">
-															<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
-														</button>
-													</td>
 												</tr>
 												<template x-for="(column, column_index) in table.columns" :key="column_index">
 													<tr class="windowbg">
-														<td colspan="7">
+														<td colspan="6">
 															<table class="plugin_options table_grid">
 																<thead>
-																	<tr class="descbox bg even">
-																		<th>#</th>
-																		<th colspan="6">', $txt['smm_column_name'], '</th>
+																	<tr class="title_bar">
+																		<th style="width: 20%"></th>
+																		<th colspan="5">
+																			<span>', $txt['smm_column'], '</span>
+																			<button type="button" class="button" @click="removeColumn(index, column_index)">
+																				<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
+																			</button>
+																		</th>
 																	</tr>
 																</thead>
 																<tbody>
 																	<tr>
-																		<td colspan="7"><div class="noticebox">', $txt['smm_column_hint'], '</div></td>
+																		<td colspan="6">
+																			<div class="noticebox">', $txt['smm_column_hint'], '</div>
+																		</td>
 																	</tr>
-																	<tr class="windowbg">
-																		<td x-text="column_index + 1"></td>
-																		<td colspan="5">
+																	<tr class="windowbg" x-data="{ column_name: $id(\'column-name\') }">
+																		<td>
+																			<label :for="column_name">
+																				<strong>', $txt['smm_column_name'], '</strong>
+																			</label>
+																		</td>
+																		<td colspan="4">
 																			<input
 																				type="text"
 																				x-model="column.name"
 																				:name="`column_names[${index}][]`"
+																				:id="column_name"
 																				pattern="^[a-z][a-z_]+$"
 																				maxlength="64"
 																				placeholder="column_name"
 																				required
 																			>
 																		</td>
-																		<td>
-																			<button type="button" class="button" @click="removeColumn(index, column_index)" style="width: 100%">
-																				<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
-																			</button>
-																		</td>
+																		<template x-if="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type)">
+																			<td>
+																				<label>
+																					<input type="checkbox" x-model="column.auto" :name="`column_auto[${index}][]`">
+																						', $txt['smm_column_auto'], '
+																					</input>
+																				</label>
+																			</td>
+																		</template>
+																		<template x-if="[\'text\', \'mediumtext\'].includes(column.type)">
+																			<td>
+																				<label>
+																					<input type="checkbox" x-model="column.null" :name="`column_null[${index}][]`">
+																						', $txt['smm_column_null'], '
+																					</input>
+																				</label>
+																				<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][]`">
+																			</td>
+																		</template>
 																	</tr>
 																	<tr class="windowbg" x-data="{ type_id: $id(\'column-type\'), size_id: $id(\'column-size\'), default_id: $id(\'column-default\') }">
 																		<td>
 																			<label :for="type_id"><strong>', $txt['smm_column_type'], '</strong></label>
+																			<template x-if="column.auto">
+																				<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][]`">
+																			</template>
 																		</td>
-																		<td :colspan="column.auto ? 3 : 1">
+																		<td :colspan="column.auto ? 2 : 1">
 																			<select x-model="column.type" :name="`column_types[${index}][]`" :id="type_id">';
 
 	foreach ($context['smm_column_types'] as $type) {
@@ -294,22 +338,13 @@ function template_modification_post()
 	echo '
 																			</select>
 																		</td>
-																		<template x-if="[\'text\', \'mediumtext\'].includes(column.type)">
-																			<td colspan="5">
-																				<label>
-																					<input type="checkbox" x-model="column.null" :name="`column_null[${index}][]`">
-																						', $txt['smm_column_null'], '
-																					</input>
-																				</label>
-																			</td>
-																		</template>
 																		<template x-if="! [\'text\', \'mediumtext\'].includes(column.type)">
 																			<td>
 																				<label :for="size_id"><strong>', $txt['smm_column_size'], '</strong></label>
 																			</td>
 																		</template>
 																		<template x-if="! [\'text\', \'mediumtext\'].includes(column.type)">
-																			<td>
+																			<td :colspan="column.auto ? 2 : 1">
 																				<input
 																					type="number"
 																					min="1"
@@ -321,32 +356,17 @@ function template_modification_post()
 																				>
 																			</td>
 																		</template>
-																		<template x-if="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type)">
+																		<template x-if="! [\'text\', \'mediumtext\'].includes(column.type) && ! column.auto">
 																			<td>
-																				<label>
-																					<input type="checkbox" x-model="column.auto" :name="`column_auto[${index}][]`">
-																						', $txt['smm_column_auto'], '
-																					</input>
+																				<label :for="default_id">
+																					<strong>', $txt['smm_option_default_value'], '</strong>
 																				</label>
 																			</td>
 																		</template>
-																		<template x-if="column.auto">
-																			<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][]`">
-																		</template>
-																		<template x-if="! column.auto">
-																			<td>
-																				<template x-if="! [\'text\', \'mediumtext\'].includes(column.type)">
-																					<label :for="default_id"><strong>', $txt['smm_option_default_value'], '</strong></label>
-																				</template>
-																			</td>
-																		</template>
-																		<template x-if="! column.auto">
+																		<template x-if="! [\'text\', \'mediumtext\'].includes(column.type) && ! column.auto">
 																			<td colspan="2">
 																				<template x-if="column.type === \'varchar\'">
 																					<input x-model="column.default" :name="`column_defaults[${index}][]`" :id="default_id">
-																				</template>
-																				<template x-if="[\'text\', \'mediumtext\'].includes(column.type)">
-																					<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][]`">
 																				</template>
 																				<template x-if="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type)">
 																					<input
@@ -447,7 +467,7 @@ function template_modification_post()
 																		<input
 																			type="text"
 																			x-model="task.names[\'', $lang['filename'], '\']"
-																			name="task_names[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['filename'], '"
+																			name="task_names[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['name'], '"
 																		>
 																	</td>
 																</tr>';
@@ -475,7 +495,7 @@ function template_modification_post()
 																		<input
 																			type="text"
 																			x-model="task.descriptions[\'', $lang['filename'], '\']"
-																			name="task_descriptions[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['filename'], '"
+																			name="task_descriptions[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['name'], '"
 																		>
 																	</td>
 																</tr>';
@@ -486,10 +506,7 @@ function template_modification_post()
 														</table>
 													</td>
 												</tr>
-												<tr
-													class="windowbg"
-													x-data="{ type_id: $id(\'run-type\') }"
-												>
+												<tr class="windowbg" x-data="{ type_id: $id(\'run-type\') }">
 													<td>
 														<label :for="type_id">
 															<strong>', $txt['smm_task_run'], '</strong>
@@ -564,10 +581,7 @@ function template_modification_post()
 														>
 													</td>
 												</tr>
-												<tr
-													class="windowbg"
-													x-data="{ type_id: $id(\'run-type\') }"
-												>
+												<tr class="windowbg" x-data="{ type_id: $id(\'run-type\') }">
 													<td>
 														<label :for="type_id">
 															<strong>', $txt['smm_task_run'], '</strong>
@@ -642,10 +656,7 @@ function template_modification_post()
 														>
 													</td>
 												</tr>
-												<tr
-													class="windowbg"
-													x-data="{ type_id: $id(\'run-type\') }"
-												>
+												<tr class="windowbg" x-data="{ type_id: $id(\'run-type\') }">
 													<td>
 														<label :for="type_id">
 															<strong>', $txt['smm_task_run'], '</strong>

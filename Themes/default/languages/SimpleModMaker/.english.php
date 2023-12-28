@@ -55,8 +55,9 @@ $txt['smm_mod_title_and_desc'] = 'Tab title and the mod description in the admin
 $txt['smm_mod_title_default'] = 'Super-duper mod';
 $txt['smm_mod_desc_default'] = 'Description of the super-duper mod.';
 
+$txt['smm_option'] = 'Option';
 $txt['smm_option_new'] = 'Add an option';
-$txt['smm_option_name'] = 'Option name (Latin letters)';
+$txt['smm_option_name'] = 'Option name';
 $txt['smm_option_type'] = 'Option type';
 $txt['smm_option_types'] = [
 	'check' => 'Checkbox',
@@ -84,10 +85,12 @@ $txt['smm_option_variants_placeholder'] = 'Several options separated by a direct
 $txt['smm_option_translations'] = 'Localization';
 
 $txt['smm_tab_database_desc'] = 'If you need additional tables in the database, use this wizard.';
+$txt['smm_table'] = 'Table';
 $txt['smm_table_new'] = 'Add a table';
-$txt['smm_table_name'] = 'Table name (Latin letters, without prefix)';
+$txt['smm_table_name'] = 'Table name';
+$txt['smm_column'] = 'Column';
 $txt['smm_column_new'] = 'Add a column';
-$txt['smm_column_name'] = 'Column name (Latin letters)';
+$txt['smm_column_name'] = 'Column name';
 $txt['smm_column_hint'] = 'Make sure that the name you have chosen is not in the reserved word lists <a class="bbc_link" href="https://dev.mysql.com/doc/refman/8.0/en/keywords.html" target="_blank" rel="noopener">MySQL</a>, <a class="bbc_link" href="https://mariadb.com/kb/en/reserved-words/" target="_blank" rel="noopener">MariaDB</a>, and <a class="bbc_link" href="https://postgrespro.com/docs/postgresql/9.6/sql-keywords-appendix" target="_blank" rel="noopener">PostgreSQL</a>.';
 $txt['smm_column_type'] = 'Column type';
 $txt['smm_column_null'] = 'NULL';
