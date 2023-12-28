@@ -202,7 +202,7 @@ function template_modification_post()
 						<tfoot>
 							<tr>
 								<td colspan="4">
-									<button type="button" class="button" @click="addNewOption()">
+									<button type="button" class="button" @click="addOption()">
 										<span class="main_icons plus"></span> ', $txt['smm_option_new'], '
 									</button>
 								</td>
@@ -368,7 +368,7 @@ function template_modification_post()
 											<tfoot>
 												<tr>
 													<td colspan="4">
-														<button type="button" class="button" @click="addNewColumn(index)">
+														<button type="button" class="button" @click="addColumn(index)">
 															<span class="main_icons plus"></span> ', $txt['smm_column_new'], '
 														</button>
 													</td>
@@ -382,7 +382,7 @@ function template_modification_post()
 						<tfoot>
 							<tr>
 								<td colspan="4">
-									<button type="button" class="button" @click="addNewTable()">
+									<button type="button" class="button" @click="addTable()">
 										<span class="main_icons plus"></span> ', $txt['smm_table_new'], '
 									</button>
 								</td>
@@ -799,7 +799,7 @@ function template_modification_post()
 			handleOptions() {
 				return {
 					options: ', json_encode($context['smm_skeleton']['options']), ',
-					addNewOption() {
+					addOption() {
 						this.options.push({
 							name: "",
 							type: "check",
@@ -817,7 +817,7 @@ function template_modification_post()
 			handleTables() {
 				return {
 					tables: ', json_encode($context['smm_skeleton']['tables']), ',
-					addNewTable() {
+					addTable() {
 						this.tables.push({
 							name: "",
 							columns: [],
@@ -826,7 +826,7 @@ function template_modification_post()
 					removeTable(index) {
 						this.tables.splice(index, 1);
 					},
-					addNewColumn(table_index) {
+					addColumn(table_index) {
 						this.tables[table_index].columns.push({
 							name: "",
 							type: "int",
