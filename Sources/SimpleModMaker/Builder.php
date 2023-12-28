@@ -33,8 +33,6 @@ final class Builder
 
 	private string $snake_name;
 
-	private string $license;
-
 	private string $path;
 
 	public function __construct(array $options)
@@ -42,7 +40,6 @@ final class Builder
 		$this->skeleton   = $options['skeleton'];
 		$this->classname  = $options['classname'];
 		$this->snake_name = $options['snakename'];
-		$this->license    = $options['license'];
 		$this->path       = $options['path'];
 	}
 
@@ -89,7 +86,7 @@ final class Builder
 		}
 
 		$lang_dir = $this->path . '/Themes/default/languages';
-		if (! empty($this->skeleton['title']) || ! empty($this->skeleton['description']) || ! empty($this->skeleton['options'])) {
+		if (! empty($this->skeleton['title']) || ! empty($this->skeleton['description']) || ! empty($this->skeleton['options']) || ! empty($this->skeleton['scheduled_tasks'])) {
 			mktree($lang_dir, 0777);
 		}
 
@@ -127,6 +124,21 @@ final class Builder
 		copy(__DIR__ . '/index.php', $this->path . '/Sources/' . $this->classname . '/index.php');
 
 		file_put_contents($this->path . '/Sources/' . $this->classname . '/Integration.php', $content, LOCK_EX);
+
+		return $this;
+	}
+
+	public function createTasks(array $tasks): Builder
+	{
+		foreach ($tasks as $task) {
+			$this->addSecurityCheck($task['content']);
+
+			mktree($this->path . '/Sources/' . $this->classname . '/Tasks', 0777);
+
+			copy(__DIR__ . '/index.php', $this->path . '/Sources/' . $this->classname . '/Tasks/index.php');
+
+			file_put_contents($this->path . '/Sources/' . $this->classname . '/Tasks/' . $task['filename'], $task['content'], LOCK_EX);
+		}
 
 		return $this;
 	}
@@ -197,7 +209,7 @@ final class Builder
 					'{mod_name}'    => $this->skeleton['name'],
 					'{author}'      => $this->skeleton['author'],
 					'{description}' => $this->skeleton['description'][$lang] ?? '',
-					'{license}'     => $this->license
+					'{license}'     => $this->skeleton['license_data']['full_name']
 				])
 			);
 		}
@@ -205,9 +217,8 @@ final class Builder
 
 	private function createTables(): void
 	{
-		if (empty($this->skeleton['tables']) && empty($this->skeleton['min_php_version'])) {
+		if (empty($this->skeleton['tables']) && empty($this->skeleton['min_php_version']) && empty($this->skeleton['scheduled_tasks']))
 			return;
-		}
 
 		$database = "<?php\n\n";
 		$database .= "if (file_exists(dirname(__FILE__) . '/SSI.php') && ! defined('SMF'))\n";
@@ -287,11 +298,61 @@ final class Builder
 			$database .= "foreach (\$tables as \$table) {\n";
 			$database .= "\t\$smcFunc['db_create_table']('{db_prefix}' . \$table['name'], \$table['columns'], \$table['indexes']);\n";
 			$database .= "}\n\n";
-			$database .= "if (SMF === 'SSI')\n";
-			$database .= "\techo 'Database changes are complete!';\n";
 		}
 
+		$this->addScheduledTasks($database);
+
+		$database .= "if (SMF === 'SSI')\n";
+		$database .= "\techo 'Database changes are complete!';\n";
+
 		package_put_contents($this->path . '/database.php', $database);
+	}
+
+	private function addScheduledTasks(string &$database): void
+	{
+		if (empty($this->skeleton['scheduled_tasks']))
+			return;
+
+		foreach ($this->skeleton['scheduled_tasks'] as $task) {
+			switch ($task['regularity']) {
+				case 0:
+					$regularity = 1;
+					$unit = 'd';
+					break;
+
+				case 1:
+					$regularity = 1;
+					$unit = 'w';
+					break;
+
+				default:
+					$regularity = 4;
+					$unit = 'w';
+			}
+
+			$database .= "\$smcFunc['db_insert']('',\n";
+			$database .= "\t'{db_prefix}scheduled_tasks',\n";
+			$database .= "\t[\n";
+			$database .= "\t\t'next_time'       => 'int',\n";
+			$database .= "\t\t'time_offset'     => 'int',\n";
+			$database .= "\t\t'time_regularity' => 'int',\n";
+			$database .= "\t\t'time_unit'       => 'string',\n";
+			$database .= "\t\t'disabled'        => 'int',\n";
+			$database .= "\t\t'task'            => 'string',\n";
+			$database .= "\t\t'callable'        => 'string'\n";
+			$database .= "\t],\n";
+			$database .= "\t[\n";
+			$database .= "\t\tstrtotime('tomorrow'),\n";
+			$database .= "\t\t0,\n";
+			$database .= "\t\t{$regularity},\n";
+			$database .= "\t\t'{$unit}',\n";
+			$database .= "\t\t0,\n";
+			$database .= "\t\t'{$task['slug']}',\n";
+			$database .= "\t\t'{$task['callable']}'\n";
+			$database .= "\t],\n";
+			$database .= "\t['id_task']\n";
+			$database .= ");\n\n";
+		}
 	}
 
 	private function getDefaultValue(array $column): ?string
@@ -344,6 +405,16 @@ final class Builder
 						$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_{$option['name']}_set'] = [$variants];";
 					}
 				}
+			}
+		}
+
+		foreach ($this->skeleton['scheduled_tasks'] as $task) {
+			foreach ($task['names'] as $lang => $value) {
+				$languages[$lang][] = PHP_EOL . "\$txt['scheduled_task_{$task['slug']}'] = '$value';";
+			}
+
+			foreach ($task['descriptions'] as $lang => $value) {
+				$languages[$lang][] = PHP_EOL . "\$txt['scheduled_task_desc_{$task['slug']}'] = '$value';";
 			}
 		}
 
@@ -466,7 +537,7 @@ final class Builder
 			],
 		];
 
-		if (! empty($this->skeleton['tables']) || ! empty($this->skeleton['min_php_version']))
+		if (is_file($this->path . '/database.php'))
 			$data['install']['database'] = 'database.php';
 
 		if ($this->skeleton['make_readme']) {

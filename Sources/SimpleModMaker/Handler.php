@@ -93,6 +93,9 @@ final class Handler
 			'settings_area'     => (int) ($post_data['settings_area'] ?? 0),
 			'options'           => $context['smm_skeleton']['options'] ?? [],
 			'tables'            => $context['smm_skeleton']['tables'] ?? [],
+			'scheduled_tasks'   => $context['smm_skeleton']['scheduled_tasks'] ?? [],
+			'background_tasks'  => $context['smm_skeleton']['background_tasks'] ?? [],
+			'legacy_tasks'      => $context['smm_skeleton']['legacy_tasks'] ?? [],
 			'license'           => $post_data['license'] ?? 'mit',
 			'make_dir'          => $post_data['make_dir'] ?? false,
 			'use_strict_typing' => $post_data['use_strict_typing'] ?? false,
@@ -106,6 +109,8 @@ final class Handler
 			'min_php_version'   => $post_data['min_php_version'] ?? '',
 			'callbacks'         => $context['smm_skeleton']['callbacks'] ?? [],
 		];
+
+		$context['smm_skeleton']['license_data'] = $this->getAvailableLicenses()[$context['smm_skeleton']['license']];
 
 		if (! empty($post_data['option_names'])) {
 			foreach ($post_data['option_names'] as $id => $option) {
@@ -153,6 +158,50 @@ final class Handler
 			}
 		}
 
+		if (! empty($post_data['task_slugs'])) {
+			foreach ($post_data['task_slugs'] as $id => $task_slug) {
+				if (empty($task_slug))
+					continue;
+
+				$context['smm_skeleton']['scheduled_tasks'][$id] = [
+					'slug'         => $task_slug,
+					'names'        => [],
+					'descriptions' => [],
+					'regularity'   => $post_data['task_regularities'][$id] ?? '',
+				];
+			}
+
+			$context['smm_skeleton']['make_dir'] = true;
+		}
+
+		if (! empty($post_data['background_task_classnames'])) {
+			foreach ($post_data['background_task_classnames'] as $id => $classname) {
+				if (empty($classname))
+					continue;
+
+				$context['smm_skeleton']['background_tasks'][$id] = [
+					'classname'  => $classname,
+					'regularity' => $post_data['background_task_regularities'][$id] ?? '',
+				];
+			}
+
+			$context['smm_skeleton']['make_dir'] = true;
+		}
+
+		if (! empty($post_data['legacy_task_methods'])) {
+			foreach ($post_data['legacy_task_methods'] as $id => $method) {
+				if (empty($method))
+					continue;
+
+				$context['smm_skeleton']['legacy_tasks'][$id] = [
+					'method'     => $method,
+					'regularity' => $post_data['legacy_task_regularities'][$id] ?? '',
+				];
+
+				$context['smm_skeleton']['hooks'][] = empty($context['smm_skeleton']['legacy_tasks'][$id]['regularity']) ? 'integrate_daily_maintenance' : 'integrate_weekly_maintenance';
+			}
+		}
+
 		foreach ($context['languages'] as $lang) {
 			$context['smm_skeleton']['title'][$lang['filename']] = $post_data['title_' . $lang['filename']] ?? '';
 			$context['smm_skeleton']['description'][$lang['filename']] = $post_data['description_' . $lang['filename']] ?? '';
@@ -161,6 +210,20 @@ final class Handler
 				foreach ($post_data['option_translations'][$lang['filename']] as $id => $translation) {
 					if (! empty($translation))
 						$context['smm_skeleton']['options'][$id]['translations'][$lang['filename']] = $translation;
+				}
+			}
+
+			if (! empty($post_data['task_names'][$lang['filename']])) {
+				foreach ($post_data['task_names'][$lang['filename']] as $id => $translation) {
+					if (! empty($translation))
+						$context['smm_skeleton']['scheduled_tasks'][$id]['names'][$lang['filename']] = $translation;
+				}
+			}
+
+			if (! empty($post_data['task_descriptions'][$lang['filename']])) {
+				foreach ($post_data['task_descriptions'][$lang['filename']] as $id => $translation) {
+					if (! empty($translation))
+						$context['smm_skeleton']['scheduled_tasks'][$id]['descriptions'][$lang['filename']] = $translation;
 				}
 			}
 		}
@@ -590,42 +653,25 @@ final class Handler
 
 		$this->prepareUsedHooks($class, $classname, $snake_name);
 
-		$licenses = $this->getAvailableLicenses()[$context['smm_skeleton']['license']];
-		$license_name = $licenses['full_name'];
-		$license_link = $licenses['link'];
+		$tasks = [];
 
-		$file = new PhpFile;
+		$this->prepareScheduledTasks($tasks, $classname);
 
-		if (! empty($context['smm_skeleton']['use_strict_typing']))
-			$file->setStrictTypes();
+		$this->prepareBackgroundTasks($tasks, $classname);
 
-		$file->addNamespace($namespace);
-		$file->addComment((empty($context['smm_skeleton']['make_dir']) ? $context['smm_skeleton']['filename'] : 'Integration'). '.php');
-		$file->addComment('');
-		$file->addComment("@package {$context['smm_skeleton']['name']}");
-		$file->addComment("@link {$context['smm_skeleton']['site']}");
-		$file->addComment("@author {$context['smm_skeleton']['author']} <{$context['smm_skeleton']['email']}>");
-		$file->addComment("@copyright " . date('Y') . " {$context['smm_skeleton']['author']}");
-		$file->addComment("@license $license_link $license_name");
-		$file->addComment('');
-		$file->addComment("@version " . $context['smm_skeleton']['version']);
+		$this->addTaskExamples($class, $classname, $tasks);
 
-		$content = (new class extends Printer {
-			protected $indentation = "\t";
-			protected $linesBetweenProperties = 1;
-			protected $linesBetweenMethods = 1;
-			protected $returnTypeColon = ': ';
-		})->printFile($file);
+		$content = $this->getGeneratedContent($namespace, (empty($context['smm_skeleton']['make_dir']) ? $context['smm_skeleton']['filename'] : 'Integration') . '.php');
 
 		$plugin = new Builder([
 			'skeleton'  => $context['smm_skeleton'],
 			'classname' => $classname,
 			'snakename' => $snake_name,
-			'license'   => $licenses['full_name'],
 			'path'      => $packagesdir . '/' . $snake_name . '_' . $context['smm_skeleton']['version']
 		]);
 
 		$plugin->create($content)
+			->createTasks($tasks)
 			->createPackage();
 	}
 
@@ -635,6 +681,9 @@ final class Handler
 
 		$hooks = $class->addMethod('hooks')
 			->addBody("// add_integration_function('integrate_hook_name', __CLASS__ . '::methodName#', false, __FILE__);");
+
+		if (! empty($context['smm_skeleton']['use_strict_typing']))
+			$hooks->setReturnType('void');
 
 		foreach ($context['smm_skeleton']['hooks'] as $hook) {
 			$method_name = $this->getMethodName($hook);
@@ -659,8 +708,8 @@ final class Handler
 					}
 				}
 
-				if (! empty($context['smm_skeleton']['use_strict_typing']) && ! empty($hook_data['return']))
-					$method->setReturnType($hook_data['return']);
+				if (! empty($context['smm_skeleton']['use_strict_typing']))
+					$method->setReturnType(empty($hook_data['return']) ? 'void' : $hook_data['return']);
 
 				if (! empty($hook_data['body'])) {
 					foreach ($hook_data['body'] as $body) {
@@ -675,6 +724,18 @@ final class Handler
 		}
 
 		$hook_keys = array_flip($context['smm_skeleton']['hooks']);
+
+		foreach ($context['smm_skeleton']['legacy_tasks'] as $task) {
+			$taskMethod = $class->addMethod($task['method']);
+			$hookName = empty($task['regularity']) ? 'integrate_daily_maintenance' : 'integrate_weekly_maintenance';
+			$taskMethod->addComment("Simple task via $hookName hook");
+
+			if (! empty($context['smm_skeleton']['use_strict_typing']))
+				$taskMethod->setReturnType('void');
+
+			$taskMethod->addBody("global \$smcFunc;" . PHP_EOL);
+			$taskMethod->addBody("// Add your code here");
+		}
 
 		if ($context['smm_skeleton']['settings_area'] === 2) {
 			$settings = $class->addMethod('settings');
@@ -775,6 +836,171 @@ final class Handler
 		}
 	}
 
+	private function prepareScheduledTasks(array &$tasks, string $baseClassname): void
+	{
+		global $context;
+
+		if (empty($context['smm_skeleton']['scheduled_tasks']))
+			return;
+
+		foreach ($context['smm_skeleton']['scheduled_tasks'] as $id => $task) {
+			$classname = $this->getCamelName($task['slug']);
+			$filename = $classname . '.php';
+
+			$namespace = new PhpNamespace($context['smm_skeleton']['author'] . '\\' . $baseClassname . '\\Tasks');
+			$class = $namespace->addClass($classname);
+			$class->addComment('Generated by ' . SMM_NAME);
+
+			$context['smm_skeleton']['scheduled_tasks'][$id]['callable'] = "\\\\{$context['smm_skeleton']['author']}\\\\{$baseClassname}\\\\Tasks\\\\{$classname}::execute";
+
+			if (! empty($context['smm_skeleton']['use_final_class']))
+				$class->setFinal();
+
+			$method = $class->addMethod('execute');
+
+			if (! empty($context['smm_skeleton']['use_strict_typing']))
+				$method->setReturnType('bool');
+
+			$method->addBody("global \$smcFunc;" . PHP_EOL);
+			$method->addBody("// Add your code here" . PHP_EOL);
+			$method->addBody("// Return true if everything is OK");
+			$method->addBody("return true;");
+
+			$tasks[$task['slug']]['content'] = $this->getGeneratedContent($namespace, $filename);
+			$tasks[$task['slug']]['filename'] = $filename;
+		}
+	}
+
+	private function prepareBackgroundTasks(array &$tasks, string $baseClassname): void
+	{
+		global $context;
+
+		if (empty($context['smm_skeleton']['background_tasks']))
+			return;
+
+		foreach ($context['smm_skeleton']['background_tasks'] as $id => $task) {
+			$classname = $task['classname'];
+			$filename = $classname . '.php';
+
+			$namespace = new PhpNamespace($context['smm_skeleton']['author'] . '\\' . $baseClassname . '\\Tasks');
+			$namespace->addUse('SMF_BackgroundTask');
+
+			$class = $namespace->addClass($classname);
+			$class->setExtends('SMF_BackgroundTask');
+			$class->addComment('Generated by ' . SMM_NAME);
+
+			$context['smm_skeleton']['background_tasks'][$id]['callable'] = "\\\\{$context['smm_skeleton']['author']}\\\\{$baseClassname}\\\\Tasks\\\\{$classname}";
+
+			if (! empty($context['smm_skeleton']['use_final_class']))
+				$class->setFinal();
+
+			$method = $class->addMethod('execute');
+
+			if (! empty($context['smm_skeleton']['use_strict_typing']))
+				$method->setReturnType('bool');
+
+			$method->addBody("global \$smcFunc;" . PHP_EOL);
+			$method->addBody("// Add your code here" . PHP_EOL);
+
+			if (empty($task['regularity'])) {
+				$method->addBody("// Return true if everything is OK");
+				$method->addBody("return true;");
+			} else {
+				$regularity = $task['regularity'] == 1 ? 1 : 7;
+				$method->addBody("// Run task again if you need");
+				$method->addBody("\$regularity = {$regularity} * 24 * 60 * 60;" . PHP_EOL);
+				$method->addBody("return (bool) \$smcFunc['db_insert']('insert',");
+				$method->addBody("\t'{db_prefix}background_tasks',");
+				$method->addBody("\t[");
+				$method->addBody("\t\t'task_file'    => 'string',");
+				$method->addBody("\t\t'task_class'   => 'string',");
+				$method->addBody("\t\t'task_data'    => 'string',");
+				$method->addBody("\t\t'claimed_time' => 'int'");
+				$method->addBody("\t],");
+				$method->addBody("\t[");
+				$method->addBody("\t\t'\$sourcedir/{$baseClassname}/Tasks/{$filename}',");
+				$method->addBody("\t\t'\\\\' . self::class,");
+				$method->addBody("\t\t'',");
+				$method->addBody("\t\ttime() + \$regularity");
+				$method->addBody("\t],");
+				$method->addBody("\t['id_task'],");
+				$method->addBody("\t1");
+				$method->addBody(");" . PHP_EOL);
+			}
+
+			$tasks[$classname]['content'] = $this->getGeneratedContent($namespace, $filename);
+			$tasks[$classname]['filename'] = $filename;
+		}
+	}
+
+	private function addTaskExamples(ClassType $class, string $baseClassname, array $tasks): void
+	{
+		global $context;
+
+		if (empty($tasks))
+			return;
+
+		foreach ($context['smm_skeleton']['background_tasks'] as $task) {
+			if (! array_key_exists($task['classname'], $tasks))
+				continue;
+
+			$classname = $task['classname'];
+			$filename = $tasks[$classname]['filename'];
+
+			$method = $class->addMethod('run' . $task['classname']);
+
+			if (! empty($context['smm_skeleton']['use_strict_typing']))
+				$method->setReturnType('void');
+
+			$method->addComment('Call this method to run a background task');
+			$method->addBody("global \$smcFunc;" . PHP_EOL);
+			$method->addBody("\$smcFunc['db_insert']('insert',");
+			$method->addBody("\t'{db_prefix}background_tasks',");
+			$method->addBody("\t[");
+			$method->addBody("\t\t'task_file'  => 'string',");
+			$method->addBody("\t\t'task_class' => 'string',");
+			$method->addBody("\t\t'task_data'  => 'string'");
+			$method->addBody("\t],");
+			$method->addBody("\t[");
+			$method->addBody("\t\t'\$sourcedir/{$baseClassname}/Tasks/{$filename}',");
+			$method->addBody("\t\t'{$task['callable']}',");
+			$method->addBody("\t\t''");
+			$method->addBody("\t],");
+			$method->addBody("\t['id_task']");
+			$method->addBody(");" . PHP_EOL);
+		}
+	}
+
+	private function getGeneratedContent(PhpNamespace $namespace, string $filename): string
+	{
+		global $context;
+
+		$license = $context['smm_skeleton']['license_data'];
+
+		$file = new PhpFile;
+
+		if (! empty($context['smm_skeleton']['use_strict_typing']))
+			$file->setStrictTypes();
+
+		$file->addNamespace($namespace);
+		$file->addComment($filename);
+		$file->addComment('');
+		$file->addComment("@package {$context['smm_skeleton']['name']}");
+		$file->addComment("@link {$context['smm_skeleton']['site']}");
+		$file->addComment("@author {$context['smm_skeleton']['author']} <{$context['smm_skeleton']['email']}>");
+		$file->addComment("@copyright " . date('Y') . " {$context['smm_skeleton']['author']}");
+		$file->addComment("@license {$license['link']} {$license['full_name']}");
+		$file->addComment('');
+		$file->addComment("@version " . $context['smm_skeleton']['version']);
+
+		return (new class extends Printer {
+			protected $indentation = "\t";
+			protected $linesBetweenProperties = 1;
+			protected $linesBetweenMethods = 1;
+			protected $returnTypeColon = ': ';
+		})->printFile($file);
+	}
+
 	private function fillConfigVars(Method $method, string $snake_name): void
 	{
 		global $context;
@@ -856,6 +1082,11 @@ final class Handler
 	private function getSnakeName(string $value): string
 	{
 		return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $value));
+	}
+
+	private function getCamelName(string $value): string
+	{
+		return str_replace(' ', '', ucwords(str_replace('_', ' ', $value)));
 	}
 
 	private function getMethodName(string $hook): string

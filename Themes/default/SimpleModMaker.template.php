@@ -63,6 +63,10 @@ function template_modification_post()
 				<label for="tab_database" class="bg odd">
 					<i class="main_icons server"></i><span> ', $txt['smm_tab_database'], '</span>
 				</label>
+				<input id="tab_tasks" type="radio" name="tabs">
+				<label for="tab_tasks" class="bg odd">
+					<i class="main_icons scheduled"></i><span> ', $txt['smm_tab_tasks'], '</span>
+				</label>
 				<input id="tab_package" type="radio" name="tabs">
 				<label for="tab_package" class="bg odd">
 					<i class="main_icons packages"></i><span> ', $txt['smm_tab_package'], '</span>
@@ -386,6 +390,298 @@ function template_modification_post()
 						</tfoot>
 					</table>
 				</section>
+				<section id="content_tab_tasks" class="bg even">
+					<div class="infobox">', $txt['smm_scheduled_tasks_info'], '</div>
+					<table class="add_option centertext" x-data="smm.handleTasks()">
+						<tbody>
+							<template x-for="(task, index) in scheduledTasks" :key="index">
+								<tr class="windowbg">
+									<td colspan="4">
+										<table class="plugin_options table_grid">
+											<thead>
+												<tr class="title_bar">
+													<th style="width: 20%"></th>
+													<th>
+														<span>', $txt['smm_scheduled_task'], '</span>
+														<button type="button" class="button" @click="removeTask(index)">
+															<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
+														</button>
+													</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr class="windowbg">
+													<td>
+														<label>
+															<strong>', $txt['smm_scheduled_task_slug'], '</strong>
+														</label>
+													</td>
+													<td>
+														<input
+															type="text"
+															x-model="task.slug"
+															name="task_slugs[]"
+															pattern="^[a-z][a-z_]+$"
+															maxlength="24"
+															placeholder="slug_name"
+															required
+														>
+													</td>
+												</tr>
+												<tr class="windowbg">
+													<td>
+														<label>
+															<strong>', $txt['smm_scheduled_task_name'], '</strong>
+														</label>
+													</td>
+													<td>
+														<table class="table_grid">
+															<tbody>';
+
+	foreach ($context['languages'] as $lang) {
+		echo '
+																<tr class="windowbg">
+																	<td>
+																		<input
+																			type="text"
+																			x-model="task.names[\'', $lang['filename'], '\']"
+																			name="task_names[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['filename'], '"
+																		>
+																	</td>
+																</tr>';
+	}
+
+	echo '
+															</tbody>
+														</table>
+													</td>
+												</tr>
+												<tr class="windowbg">
+													<td>
+														<label>
+															<strong>', $txt['smm_scheduled_task_description'], '</strong>
+														</label>
+													</td>
+													<td>
+														<table class="table_grid">
+															<tbody>';
+
+	foreach ($context['languages'] as $lang) {
+		echo '
+																<tr class="windowbg">
+																	<td>
+																		<input
+																			type="text"
+																			x-model="task.descriptions[\'', $lang['filename'], '\']"
+																			name="task_descriptions[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['filename'], '"
+																		>
+																	</td>
+																</tr>';
+	}
+
+	echo '
+															</tbody>
+														</table>
+													</td>
+												</tr>
+												<tr
+													class="windowbg"
+													x-data="{ type_id: $id(\'run-type\') }"
+												>
+													<td>
+														<label :for="type_id">
+															<strong>', $txt['smm_task_run'], '</strong>
+														</label>
+													</td>
+													<td>
+														<select
+															x-model="task.regularity"
+															name="task_regularities[]"
+															:id="type_id"
+														>';
+
+	foreach ($txt['smm_scheduled_task_run_set'] as $type => $name) {
+		echo '
+															<option value="', $type, '">', $name, '</option>';
+	}
+
+	echo '
+														</select>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</td>
+								</tr>
+							</template>
+						</tbody>
+						<tfoot>
+							<tr>
+								<td colspan="4">
+									<button type="button" class="button" @click="addTask()">
+										<span class="main_icons plus"></span> ', $txt['smm_scheduled_task_new'], '
+									</button>
+								</td>
+							</tr>
+						</tfoot>
+					</table>
+
+					<div class="infobox">', $txt['smm_background_tasks_info'], '</div>
+					<table class="add_option centertext" x-data="smm.handleTasks()">
+						<tbody>
+							<template x-for="(task, index) in backgroundTasks" :key="index">
+								<tr class="windowbg">
+									<td colspan="4">
+										<table class="plugin_options table_grid">
+											<thead>
+												<tr class="title_bar">
+													<th style="width: 20%"></th>
+													<th>
+														<span>', $txt['smm_background_task'], '</span>
+														<button type="button" class="button" @click="removeTask(index, \'background\')">
+															<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
+														</button>
+													</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr class="windowbg">
+													<td>
+														<label>
+															<strong>', $txt['smm_background_task_classname'], '</strong>
+														</label>
+													</td>
+													<td>
+														<input
+															type="text"
+															x-model="task.classname"
+															name="background_task_classnames[]"
+															pattern="^[A-Z][a-zA-Z_]+$"
+															placeholder="BackgroundTask"
+															required
+														>
+													</td>
+												</tr>
+												<tr
+													class="windowbg"
+													x-data="{ type_id: $id(\'run-type\') }"
+												>
+													<td>
+														<label :for="type_id">
+															<strong>', $txt['smm_task_run'], '</strong>
+														</label>
+													</td>
+													<td>
+														<select
+															x-model="task.regularity"
+															name="background_task_regularities[]"
+															:id="type_id"
+														>';
+
+	foreach ($txt['smm_background_task_run_set'] as $type => $name) {
+		echo '
+															<option value="', $type, '">', $name, '</option>';
+	}
+
+	echo '
+														</select>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</td>
+								</tr>
+							</template>
+						</tbody>
+						<tfoot>
+							<tr>
+								<td colspan="4">
+									<button type="button" class="button" @click="addTask(\'background\')">
+										<span class="main_icons plus"></span> ', $txt['smm_background_task_new'], '
+									</button>
+								</td>
+							</tr>
+						</tfoot>
+					</table>
+
+					<div class="infobox">', $txt['smm_legacy_tasks_info'], '</div>
+					<table class="add_option centertext" x-data="smm.handleTasks()">
+						<tbody>
+							<template x-for="(task, index) in legacyTasks" :key="index">
+								<tr class="windowbg">
+									<td colspan="4">
+										<table class="plugin_options table_grid">
+											<thead>
+												<tr class="title_bar">
+													<th style="width: 20%"></th>
+													<th>
+														<span>', $txt['smm_legacy_task'], '</span>
+														<button type="button" class="button" @click="removeTask(index, \'legacy\')">
+															<span class="main_icons delete"></span> <span class="remove_label">', $txt['remove'], '</span>
+														</button>
+													</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr class="windowbg">
+													<td>
+														<label>
+															<strong>', $txt['smm_legacy_task_method'], '</strong>
+														</label>
+													</td>
+													<td>
+														<input
+															type="text"
+															x-model="task.method"
+															name="legacy_task_methods[]"
+															pattern="^[a-z][a-zA-Z]+$"
+															placeholder="runTask"
+															required
+														>
+													</td>
+												</tr>
+												<tr
+													class="windowbg"
+													x-data="{ type_id: $id(\'run-type\') }"
+												>
+													<td>
+														<label :for="type_id">
+															<strong>', $txt['smm_task_run'], '</strong>
+														</label>
+													</td>
+													<td>
+														<select
+															x-model="task.regularity"
+															name="legacy_task_regularities[]"
+															:id="type_id"
+														>';
+
+	foreach ($txt['smm_legacy_task_run_set'] as $type => $name) {
+		echo '
+															<option value="', $type, '">', $name, '</option>';
+	}
+
+	echo '
+														</select>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</td>
+								</tr>
+							</template>
+						</tbody>
+						<tfoot>
+							<tr>
+								<td colspan="4">
+									<button type="button" class="button" @click="addTask(\'legacy\')">
+										<span class="main_icons plus"></span> ', $txt['smm_legacy_task_new'], '
+									</button>
+								</td>
+							</tr>
+						</tfoot>
+					</table>
+				</section>
 				<section id="content_tab_package" class="bg even">
 					', template_post_tab($fields, 'package'), '
 				</section>
@@ -542,6 +838,49 @@ function template_modification_post()
 					},
 					removeColumn(table_index, column_index) {
 						this.tables[table_index].columns.splice(column_index, 1);
+					}
+				}
+			}
+
+			handleTasks() {
+				return {
+					scheduledTasks: ', json_encode($context['smm_skeleton']['scheduled_tasks'] ?? []), ',
+					backgroundTasks: ', json_encode($context['smm_skeleton']['background_tasks'] ?? []), ',
+					legacyTasks: ', json_encode($context['smm_skeleton']['legacy_tasks'] ?? []), ',
+					addTask(type = "scheduled") {
+						switch (type) {
+							case "scheduled":
+								this.scheduledTasks.push({
+									slug: "",
+									names: {},
+									descriptions: {},
+									regularity: 0,
+								});
+								break;
+							case "background":
+								this.backgroundTasks.push({
+									classname: "",
+									regularity: 0,
+								});
+								break;
+							default:
+								this.legacyTasks.push({
+									method: "",
+									regularity: 0,
+								});
+						}
+					},
+					removeTask(index, type = "scheduled") {
+						switch (type) {
+							case "scheduled":
+								this.scheduledTasks.splice(index, 1);
+								break;
+							case "background":
+								this.backgroundTasks.splice(index, 1);
+								break;
+							default:
+								this.legacyTasks.splice(index, 1);
+						}
 					}
 				}
 			}

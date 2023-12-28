@@ -2,6 +2,7 @@
   "require": {
     "php": "^7.4|^8.0",
     "ext-dom": "*",
+    "ext-json": "*",
     "nette/php-generator": "^3.6",
     "symfony/polyfill-php80": "^1.27"
   },

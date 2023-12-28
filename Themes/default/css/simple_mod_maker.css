@@ -64,6 +64,7 @@
 #tab_basic:checked ~ #content_tab_basic,
 #tab_settings:checked ~ #content_tab_settings,
 #tab_database:checked ~ #content_tab_database,
+#tab_tasks:checked ~ #content_tab_tasks,
 #tab_package:checked ~ #content_tab_package {
     display: block;
 }

@@ -35,6 +35,7 @@ $txt['smm_add_desc'] = '🐼 The mod wizard will help you to prepare a dummy for
 $txt['smm_tab_basic'] = 'Basic data';
 $txt['smm_tab_settings'] = 'Setting Constructor';
 $txt['smm_tab_database'] = 'DB Table Constructor';
+$txt['smm_tab_tasks'] = 'Task Constructor';
 $txt['smm_tab_package'] = 'Packaging';
 
 $txt['smm_name'] = 'Mod title';
@@ -92,6 +93,25 @@ $txt['smm_column_type'] = 'Column type';
 $txt['smm_column_null'] = 'NULL';
 $txt['smm_column_size'] = 'Column size';
 $txt['smm_column_auto'] = 'AUTO_INCREMENT';
+
+$txt['smm_task_run'] = 'Run';
+$txt['smm_scheduled_tasks_info'] = 'By default, SMF uses scheduled tasks to run periodically, an example of which you can see right now in the Scheduled Tasks area. You can enable and disable these tasks, and adjust how often they run.';
+$txt['smm_scheduled_task'] = 'Scheduled task';
+$txt['smm_scheduled_task_slug'] = 'Slug';
+$txt['smm_scheduled_task_name'] = 'Task name';
+$txt['smm_scheduled_task_description'] = 'Task description';
+$txt['smm_scheduled_task_run_set'] = ['daily', 'weekly', 'monthly'];
+$txt['smm_scheduled_task_new'] = 'Add a scheduled task';
+$txt['smm_background_tasks_info'] = 'Background tasks are used to perform short-term actions (alerts, etc.). Such tasks are deleted from the database after their execution. Examples can be viewed in the Sources/tasks directory.';
+$txt['smm_background_task'] = 'Background task';
+$txt['smm_background_task_classname'] = 'Class name';
+$txt['smm_background_task_run_set'] = ['once', 'daily', 'weekly'];
+$txt['smm_background_task_new'] = 'Add a background task';
+$txt['smm_legacy_tasks_info'] = 'You do not need to create special tasks. If you need certain code to run every day or every week, we can implement that with hooks.';
+$txt['smm_legacy_task'] = 'Simple task';
+$txt['smm_legacy_task_method'] = 'Method name';
+$txt['smm_legacy_task_run_set'] = ['daily', 'weekly'];
+$txt['smm_legacy_task_new'] = 'Add a simple task';
 
 $txt['smm_license'] = 'Mod license';
 $txt['smm_license_own'] = 'Own license';
