@@ -424,7 +424,8 @@ final class Handler
 
 		$context['posting_fields']['license']['label']['text'] = $txt['smm_license'];
 		$context['posting_fields']['license']['input'] = [
-			'type' => 'select'
+			'type' => 'radio_select',
+			'tab' => 'basic',
 		];
 
 		foreach ($this->getAvailableLicenses() as $value => $license) {
@@ -513,6 +514,7 @@ final class Handler
 		$context['posting_fields']['min_php_version']['label']['text'] = $txt['smm_min_php_version'];
 		$context['posting_fields']['min_php_version']['input'] = [
 			'type' => 'text',
+			'tab' => 'basic',
 			'attributes' => [
 				'maxlength'   => 255,
 				'value'       => $context['smm_skeleton']['min_php_version'],
