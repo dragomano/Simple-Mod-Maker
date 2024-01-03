@@ -842,9 +842,6 @@ final class Handler
 	{
 		global $context;
 
-		if (empty($context['smm_skeleton']['scheduled_tasks']))
-			return;
-
 		foreach ($context['smm_skeleton']['scheduled_tasks'] as $id => $task) {
 			$classname = $this->getCamelName($task['slug']);
 			$filename = $classname . '.php';
@@ -876,9 +873,6 @@ final class Handler
 	private function prepareBackgroundTasks(array &$tasks, string $baseClassname): void
 	{
 		global $context;
-
-		if (empty($context['smm_skeleton']['background_tasks']))
-			return;
 
 		foreach ($context['smm_skeleton']['background_tasks'] as $id => $task) {
 			$classname = $task['classname'];

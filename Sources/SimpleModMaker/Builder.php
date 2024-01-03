@@ -310,9 +310,6 @@ final class Builder
 
 	private function addScheduledTasks(string &$database): void
 	{
-		if (empty($this->skeleton['scheduled_tasks']))
-			return;
-
 		foreach ($this->skeleton['scheduled_tasks'] as $task) {
 			switch ($task['regularity']) {
 				case 0:
