@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2024 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.7
+ * @version 0.7.1
  */
 
 namespace Bugo\SimpleModMaker;
@@ -130,7 +130,7 @@ final class Integration
 
 			$save_vars = $config_vars;
 
-			foreach ($context['languages'] as $lang) {
+			foreach ($context['smm_languages'] as $lang) {
 				if (isset($_POST['smm_readme_' . $lang['filename']])) {
 					$_POST['smm_readme'][$lang['filename']] = $_POST['smm_readme_' . $lang['filename']];
 				}
@@ -152,26 +152,26 @@ final class Integration
 
 	private function prepareForumLanguages(): void
 	{
-		global $context, $modSettings, $language, $user_info;
+		global $modSettings, $context, $user_info, $language;
 
-		getLanguages();
-
-		$temp = $context['languages'];
+		$temp = getLanguages();
 
 		if (empty($modSettings['userLanguage'])) {
-			$context['languages'] = ['english' => $temp['english']];
+			$context['smm_languages'] = ['english' => $temp['english']];
 
 			if ($language !== 'english')
-				$context['languages'][$language] = $temp[$language];
+				$context['smm_languages'][$language] = $temp[$language];
+
+			return;
 		}
 
-		$context['languages'] = array_merge(
+		$context['smm_languages'] = array_merge(
 			[
 				'english'              => $temp['english'],
 				$user_info['language'] => $temp[$user_info['language']],
 				$language              => $temp[$language]
 			],
-			$context['languages']
+			$temp
 		);
 	}
 
@@ -187,7 +187,7 @@ final class Integration
 			$addSettings['smm_mod_email'] = $user_info['email'];
 
 		$readme = [];
-		foreach ($context['languages'] as $lang) {
+		foreach ($context['smm_languages'] as $lang) {
 			loadLanguage('SimpleModMaker/', $lang['filename'], false, true);
 
 			$readme[$lang['filename']] = $txt['smm_readme_default'] ?? '';
@@ -221,7 +221,7 @@ final class Integration
 
 		$context['smm_readme_editor'] = [];
 
-		foreach ($context['languages'] as $lang) {
+		foreach ($context['smm_languages'] as $lang) {
 			$editorOptions = [
 				'id'                 => 'smm_readme_' . $lang['filename'],
 				'value'              => $context['smm_readme'][$lang['filename']] ?? '',

@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2024 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.7
+ * @version 0.7.1
  */
 
 namespace Bugo\SimpleModMaker;
@@ -202,7 +202,7 @@ final class Handler
 			}
 		}
 
-		foreach ($context['languages'] as $lang) {
+		foreach ($context['smm_languages'] as $lang) {
 			$context['smm_skeleton']['title'][$lang['filename']] = $post_data['title_' . $lang['filename']] ?? '';
 			$context['smm_skeleton']['description'][$lang['filename']] = $post_data['description_' . $lang['filename']] ?? '';
 
@@ -394,14 +394,14 @@ final class Handler
 		$context['posting_fields']['title']['input']['html'] .= '
 			<nav' . ($context['right_to_left'] ? '' : ' class="floatleft"') . '>';
 
-		foreach ($context['languages'] as $lang) {
+		foreach ($context['smm_languages'] as $lang) {
 			$context['posting_fields']['title']['input']['html'] .= /** @lang text */
 				'<a class="button floatnone" :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }" @click.prevent="tab = \'' . $lang['filename'] . '\'">' . $lang['name'] . '</a>';
 		}
 
 		$context['posting_fields']['title']['input']['html'] .= '</nav>';
 
-		foreach ($context['languages'] as $lang) {
+		foreach ($context['smm_languages'] as $lang) {
 			$context['posting_fields']['title']['input']['html'] .= /** @lang text */ '
 				<div x-show="tab === \'' . $lang['filename'] . '\'">
 					<input

@@ -4,7 +4,7 @@ function template_callback_smm_readme_editor()
 {
 	global $context;
 
-	foreach ($context['languages'] as $lang) {
+	foreach ($context['smm_languages'] as $lang) {
 		echo '
 		<div class="title_bar">
 			<h3 class="titlebg">', $lang['name'], '</h3>
@@ -190,7 +190,7 @@ function template_modification_post()
 															<table class="table_grid">
 																<tbody>';
 
-	foreach ($context['languages'] as $lang) {
+	foreach ($context['smm_languages'] as $lang) {
 		echo '
 																	<tr class="windowbg">
 																		<td>
@@ -460,7 +460,7 @@ function template_modification_post()
 														<table class="table_grid">
 															<tbody>';
 
-	foreach ($context['languages'] as $lang) {
+	foreach ($context['smm_languages'] as $lang) {
 		echo '
 																<tr class="windowbg">
 																	<td>
@@ -488,7 +488,7 @@ function template_modification_post()
 														<table class="table_grid">
 															<tbody>';
 
-	foreach ($context['languages'] as $lang) {
+	foreach ($context['smm_languages'] as $lang) {
 		echo '
 																<tr class="windowbg">
 																	<td>
