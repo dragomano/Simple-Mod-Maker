@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2024 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.7.1
+ * @version 0.7.2
  */
 
 namespace Bugo\SimpleModMaker;
@@ -21,19 +21,12 @@ use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\Method;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
-use Nette\PhpGenerator\Printer;
 
 if (! defined('SMF'))
 	die('No direct access...');
 
 final class Handler
 {
-	private const MOD_NAME_DEFAULT = 'My New Mod';
-
-	private const MOD_FILENAME_PATTERN = '^(?:Class-)?[A-Z][a-zA-Z]+$';
-
-	private const COLUMN_TYPES = ['tinyint', 'int', 'mediumint', 'varchar', 'text', 'mediumtext'];
-
 	/**
 	 * @throws Exception
 	 */
@@ -58,70 +51,62 @@ final class Handler
 			'description' => $txt['smm_add_desc']
 		];
 
-		$context['smm_column_types'] = self::COLUMN_TYPES;
+		$context['smm_column_types'] = SMM_COLUMN_TYPES;
 
-		$this->validateData();
+		$this->prepareSkeleton();
 		$this->prepareFormFields();
 		$this->setData();
 
 		$context['sub_template'] = 'modification_post';
 	}
 
-	private function validateData(): void
+	private function prepareSkeleton(): void
 	{
 		global $context, $modSettings;
 
-		$post_data = [];
-
-		if (isset($_POST['save'])) {
-			$post_data = $_POST;
-
-			array_walk_recursive($post_data, fn(&$value) => $value = htmlspecialchars($value));
-
-			$this->findErrors($post_data);
-		}
+		$postData = (new Validator())->validate();
 
 		$context['smm_skeleton'] = [
-			'name'              => $post_data['name'] ?? self::MOD_NAME_DEFAULT,
-			'filename'          => $post_data['filename'] ?? '',
-			'hooks'             => $post_data['hooks'] ?? [],
+			'name'              => $postData['name'] ?? SMM_MODNAME_DEFAULT,
+			'filename'          => $postData['filename'] ?? '',
+			'hooks'             => $postData['hooks'] ?? [],
 			'author'            => $modSettings['smm_mod_author'] ?? 'Unknown',
 			'email'             => $modSettings['smm_mod_email'] ?? 'no-reply@simplemachines.org',
 			'readmes'           => smf_json_decode($modSettings['smm_readme'] ?? '', true),
-			'version'           => $post_data['version'] ?? '0.1',
-			'site'              => $post_data['site'] ?? '',
-			'settings_area'     => (int) ($post_data['settings_area'] ?? 0),
+			'version'           => $postData['version'] ?? '0.1',
+			'site'              => $postData['site'] ?? '',
+			'settings_area'     => (int) ($postData['settings_area'] ?? 0),
 			'options'           => $context['smm_skeleton']['options'] ?? [],
 			'tables'            => $context['smm_skeleton']['tables'] ?? [],
 			'scheduled_tasks'   => $context['smm_skeleton']['scheduled_tasks'] ?? [],
 			'background_tasks'  => $context['smm_skeleton']['background_tasks'] ?? [],
 			'legacy_tasks'      => $context['smm_skeleton']['legacy_tasks'] ?? [],
-			'license'           => $post_data['license'] ?? 'mit',
-			'make_dir'          => $post_data['make_dir'] ?? false,
-			'use_strict_typing' => $post_data['use_strict_typing'] ?? false,
-			'use_final_class'   => $post_data['use_final_class'] ?? false,
-			'use_lang_dir'      => $post_data['use_lang_dir'] ?? false,
-			'make_template'     => $post_data['make_template'] ?? false,
-			'make_script'       => $post_data['make_script'] ?? false,
-			'make_css'          => $post_data['make_css'] ?? false,
-			'make_readme'       => $post_data['make_readme'] ?? false,
-			'add_copyrights'    => $post_data['add_copyrights'] ?? false,
-			'min_php_version'   => $post_data['min_php_version'] ?? '',
+			'license'           => $postData['license'] ?? 'mit',
+			'make_dir'          => $postData['make_dir'] ?? false,
+			'use_strict_typing' => $postData['use_strict_typing'] ?? false,
+			'use_final_class'   => $postData['use_final_class'] ?? false,
+			'use_lang_dir'      => $postData['use_lang_dir'] ?? false,
+			'make_template'     => $postData['make_template'] ?? false,
+			'make_script'       => $postData['make_script'] ?? false,
+			'make_css'          => $postData['make_css'] ?? false,
+			'make_readme'       => $postData['make_readme'] ?? false,
+			'add_copyrights'    => $postData['add_copyrights'] ?? false,
+			'min_php_version'   => $postData['min_php_version'] ?? '',
 			'callbacks'         => $context['smm_skeleton']['callbacks'] ?? [],
 		];
 
 		$context['smm_skeleton']['license_data'] = $this->getAvailableLicenses()[$context['smm_skeleton']['license']];
 
-		if (! empty($post_data['option_names'])) {
-			foreach ($post_data['option_names'] as $id => $option) {
+		if (! empty($postData['option_names'])) {
+			foreach ($postData['option_names'] as $id => $option) {
 				if (empty($option))
 					continue;
 
 				$context['smm_skeleton']['options'][$id] = [
 					'name'         => $option,
-					'type'         => $post_data['option_types'][$id],
-					'default'      => $post_data['option_types'][$id] === 'check' ? isset($post_data['option_defaults'][$id]) : ($post_data['option_defaults'][$id] ?? ''),
-					'variants'     => $post_data['option_variants'][$id] ?? '',
+					'type'         => $postData['option_types'][$id],
+					'default'      => $postData['option_types'][$id] === 'check' ? isset($postData['option_defaults'][$id]) : ($postData['option_defaults'][$id] ?? ''),
+					'variants'     => $postData['option_variants'][$id] ?? '',
 					'translations' => []
 				];
 			}
@@ -131,8 +116,8 @@ final class Handler
 			}
 		}
 
-		if (! empty($post_data['table_names'])) {
-			foreach ($post_data['table_names'] as $id => $table) {
+		if (! empty($postData['table_names'])) {
+			foreach ($postData['table_names'] as $id => $table) {
 				if (empty($table))
 					continue;
 
@@ -141,16 +126,16 @@ final class Handler
 					'columns' => []
 				];
 
-				if (! empty($post_data['column_names'])) {
-					foreach ($post_data['column_names'] as $table_id => $columns) {
+				if (! empty($postData['column_names'])) {
+					foreach ($postData['column_names'] as $table_id => $columns) {
 						foreach ($columns as $column_id => $column) {
 							$context['smm_skeleton']['tables'][$table_id]['columns'][$column_id] = [
-								'name'    => $post_data['column_names'][$id][$column_id],
-								'type'    => $post_data['column_types'][$id][$column_id],
-								'null'    => $post_data['column_null'][$id][$column_id] ?? false,
-								'size'    => $post_data['column_sizes'][$id][$column_id] ?? 0,
-								'auto'    => $post_data['column_auto'][$id][$column_id] ?? false,
-								'default' => $post_data['column_defaults'][$id][$column_id] ?? '',
+								'name'    => $postData['column_names'][$id][$column_id],
+								'type'    => $postData['column_types'][$id][$column_id],
+								'null'    => $postData['column_null'][$id][$column_id] ?? false,
+								'size'    => $postData['column_sizes'][$id][$column_id] ?? 0,
+								'auto'    => $postData['column_auto'][$id][$column_id] ?? false,
+								'default' => $postData['column_defaults'][$id][$column_id] ?? '',
 							];
 						}
 					}
@@ -158,8 +143,8 @@ final class Handler
 			}
 		}
 
-		if (! empty($post_data['task_slugs'])) {
-			foreach ($post_data['task_slugs'] as $id => $task_slug) {
+		if (! empty($postData['task_slugs'])) {
+			foreach ($postData['task_slugs'] as $id => $task_slug) {
 				if (empty($task_slug))
 					continue;
 
@@ -167,35 +152,35 @@ final class Handler
 					'slug'         => $task_slug,
 					'names'        => [],
 					'descriptions' => [],
-					'regularity'   => $post_data['task_regularities'][$id] ?? '',
+					'regularity'   => $postData['task_regularities'][$id] ?? '',
 				];
 			}
 
 			$context['smm_skeleton']['make_dir'] = true;
 		}
 
-		if (! empty($post_data['background_task_classnames'])) {
-			foreach ($post_data['background_task_classnames'] as $id => $classname) {
+		if (! empty($postData['background_task_classnames'])) {
+			foreach ($postData['background_task_classnames'] as $id => $classname) {
 				if (empty($classname))
 					continue;
 
 				$context['smm_skeleton']['background_tasks'][$id] = [
 					'classname'  => $classname,
-					'regularity' => $post_data['background_task_regularities'][$id] ?? '',
+					'regularity' => $postData['background_task_regularities'][$id] ?? '',
 				];
 			}
 
 			$context['smm_skeleton']['make_dir'] = true;
 		}
 
-		if (! empty($post_data['legacy_task_methods'])) {
-			foreach ($post_data['legacy_task_methods'] as $id => $method) {
+		if (! empty($postData['legacy_task_methods'])) {
+			foreach ($postData['legacy_task_methods'] as $id => $method) {
 				if (empty($method))
 					continue;
 
 				$context['smm_skeleton']['legacy_tasks'][$id] = [
 					'method'     => $method,
-					'regularity' => $post_data['legacy_task_regularities'][$id] ?? '',
+					'regularity' => $postData['legacy_task_regularities'][$id] ?? '',
 				];
 
 				$context['smm_skeleton']['hooks'][] = empty($context['smm_skeleton']['legacy_tasks'][$id]['regularity']) ? 'integrate_daily_maintenance' : 'integrate_weekly_maintenance';
@@ -203,25 +188,25 @@ final class Handler
 		}
 
 		foreach ($context['smm_languages'] as $lang) {
-			$context['smm_skeleton']['title'][$lang['filename']] = $post_data['title_' . $lang['filename']] ?? '';
-			$context['smm_skeleton']['description'][$lang['filename']] = $post_data['description_' . $lang['filename']] ?? '';
+			$context['smm_skeleton']['title'][$lang['filename']] = $postData['title_' . $lang['filename']] ?? '';
+			$context['smm_skeleton']['description'][$lang['filename']] = $postData['description_' . $lang['filename']] ?? '';
 
-			if (! empty($post_data['option_translations'][$lang['filename']])) {
-				foreach ($post_data['option_translations'][$lang['filename']] as $id => $translation) {
+			if (! empty($postData['option_translations'][$lang['filename']])) {
+				foreach ($postData['option_translations'][$lang['filename']] as $id => $translation) {
 					if (! empty($translation))
 						$context['smm_skeleton']['options'][$id]['translations'][$lang['filename']] = $translation;
 				}
 			}
 
-			if (! empty($post_data['task_names'][$lang['filename']])) {
-				foreach ($post_data['task_names'][$lang['filename']] as $id => $translation) {
+			if (! empty($postData['task_names'][$lang['filename']])) {
+				foreach ($postData['task_names'][$lang['filename']] as $id => $translation) {
 					if (! empty($translation))
 						$context['smm_skeleton']['scheduled_tasks'][$id]['names'][$lang['filename']] = $translation;
 				}
 			}
 
-			if (! empty($post_data['task_descriptions'][$lang['filename']])) {
-				foreach ($post_data['task_descriptions'][$lang['filename']] as $id => $translation) {
+			if (! empty($postData['task_descriptions'][$lang['filename']])) {
+				foreach ($postData['task_descriptions'][$lang['filename']] as $id => $translation) {
 					if (! empty($translation))
 						$context['smm_skeleton']['scheduled_tasks'][$id]['descriptions'][$lang['filename']] = $translation;
 				}
@@ -254,52 +239,6 @@ final class Handler
 		$context['smm_skeleton']['hooks'] = array_unique($context['smm_skeleton']['hooks']);
 	}
 
-	private function findErrors(array $data): void
-	{
-		global $context, $txt;
-
-		$post_errors = [];
-
-		if (empty($data['name']))
-			$post_errors[] = 'no_name';
-
-		if (empty($data['filename']))
-			$post_errors[] = 'no_filename';
-
-		if (! empty($data['filename']) && empty(filter_var($data['filename'], FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => '/' . self::MOD_FILENAME_PATTERN . '/']])))
-			$post_errors[] = 'no_valid_filename';
-
-		if (! empty($data['option_names'])) {
-			foreach ($data['option_names'] as $option) {
-				if (strlen($option) > 30)
-					$post_errors[] = 'option_name_too_long';
-			}
-		}
-
-		if (! empty($data['table_names'])) {
-			foreach ($data['table_names'] as $table) {
-				if (strlen($table) > 64)
-					$post_errors[] = 'table_name_too_long';
-			}
-		}
-
-		if (! empty($data['column_names'])) {
-			foreach ($data['column_names'] as $table) {
-				foreach ($table as $column) {
-					if (strlen($column) > 64)
-						$post_errors[] = 'column_name_too_long';
-				}
-			}
-		}
-
-		if (! empty($post_errors)) {
-			$context['post_errors'] = [];
-
-			foreach ($post_errors as $error)
-				$context['post_errors'][] = $txt['smm_error_' . $error];
-		}
-	}
-
 	private function prepareFormFields(): void
 	{
 		global $context, $txt;
@@ -329,7 +268,7 @@ final class Handler
 			'attributes' => [
 				'maxlength' => 255,
 				'required'  => true,
-				'pattern'   => self::MOD_FILENAME_PATTERN,
+				'pattern'   => SMM_FILENAME_PATTERN,
 				':value'    => "'Class-' + className.replace(/ /g, '')",
 			],
 		];
@@ -989,12 +928,7 @@ final class Handler
 		$file->addComment('');
 		$file->addComment("@version " . $context['smm_skeleton']['version']);
 
-		return (new class extends Printer {
-			protected $indentation = "\t";
-			protected $linesBetweenProperties = 1;
-			protected $linesBetweenMethods = 1;
-			protected $returnTypeColon = ': ';
-		})->printFile($file);
+		return (new Printer)->printFile($file);
 	}
 
 	private function fillConfigVars(Method $method, string $snake_name): void

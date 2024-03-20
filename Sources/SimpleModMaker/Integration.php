@@ -11,7 +11,7 @@ declare(strict_types=1);
  * @copyright 2022-2024 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.7.1
+ * @version 0.7.2
  */
 
 namespace Bugo\SimpleModMaker;
@@ -36,6 +36,9 @@ final class Integration
 	public function userInfo(): void
 	{
 		defined('SMM_NAME') || define('SMM_NAME', 'Simple Mod Maker');
+		defined('SMM_MODNAME_DEFAULT') || define('SMM_MODNAME_DEFAULT', 'My New Mod');
+		defined('SMM_FILENAME_PATTERN') || define('SMM_FILENAME_PATTERN', '^(?:Class-)?[A-Z][a-zA-Z]+$');
+		defined('SMM_COLUMN_TYPES') || define('SMM_COLUMN_TYPES', ['tinyint', 'int', 'mediumint', 'varchar', 'text', 'mediumtext']);
 	}
 
 	/**
