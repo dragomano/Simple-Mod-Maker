@@ -6,7 +6,7 @@
 ![PHP](https://img.shields.io/badge/PHP-^7.4-blue.svg?style=flat)
 [![Crowdin](https://badges.crowdin.net/simple-mod-maker/localized.svg)](https://crowdin.com/project/simple-mod-maker)
 
-- **Tested on:** PHP 8.2.13
+- **Tested on:** PHP 8.2.16
 - **Languages:** English, Russian, Spanish, Greek, German
 
 ## Description
