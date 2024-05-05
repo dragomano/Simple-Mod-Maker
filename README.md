@@ -22,6 +22,7 @@ You just need to set the necessary options, click "Build" and get a modification
 - Simply adding of the desired hooks you want to use. The hooks you once added are saved in the settings and are already displayed in the drop-down list when creating the next project. In addition, there is also a preset available the first time you use the generator.
 - Mod Settings Constructor - select option type, specify name and translations.
 - DB Table Constructor - if your application needs them.
+- Task Constructor - add background/scheduled/simple tasks.
 - Creating blanks for JS/CSS files, template file, language files, etc.
 
 ## What's under the hood?
