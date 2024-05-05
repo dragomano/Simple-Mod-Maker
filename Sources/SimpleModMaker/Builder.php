@@ -598,8 +598,6 @@ final class Builder
 		}
 
 		if (empty($this->skeleton['use_lang_dir'])) {
-			$languagedir = '$languagedir';
-
 			foreach ($languages as $lang) {
 				$language_file = 'Themes/default/languages/' . $this->classname . '.' . $lang . '.php';
 				$language_filepath = $this->path . '/' . $language_file;
@@ -607,22 +605,22 @@ final class Builder
 				if (is_file($language_filepath)) {
 					$data['install']['require-file']['Adding ' . ucfirst($lang) . ' language file'] = [
 						'name' => $language_file,
-						'destination' => $languagedir,
+						'destination' => rtrim($this->getLanguagesPath(), '/'),
 					];
 
 					$data['uninstall']['remove-file']['Removing ' . ucfirst($lang) . ' language file'] = [
-						'name' => $languagedir . '/' . $this->classname . '.' . $lang . '.php',
+						'name' => $this->getLanguagesPath() . $this->classname . '.' . $lang . '.php',
 					];
 				}
 			}
 		} else {
 			$data['install']['require-dir']['Adding language files'] = [
 				'name' => 'Themes/default/languages/' . $this->classname,
-				'destination' => '$languagedir',
+				'destination' => rtrim($this->getLanguagesPath(), '/'),
 			];
 
 			$data['uninstall']['remove-dir']['Removing language files'] = [
-				'name' => '$languagedir/' . $this->classname,
+				'name' => $this->getLanguagesPath() . $this->classname,
 			];
 		}
 
@@ -634,6 +632,11 @@ final class Builder
 		}
 
 		return $data;
+	}
+
+	private function getLanguagesPath(): string
+	{
+		return $this->skeleton['smf_target_version'] === '2.1' ? '$languagedir/' : '$themedir/languages/';
 	}
 
 	private function getTargetVersion(): string
