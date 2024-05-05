@@ -9,7 +9,7 @@
  * @copyright 2022-2024 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.7.2
+ * @version 0.8
  */
 
 namespace Bugo\SimpleModMaker;
