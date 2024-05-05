@@ -13,7 +13,7 @@
 		<require-dir name="Themes/default/languages/SimpleModMaker" destination="$languagedir"/>
 		<hook hook="integrate_pre_load" function="Bugo\SimpleModMaker\Integration::hooks#" file="$sourcedir/SimpleModMaker/Integration.php"/>
 		<code type="inline"><![CDATA[<?php
-			define('REQUIRED_PHP_VERSION', '7.4.0');
+			define('REQUIRED_PHP_VERSION', '8.0');
 			if (version_compare(PHP_VERSION, REQUIRED_PHP_VERSION, '<'))
 				fatal_error(
 					sprintf(

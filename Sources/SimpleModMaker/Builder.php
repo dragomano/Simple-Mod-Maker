@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 /**
  * Builder.php
@@ -76,7 +74,7 @@ final class Builder
 			file_put_contents($this->path . '/Themes/default/' . $this->classname . '.template.php', $template);
 
 			foreach ($this->skeleton['callbacks'] as $callback) {
-				$callbackTemplate = "\nfunction template_callback_{$callback}()\n";
+				$callbackTemplate = "\nfunction template_callback_$callback()\n";
 				$callbackTemplate .= "{\n";
 				$callbackTemplate .= "\t// Add your code here\n";
 				$callbackTemplate .= "}\n";
@@ -229,8 +227,8 @@ final class Builder
 
 		if (! empty($this->skeleton['min_php_version'])) {
 			$minPhpVersion = $this->skeleton['min_php_version'];
-			$database .= "if (version_compare(PHP_VERSION, '{$minPhpVersion}', '<')) {\n";
-			$database .= "\tdie('This mod needs PHP {$minPhpVersion} or greater. You will not be able to install/use this mod. Please, contact your host and ask for a php upgrade.');\n";
+			$database .= "if (version_compare(PHP_VERSION, '$minPhpVersion', '<')) {\n";
+			$database .= "\tdie('This mod needs PHP $minPhpVersion or greater. You will not be able to install/use this mod. Please, contact your host and ask for a php upgrade.');\n";
 			$database .= "}\n\n";
 		}
 
@@ -263,7 +261,7 @@ final class Builder
 
 					if (empty($column['auto']) && strlen($column['default'])) {
 						$default = $this->getDefaultValue($column);
-						$database .= "\t\t\t'default' => {$default},\n";
+						$database .= "\t\t\t'default' => $default,\n";
 					}
 				}
 
@@ -286,7 +284,7 @@ final class Builder
 				$database .= "\t'indexes' => [\n";
 				$database .= "\t\t[\n";
 				$database .= "\t\t\t'type' => 'primary',\n";
-				$database .= "\t\t\t'columns' => ['{$table_index}'],\n";
+				$database .= "\t\t\t'columns' => ['$table_index'],\n";
 				$database .= "\t\t]\n";
 				$database .= "\t],\n";
 			}
@@ -341,8 +339,8 @@ final class Builder
 			$database .= "\t[\n";
 			$database .= "\t\tstrtotime('tomorrow'),\n";
 			$database .= "\t\t0,\n";
-			$database .= "\t\t{$regularity},\n";
-			$database .= "\t\t'{$unit}',\n";
+			$database .= "\t\t$regularity,\n";
+			$database .= "\t\t'$unit',\n";
 			$database .= "\t\t0,\n";
 			$database .= "\t\t'{$task['slug']}',\n";
 			$database .= "\t\t'{$task['callable']}'\n";
@@ -354,15 +352,10 @@ final class Builder
 
 	private function getDefaultValue(array $column): ?string
 	{
-		switch ($column['type']) {
-			case 'tinyint':
-			case 'int':
-			case 'mediumint':
-				$value = (int) $column['default'];
-				break;
-			default:
-				$value = $column['default'];
-		}
+		$value = match ($column['type']) {
+			'tinyint', 'int', 'mediumint' => (int) $column['default'],
+			default => $column['default'],
+		};
 
 		return var_export($value, true);
 	}
@@ -547,7 +540,7 @@ final class Builder
 					$readmeData['lang'] = $lang;
 				}
 
-				$data['install']['readme']["readme/{$lang}.txt"] = $readmeData;
+				$data['install']['readme']["readme/$lang.txt"] = $readmeData;
 			}
 		}
 

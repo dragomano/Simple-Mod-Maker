@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 /**
  * Printer.php
@@ -23,11 +21,11 @@ if (! defined('SMF'))
 
 final class Printer extends BasePrinter
 {
-	public $indentation = "\t";
+	public string $indentation = "\t";
 
-	public $linesBetweenProperties = 1;
+	public int $linesBetweenProperties = 1;
 
-	public $linesBetweenMethods = 1;
+	public int $linesBetweenMethods = 1;
 
-	public $returnTypeColon = ': ';
+	public string $returnTypeColon = ': ';
 }
