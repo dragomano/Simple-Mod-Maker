@@ -160,8 +160,9 @@ final class Integration
 		if (empty($modSettings['userLanguage'])) {
 			$context['smm_languages'] = ['english' => $temp['english']];
 
-			if ($language !== 'english')
+			if ($language !== 'english') {
 				$context['smm_languages'][$language] = $temp[$language];
+			}
 
 			return;
 		}
@@ -182,10 +183,12 @@ final class Integration
 
 		$addSettings = [];
 
-		if (! isset($modSettings['smm_mod_author']))
+		if (! isset($modSettings['smm_mod_author'])) {
 			$addSettings['smm_mod_author'] = $user_info['name'];
-		if (! isset($modSettings['smm_mod_email']))
+		}
+		if (! isset($modSettings['smm_mod_email'])) {
 			$addSettings['smm_mod_email'] = $user_info['email'];
+		}
 
 		$readme = [];
 		foreach ($context['smm_languages'] as $lang) {
@@ -194,8 +197,9 @@ final class Integration
 			$readme[$lang['filename']] = $txt['smm_readme_default'] ?? '';
 		}
 
-		if (! isset($modSettings['smm_readme']))
+		if (! isset($modSettings['smm_readme'])) {
 			$addSettings['smm_readme'] = json_encode($readme);
+		}
 
 		updateSettings($addSettings);
 

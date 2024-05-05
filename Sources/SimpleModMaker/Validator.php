@@ -40,11 +40,13 @@ final class Validator
 
 		$errors = [];
 
-		if (empty($data['name']))
+		if (empty($data['name'])) {
 			$errors[] = 'no_name';
+		}
 
-		if (empty($data['filename']))
+		if (empty($data['filename'])) {
 			$errors[] = 'no_filename';
+		}
 
 		if (! empty($data['filename']) && empty(
 			filter_var(
@@ -58,23 +60,26 @@ final class Validator
 
 		if (! empty($data['option_names'])) {
 			foreach ($data['option_names'] as $option) {
-				if (strlen($option) > 30)
+				if (strlen($option) > 30) {
 					$errors[] = 'option_name_too_long';
+				}
 			}
 		}
 
 		if (! empty($data['table_names'])) {
 			foreach ($data['table_names'] as $table) {
-				if (strlen($table) > 64)
+				if (strlen($table) > 64) {
 					$errors[] = 'table_name_too_long';
+				}
 			}
 		}
 
 		if (! empty($data['column_names'])) {
 			foreach ($data['column_names'] as $table) {
 				foreach ($table as $column) {
-					if (strlen($column) > 64)
+					if (strlen($column) > 64) {
 						$errors[] = 'column_name_too_long';
+					}
 				}
 			}
 		}
@@ -82,8 +87,9 @@ final class Validator
 		if (! empty($errors)) {
 			$context['post_errors'] = [];
 
-			foreach ($errors as $error)
+			foreach ($errors as $error) {
 				$context['post_errors'][] = $txt['smm_error_' . $error];
+			}
 		}
 	}
 }

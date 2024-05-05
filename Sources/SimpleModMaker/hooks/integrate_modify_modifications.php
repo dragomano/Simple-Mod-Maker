@@ -5,6 +5,6 @@ return [
 		'subActions' => ['array', true],
 	],
 	'body' => [
-		"\$subActions['{$snake_name}'] = array(\$this, 'settings');",
+		"\$subActions['{$snake_name}'] = [\$this, 'settings'];",
 	]
 ];

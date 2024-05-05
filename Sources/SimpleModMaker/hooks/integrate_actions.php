@@ -8,6 +8,6 @@ return [
 		'actions' => ['array', true],
 	],
 	'body' => [
-		"\$actions['example_action'] = array(false, array(\$this, 'exampleMethod'));",
+		"\$actions['example_action'] = [false, [\$this, 'exampleMethod']];",
 	]
 ];

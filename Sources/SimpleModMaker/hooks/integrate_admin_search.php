@@ -8,6 +8,6 @@ return [
 	],
 	'body' => [
 		"\$language_files[] = '{$classname}';",
-		"\$settings_search[] = array(array(\$this, 'settings'), 'area=modsettings;sa={$snake_name}');",
+		"\$settings_search[] = [[\$this, 'settings'], 'area=modsettings;sa={$snake_name}'];",
 	]
 ];
