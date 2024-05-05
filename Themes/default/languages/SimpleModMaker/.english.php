@@ -134,6 +134,7 @@ $txt['smm_make_readme'] = 'Create readme files in the package';
 $txt['smm_add_copyrights'] = 'Add author\'s copyright';
 $txt['smm_add_copyrights_subtext'] = 'If you enabled this option after installing the mod, the author\'s copyright will appear on the ?action=credits page.';
 $txt['smm_min_php_version'] = 'Minimum required PHP version';
+$txt['smm_smf_target_version'] = 'The SMF version that this mod is designed for';
 
 $txt['smm_build'] = 'Build';
 

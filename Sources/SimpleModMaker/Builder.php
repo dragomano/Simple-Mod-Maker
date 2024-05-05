@@ -505,7 +505,7 @@ final class Builder
 
 		$data['install'] = [
 			'@attributes' => [
-				'for' => '2.1.*',
+				'for' => $this->getTargetVersion(),
 			],
 			'hook' => [
 				[
@@ -518,7 +518,7 @@ final class Builder
 
 		$data['uninstall'] = [
 			'@attributes' => [
-				'for' => '2.1.*',
+				'for' => $this->getTargetVersion(),
 			],
 			'hook' => [
 				array_merge((array) $data['install']['hook'][0], [
@@ -634,6 +634,14 @@ final class Builder
 		}
 
 		return $data;
+	}
+
+	private function getTargetVersion(): string
+	{
+		return match ($this->skeleton['smf_target_version']) {
+			'2.1/3.0' => '2.1.*, 3.0.*',
+			default => $this->skeleton['smf_target_version'] . '.*',
+		};
 	}
 
 	private function addSecurityCheck(string &$content): void

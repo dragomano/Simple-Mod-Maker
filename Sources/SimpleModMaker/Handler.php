@@ -65,32 +65,33 @@ final class Handler
 		$postData = (new Validator())->validate();
 
 		$context['smm_skeleton'] = [
-			'name'              => $postData['name'] ?? SMM_MODNAME_DEFAULT,
-			'filename'          => $postData['filename'] ?? '',
-			'hooks'             => $postData['hooks'] ?? [],
-			'author'            => $modSettings['smm_mod_author'] ?? 'Unknown',
-			'email'             => $modSettings['smm_mod_email'] ?? 'no-reply@simplemachines.org',
-			'readmes'           => smf_json_decode($modSettings['smm_readme'] ?? '', true),
-			'version'           => $postData['version'] ?? '0.1',
-			'site'              => $postData['site'] ?? '',
-			'settings_area'     => (int) ($postData['settings_area'] ?? 0),
-			'options'           => $context['smm_skeleton']['options'] ?? [],
-			'tables'            => $context['smm_skeleton']['tables'] ?? [],
-			'scheduled_tasks'   => $context['smm_skeleton']['scheduled_tasks'] ?? [],
-			'background_tasks'  => $context['smm_skeleton']['background_tasks'] ?? [],
-			'legacy_tasks'      => $context['smm_skeleton']['legacy_tasks'] ?? [],
-			'license'           => $postData['license'] ?? 'mit',
-			'make_dir'          => $postData['make_dir'] ?? false,
-			'use_strict_typing' => $postData['use_strict_typing'] ?? false,
-			'use_final_class'   => $postData['use_final_class'] ?? false,
-			'use_lang_dir'      => $postData['use_lang_dir'] ?? false,
-			'make_template'     => $postData['make_template'] ?? false,
-			'make_script'       => $postData['make_script'] ?? false,
-			'make_css'          => $postData['make_css'] ?? false,
-			'make_readme'       => $postData['make_readme'] ?? false,
-			'add_copyrights'    => $postData['add_copyrights'] ?? false,
-			'min_php_version'   => $postData['min_php_version'] ?? '',
-			'callbacks'         => $context['smm_skeleton']['callbacks'] ?? [],
+			'name'               => $postData['name'] ?? SMM_MODNAME_DEFAULT,
+			'filename'           => $postData['filename'] ?? '',
+			'hooks'              => $postData['hooks'] ?? [],
+			'author'             => $modSettings['smm_mod_author'] ?? 'Unknown',
+			'email'              => $modSettings['smm_mod_email'] ?? 'no-reply@simplemachines.org',
+			'readmes'            => smf_json_decode($modSettings['smm_readme'] ?? '', true),
+			'version'            => $postData['version'] ?? '0.1',
+			'site'               => $postData['site'] ?? '',
+			'settings_area'      => (int) ($postData['settings_area'] ?? 0),
+			'options'            => $context['smm_skeleton']['options'] ?? [],
+			'tables'             => $context['smm_skeleton']['tables'] ?? [],
+			'scheduled_tasks'    => $context['smm_skeleton']['scheduled_tasks'] ?? [],
+			'background_tasks'   => $context['smm_skeleton']['background_tasks'] ?? [],
+			'legacy_tasks'       => $context['smm_skeleton']['legacy_tasks'] ?? [],
+			'license'            => $postData['license'] ?? 'mit',
+			'make_dir'           => $postData['make_dir'] ?? false,
+			'use_strict_typing'  => $postData['use_strict_typing'] ?? false,
+			'use_final_class'    => $postData['use_final_class'] ?? false,
+			'use_lang_dir'       => $postData['use_lang_dir'] ?? false,
+			'make_template'      => $postData['make_template'] ?? false,
+			'make_script'        => $postData['make_script'] ?? false,
+			'make_css'           => $postData['make_css'] ?? false,
+			'make_readme'        => $postData['make_readme'] ?? false,
+			'add_copyrights'     => $postData['add_copyrights'] ?? false,
+			'min_php_version'    => $postData['min_php_version'] ?? '',
+			'smf_target_version' => $postData['smf_target_version'] ?? '2.1',
+			'callbacks'          => $context['smm_skeleton']['callbacks'] ?? [],
 		];
 
 		$context['smm_skeleton']['license_data'] = $this->getAvailableLicenses()[$context['smm_skeleton']['license']];
@@ -458,6 +459,19 @@ final class Handler
 				'placeholder' => '8.0',
 			],
 		];
+
+		$context['posting_fields']['smf_target_version']['label']['text'] = $txt['smm_smf_target_version'];
+		$context['posting_fields']['smf_target_version']['input'] = [
+			'type' => 'radio_select',
+			'tab'  => 'basic'
+		];
+
+		foreach (['2.1', '3.0', '2.1/3.0'] as $value) {
+			$context['posting_fields']['smf_target_version']['input']['options'][$value] = [
+				'value'    => $value,
+				'selected' => $value === $context['smm_skeleton']['smf_target_version']
+			];
+		}
 
 		$this->preparePostFields();
 	}
