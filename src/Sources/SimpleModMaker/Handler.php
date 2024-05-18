@@ -989,14 +989,22 @@ final class Handler
 
 	private function getGeneratedContent(PhpNamespace $namespace, string $filename): string
 	{
-		global $context;
-
-		$license = $context['smm_skeleton']['license_data'];
-
 		$file = new PhpFile();
 		$file->setStrictTypes();
 		$file->addNamespace($namespace);
 		$file->addComment($filename);
+
+		$file = $this->addLicenseBlock($file);
+
+		return (new Printer())->printFile($file);
+	}
+
+	private function addLicenseBlock(PhpFile $file): PhpFile
+	{
+		global $context;
+
+		$license = $context['smm_skeleton']['license_data'];
+
 		$file->addComment('');
 		$file->addComment("@package {$context['smm_skeleton']['name']}");
 		$file->addComment("@link {$context['smm_skeleton']['site']}");
@@ -1006,7 +1014,7 @@ final class Handler
 		$file->addComment('');
 		$file->addComment("@version " . $context['smm_skeleton']['version']);
 
-		return (new Printer())->printFile($file);
+		return $file;
 	}
 
 	private function fillConfigVars(Method $method, string $snake_name): void
