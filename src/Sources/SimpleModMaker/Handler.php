@@ -81,8 +81,6 @@ final class Handler
 			'legacy_tasks'       => $context['smm_skeleton']['legacy_tasks'] ?? [],
 			'license'            => $postData['license'] ?? 'mit',
 			'make_dir'           => $postData['make_dir'] ?? false,
-			'use_strict_typing'  => $postData['use_strict_typing'] ?? false,
-			'use_final_class'    => $postData['use_final_class'] ?? false,
 			'use_lang_dir'       => $postData['use_lang_dir'] ?? false,
 			'make_template'      => $postData['make_template'] ?? false,
 			'make_script'        => $postData['make_script'] ?? false,
@@ -386,24 +384,6 @@ final class Handler
 			],
 		];
 
-		$context['posting_fields']['use_strict_typing']['label']['text'] = $txt['smm_use_strict_typing'];
-		$context['posting_fields']['use_strict_typing']['input'] = [
-			'type' => 'checkbox',
-			'after' => $txt['smm_use_strict_typing_subtext'],
-			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['use_strict_typing']
-			],
-		];
-
-		$context['posting_fields']['use_final_class']['label']['text'] = $txt['smm_use_final_class'];
-		$context['posting_fields']['use_final_class']['input'] = [
-			'type' => 'checkbox',
-			'after' => $txt['smm_use_final_class_subtext'],
-			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['use_final_class']
-			],
-		];
-
 		$context['posting_fields']['use_lang_dir']['label']['text'] = $txt['smm_use_lang_dir'];
 		$context['posting_fields']['use_lang_dir']['input'] = [
 			'type' => 'checkbox',
@@ -620,10 +600,6 @@ final class Handler
 			$class->addComment(PHP_EOL . 'Try to use https://github.com/dragomano/smf-compat package to make your mod compatible with both SMF versions');
 		}
 
-		if (! empty($context['smm_skeleton']['use_final_class'])) {
-			$class->setFinal();
-		}
-
 		$snake_name = $this->getSnakeName($classname);
 
 		$this->prepareUsedHooks($class, $classname, $snake_name);
@@ -655,11 +631,8 @@ final class Handler
 		global $context;
 
 		$hooks = $class->addMethod('hooks')
-			->addBody("// add_integration_function('integrate_hook_name', __CLASS__ . '::methodName#', false, __FILE__);");
-
-		if (! empty($context['smm_skeleton']['use_strict_typing'])) {
-			$hooks->setReturnType('void');
-		}
+			->addBody("// add_integration_function('integrate_hook_name', __CLASS__ . '::methodName#', false, __FILE__);")
+			->setReturnType('void');
 
 		foreach ($context['smm_skeleton']['hooks'] as $hook) {
 			$method_name = $this->getMethodName($hook);
@@ -675,10 +648,7 @@ final class Handler
 				if (! empty($hook_data['params'])) {
 					foreach ($hook_data['params'] as $param => $data) {
 						$parameter = isset($data[2]) ? $method->addParameter($param, $data[2]) : $method->addParameter($param);
-
-						if (! empty($context['smm_skeleton']['use_strict_typing'])) {
-							$parameter->setType($data[0]);
-						}
+						$parameter->setType($data[0]);
 
 						if (! empty($data[1])) {
 							$parameter->setReference();
@@ -686,8 +656,7 @@ final class Handler
 					}
 				}
 
-				if (! empty($context['smm_skeleton']['use_strict_typing']))
-					$method->setReturnType(empty($hook_data['return']) ? 'void' : $hook_data['return']);
+				$method->setReturnType(empty($hook_data['return']) ? 'void' : $hook_data['return']);
 
 				if (! empty($hook_data['body'])) {
 					foreach ($hook_data['body'] as $body) {
@@ -707,10 +676,7 @@ final class Handler
 			$taskMethod = $class->addMethod($task['method']);
 			$hookName = empty($task['regularity']) ? 'integrate_daily_maintenance' : 'integrate_weekly_maintenance';
 			$taskMethod->addComment("Simple task via $hookName hook");
-
-			if (! empty($context['smm_skeleton']['use_strict_typing'])) {
-				$taskMethod->setReturnType('void');
-			}
+			$taskMethod->setReturnType('void');
 
 			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
 				$taskMethod->addBody("global \$smcFunc;" . PHP_EOL);
@@ -726,10 +692,7 @@ final class Handler
 				$settings->addComment('@return array|void');
 
 				$parameter = $settings->addParameter('return_config', false);
-
-				if (! empty($context['smm_skeleton']['use_strict_typing'])) {
-					$parameter->setType('bool');
-				}
+				$parameter->setType('bool');
 			}
 
 			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
@@ -849,9 +812,7 @@ final class Handler
 			$section = $class->addMethod('sectionExample1');
 			$section->addComment('@return array|void');
 			$parameter = $section->addParameter('return_config', false);
-			if (! empty($context['smm_skeleton']['use_strict_typing'])) {
-				$parameter->setType('bool');
-			}
+			$parameter->setType('bool');
 
 			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
 				$section->addBody("global \$context, \$txt, \$scripturl;" . PHP_EOL);
@@ -903,15 +864,8 @@ final class Handler
 
 			$context['smm_skeleton']['scheduled_tasks'][$id]['callable'] = "\\\\{$context['smm_skeleton']['author']}\\\\$baseClassname\\\\Tasks\\\\$classname::execute";
 
-			if (! empty($context['smm_skeleton']['use_final_class'])) {
-				$class->setFinal();
-			}
-
 			$method = $class->addMethod('execute');
-
-			if (! empty($context['smm_skeleton']['use_strict_typing'])) {
-				$method->setReturnType('bool');
-			}
+			$method->setReturnType('bool');
 
 			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
 				$method->addBody("global \$smcFunc;" . PHP_EOL);
@@ -945,15 +899,8 @@ final class Handler
 
 			$context['smm_skeleton']['background_tasks'][$id]['callable'] = "\\\\{$context['smm_skeleton']['author']}\\\\$baseClassname\\\\Tasks\\\\$classname";
 
-			if (! empty($context['smm_skeleton']['use_final_class'])) {
-				$class->setFinal();
-			}
-
 			$method = $class->addMethod('execute');
-
-			if (! empty($context['smm_skeleton']['use_strict_typing'])) {
-				$method->setReturnType('bool');
-			}
+			$method->setReturnType('bool');
 
 			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
 				$method->addBody("global \$smcFunc;" . PHP_EOL);
@@ -1013,10 +960,7 @@ final class Handler
 			$filename = $tasks[$classname]['filename'];
 
 			$method = $class->addMethod('run' . $task['classname']);
-
-			if (! empty($context['smm_skeleton']['use_strict_typing'])) {
-				$method->setReturnType('void');
-			}
+			$method->setReturnType('void');
 
 			$method->addComment('Call this method to run a background task');
 
@@ -1050,11 +994,7 @@ final class Handler
 		$license = $context['smm_skeleton']['license_data'];
 
 		$file = new PhpFile();
-
-		if (! empty($context['smm_skeleton']['use_strict_typing'])) {
-			$file->setStrictTypes();
-		}
-
+		$file->setStrictTypes();
 		$file->addNamespace($namespace);
 		$file->addComment($filename);
 		$file->addComment('');

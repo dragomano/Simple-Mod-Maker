@@ -11,12 +11,12 @@ $txt['smm_generator'] = 'Generator';
 $txt['smm_mod_author'] = 'Developer';
 $txt['smm_readme'] = 'Readme file template';
 $txt['smm_readme_desc'] = 'The following variables are available:';
-$txt['smm_readme_vars'] = array(
+$txt['smm_readme_vars'] = [
 	'mod_name' => 'The mod name',
 	'author' => 'Author name',
 	'description' => 'Description',
 	'license' => 'License'
-);
+];
 $txt['smm_readme_default'] = '[center][color=red][size=16pt][b]{mod_name}[/b][/size][/color]
 [color=blue][b][size=10pt]By {author}[/size][/b][/color]
 [color=green]{description}[/color][/center]
@@ -122,10 +122,6 @@ $txt['smm_license_name'] = 'License name';
 $txt['smm_license_link'] = 'License link';
 $txt['smm_make_dir'] = 'Create a separate directory in Sources';
 $txt['smm_make_dir_subtext'] = 'Enable this option if you know in advance that your mod will consist of many files.';
-$txt['smm_use_strict_typing'] = 'Use strict typing';
-$txt['smm_use_strict_typing_subtext'] = 'If you enabled this option, a directive <a class="bbc_link" href="https://www.php.net/manual/en/language.types.declarations.php#language.types.declarations.strict" target="_blank" rel="nofollow">declare(strict_types=1);</a> will be added to the header of the mod file.';
-$txt['smm_use_final_class'] = 'Set the mod class as final';
-$txt['smm_use_final_class_subtext'] = 'Class inheritance will be limited by adding the keyword <a class="bbc_link" href="https://www.php.net/manual/en/language.oop5.final.php" target="_blank" rel="noopener">final</a> before its name.';
 $txt['smm_use_lang_dir'] = 'Use a separate folder for languages';
 $txt['smm_make_template'] = 'Create a template file';
 $txt['smm_make_script'] = 'Create an empty JS file';
