@@ -1,6 +1,7 @@
 **/.idea/
 **/.vscode/
 **/vendor/
+**/composer.lock
 src/Themes/default/languages/SimpleModMaker/*
 !src/Themes/default/languages/SimpleModMaker/index.php
 !src/Themes/default/languages/SimpleModMaker/.english.php

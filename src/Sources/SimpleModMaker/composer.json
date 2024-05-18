@@ -10,21 +10,13 @@
       "Bugo\\SimpleModMaker\\": ""
     }
   },
-  "require-dev": {
-    "rector/rector": "^1.0"
-  },
   "scripts": {
-    "check": "vendor/bin/rector process --dry-run --clear-cache",
     "build": "composer update --no-dev -o"
   },
   "config": {
-    "optimize-autoloader": true,
-    "preferred-install": "dist",
     "sort-packages": true,
     "platform": {
       "php": "8.0"
     }
-  },
-  "minimum-stability": "dev",
-  "prefer-stable": true
+  }
 }

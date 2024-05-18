@@ -5,10 +5,10 @@ use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
 
 return RectorConfig::configure()
 	->withPaths([
-		__DIR__ . '*',
+		__DIR__ . '/src/*',
 	])
 	->withSkip([
-		__DIR__ . '/vendor/*',
+		__DIR__ . '**/vendor/*',
 		RecastingRemovalRector::class,
 	])
 	->withParallel(360)
