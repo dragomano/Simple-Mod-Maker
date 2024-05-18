@@ -194,7 +194,7 @@ function template_modification_post()
 		echo '
 																	<tr class="windowbg">
 																		<td>
-																			<input type="text" x-model="option.translations[\'', $lang['filename'], '\']" name="option_translations[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['name'], '">
+																			<input type="text" x-model="option.translations[\'', $lang['filename'], '\']" name="option_translations[', $lang['filename'], '][]"', in_array($lang['filename'], [$context['user']['language'], 'english']) ? ' required' : '', ' placeholder="', $lang['name'], '">
 																		</td>
 																	</tr>';
 	}
@@ -467,7 +467,7 @@ function template_modification_post()
 																		<input
 																			type="text"
 																			x-model="task.names[\'', $lang['filename'], '\']"
-																			name="task_names[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['name'], '"
+																			name="task_names[', $lang['filename'], '][]"', in_array($lang['filename'], [$context['user']['language'], 'english']) ? ' required' : '', ' placeholder="', $lang['name'], '"
 																		>
 																	</td>
 																</tr>';
@@ -495,7 +495,7 @@ function template_modification_post()
 																		<input
 																			type="text"
 																			x-model="task.descriptions[\'', $lang['filename'], '\']"
-																			name="task_descriptions[', $lang['filename'], '][]"', in_array($lang['filename'], array($context['user']['language'], 'english')) ? ' required' : '', ' placeholder="', $lang['name'], '"
+																			name="task_descriptions[', $lang['filename'], '][]"', in_array($lang['filename'], [$context['user']['language'], 'english']) ? ' required' : '', ' placeholder="', $lang['name'], '"
 																		>
 																	</td>
 																</tr>';
