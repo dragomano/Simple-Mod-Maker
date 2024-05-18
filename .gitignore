@@ -1,6 +1,6 @@
 **/.idea/
 **/.vscode/
 **/vendor/
-Themes/default/languages/SimpleModMaker/*
-!Themes/default/languages/SimpleModMaker/index.php
-!Themes/default/languages/SimpleModMaker/.english.php
+src/Themes/default/languages/SimpleModMaker/*
+!src/Themes/default/languages/SimpleModMaker/index.php
+!src/Themes/default/languages/SimpleModMaker/.english.php
