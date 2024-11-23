@@ -631,13 +631,13 @@ final class Handler
 		global $context;
 
 		$hooks = $class->addMethod('hooks')
-			->addBody("// add_integration_function('integrate_hook_name', __CLASS__ . '::methodName#', false, __FILE__);")
+			->addBody("// add_integration_function('integrate_hook_name', self::class . '::methodName#', false, __FILE__);")
 			->setReturnType('void');
 
 		foreach ($context['smm_skeleton']['hooks'] as $hook) {
 			$method_name = $this->getMethodName($hook);
 
-			$hooks->addBody("add_integration_function(?, __CLASS__ . '::?#', false, __FILE__);", [$hook, $method_name]);
+			$hooks->addBody("add_integration_function(?, self::class . '::?#', false, __FILE__);", [$hook, $method_name]);
 
 			$method = $class->addMethod($method_name)
 				->addComment('@hook ' . $hook);
