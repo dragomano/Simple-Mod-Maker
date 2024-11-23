@@ -25,6 +25,14 @@ if (! defined('SMF'))
 
 final class Handler
 {
+	private const COLUMN_TYPES = ['tinyint', 'int', 'mediumint', 'varchar', 'text', 'mediumtext'];
+
+	private const TAB = [
+		'basic'    => 'basic',
+		'settings' => 'settings',
+		'package'  => 'package',
+	];
+
 	/**
 	 * @throws Exception
 	 */
@@ -49,7 +57,7 @@ final class Handler
 			'description' => $txt['smm_add_desc']
 		];
 
-		$context['smm_column_types'] = SMM_COLUMN_TYPES;
+		$context['smm_column_types'] = self::COLUMN_TYPES;
 
 		$this->prepareSkeleton();
 		$this->prepareFormFields();
@@ -102,7 +110,9 @@ final class Handler
 				$context['smm_skeleton']['options'][$id] = [
 					'name'         => $option,
 					'type'         => $postData['option_types'][$id],
-					'default'      => $postData['option_types'][$id] === 'check' ? isset($postData['option_defaults'][$id]) : ($postData['option_defaults'][$id] ?? ''),
+					'default'      => $postData['option_types'][$id] === 'check'
+						? isset($postData['option_defaults'][$id])
+						: ($postData['option_defaults'][$id] ?? ''),
 					'variants'     => $postData['option_variants'][$id] ?? '',
 					'translations' => []
 				];
@@ -180,7 +190,9 @@ final class Handler
 					'regularity' => $postData['legacy_task_regularities'][$id] ?? '',
 				];
 
-				$context['smm_skeleton']['hooks'][] = empty($context['smm_skeleton']['legacy_tasks'][$id]['regularity']) ? 'integrate_daily_maintenance' : 'integrate_weekly_maintenance';
+				$context['smm_skeleton']['hooks'][] = empty($context['smm_skeleton']['legacy_tasks'][$id]['regularity'])
+					? 'integrate_daily_maintenance'
+					: 'integrate_weekly_maintenance';
 			}
 		}
 
@@ -252,7 +264,7 @@ final class Handler
 		$context['posting_fields']['name']['label']['text'] = $txt['smm_name'];
 		$context['posting_fields']['name']['input'] = [
 			'type' => 'text',
-			'tab' => 'basic',
+			'tab' => self::TAB['basic'],
 			'attributes' => [
 				'maxlength' => 255,
 				'value'     => $context['smm_skeleton']['name'],
@@ -264,7 +276,7 @@ final class Handler
 		$context['posting_fields']['filename']['label']['text'] = $txt['smm_filename'];
 		$context['posting_fields']['filename']['input'] = [
 			'type' => 'text',
-			'tab' => 'basic',
+			'tab' => self::TAB['basic'],
 			'after' => $txt['smm_filename_subtext'],
 			'attributes' => [
 				'maxlength' => 255,
@@ -277,7 +289,7 @@ final class Handler
 		$context['posting_fields']['hooks']['label']['text'] = $txt['smm_hooks'];
 		$context['posting_fields']['hooks']['input'] = [
 			'type'  => 'select',
-			'tab' => 'basic',
+			'tab' => self::TAB['basic'],
 			'after' => $txt['smm_hooks_subtext'],
 			'attributes' => [
 				'id'       => 'hooks',
@@ -290,7 +302,7 @@ final class Handler
 		$context['posting_fields']['version']['label']['text'] = $txt['smm_mod_version'];
 		$context['posting_fields']['version']['input'] = [
 			'type' => 'text',
-			'tab' => 'basic',
+			'tab' => self::TAB['basic'],
 			'attributes' => [
 				'maxlength' => 255,
 				'value'     => $context['smm_skeleton']['version'],
@@ -301,7 +313,7 @@ final class Handler
 		$context['posting_fields']['site']['label']['text'] = $txt['website'];
 		$context['posting_fields']['site']['input'] = [
 			'type' => 'url',
-			'tab' => 'basic',
+			'tab' => self::TAB['basic'],
 			'after' => $txt['smm_site_subtext'],
 			'attributes' => [
 				'maxlength'   => 255,
@@ -314,7 +326,7 @@ final class Handler
 		$context['posting_fields']['settings_area']['label']['text'] = $txt['smm_settings_area'];
 		$context['posting_fields']['settings_area']['input'] = [
 			'type' => 'select',
-			'tab'  => 'settings',
+			'tab'  => self::TAB['settings'],
 			'attributes' => [
 				'@change' => 'smm.changeSettingPlacement($event.target.value)',
 			]
@@ -328,7 +340,7 @@ final class Handler
 		}
 
 		$context['posting_fields']['title']['label']['html'] = '<label>' . $txt['smm_mod_title_and_desc'] . '</label>';
-		$context['posting_fields']['title']['input']['tab']  = 'settings';
+		$context['posting_fields']['title']['input']['tab']  = self::TAB['settings'];
 		$context['posting_fields']['title']['input']['html'] = '<div>';
 
 		$context['posting_fields']['title']['input']['html'] .= '
@@ -336,7 +348,11 @@ final class Handler
 
 		foreach ($context['smm_languages'] as $lang) {
 			$context['posting_fields']['title']['input']['html'] .= /** @lang text */
-				'<a class="button floatnone" :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }" @click.prevent="tab = \'' . $lang['filename'] . '\'">' . $lang['name'] . '</a>';
+				'<a
+				    class="button floatnone"
+				    :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }"
+				    @click.prevent="tab = \'' . $lang['filename'] . '\'"
+				>' . $lang['name'] . '</a>';
 		}
 
 		$context['posting_fields']['title']['input']['html'] .= '</nav>';
@@ -365,7 +381,7 @@ final class Handler
 		$context['posting_fields']['license']['label']['text'] = $txt['smm_license'];
 		$context['posting_fields']['license']['input'] = [
 			'type' => 'radio_select',
-			'tab' => 'basic',
+			'tab' => self::TAB['basic'],
 		];
 
 		foreach ($this->getAvailableLicenses() as $value => $license) {
@@ -436,7 +452,7 @@ final class Handler
 		$context['posting_fields']['min_php_version']['label']['text'] = $txt['smm_min_php_version'];
 		$context['posting_fields']['min_php_version']['input'] = [
 			'type' => 'text',
-			'tab' => 'basic',
+			'tab' => self::TAB['basic'],
 			'attributes' => [
 				'maxlength'   => 255,
 				'value'       => $context['smm_skeleton']['min_php_version'],
@@ -447,7 +463,7 @@ final class Handler
 		$context['posting_fields']['smf_target_version']['label']['text'] = $txt['smm_smf_target_version'];
 		$context['posting_fields']['smf_target_version']['input'] = [
 			'type' => 'radio_select',
-			'tab'  => 'basic'
+			'tab'  => self::TAB['basic']
 		];
 
 		foreach (['2.1', '3.0', '2.1/3.0'] as $value) {
@@ -472,7 +488,8 @@ final class Handler
 					$tag = 'span';
 				}
 
-				$context['posting_fields'][$item]['input']['after'] = "<$tag class=\"descbox alternative2 smalltext\">{$data['input']['after']}</$tag>";
+				$context['posting_fields'][$item]['input']['after'] =
+					"<$tag class=\"descbox alternative2 smalltext\">{$data['input']['after']}</$tag>";
 			}
 
 			if (isset($data['input']['type']) && $data['input']['type'] === 'checkbox') {
@@ -483,7 +500,7 @@ final class Handler
 			}
 
 			if (empty($data['input']['tab'])) {
-				$context['posting_fields'][$item]['input']['tab'] = 'package';
+				$context['posting_fields'][$item]['input']['tab'] = self::TAB['package'];
 			}
 		}
 	}
@@ -612,7 +629,14 @@ final class Handler
 
 		$this->addTaskExamples($class, $classname, $tasks);
 
-		$content = $this->getGeneratedContent($namespace, (empty($context['smm_skeleton']['make_dir']) ? $context['smm_skeleton']['filename'] : 'Integration') . '.php');
+		$content = $this->getGeneratedContent(
+			$namespace,
+			(
+				empty($context['smm_skeleton']['make_dir'])
+					? $context['smm_skeleton']['filename']
+					: 'Integration'
+			) . '.php'
+		);
 
 		$plugin = new Builder([
 			'skeleton'  => $context['smm_skeleton'],
@@ -854,7 +878,9 @@ final class Handler
 			$classname = $this->getCamelName($task['slug']);
 			$filename = $classname . '.php';
 
-			$targetTaskClass = $context['smm_skeleton']['smf_target_version'] === '3.0' ? 'SMF\Tasks\ScheduledTask' : 'SMF_BackgroundTask';
+			$targetTaskClass = $context['smm_skeleton']['smf_target_version'] === '3.0'
+				? 'SMF\Tasks\ScheduledTask'
+				: 'SMF_BackgroundTask';
 			$namespace = new PhpNamespace($context['smm_skeleton']['author'] . '\\' . $baseClassname . '\\Tasks');
 			$namespace->addUse($targetTaskClass);
 
@@ -862,7 +888,8 @@ final class Handler
 			$class->setExtends($targetTaskClass);
 			$class->addComment('Generated by ' . SMM_NAME);
 
-			$context['smm_skeleton']['scheduled_tasks'][$id]['callable'] = "\\\\{$context['smm_skeleton']['author']}\\\\$baseClassname\\\\Tasks\\\\$classname::execute";
+			$context['smm_skeleton']['scheduled_tasks'][$id]['callable'] =
+				"\\\\{$context['smm_skeleton']['author']}\\\\$baseClassname\\\\Tasks\\\\$classname::execute";
 
 			$method = $class->addMethod('execute');
 			$method->setReturnType('bool');
@@ -888,7 +915,9 @@ final class Handler
 			$classname = $task['classname'];
 			$filename = $classname . '.php';
 
-			$targetTaskClass = $context['smm_skeleton']['smf_target_version'] === '3.0' ? 'SMF\Tasks\BackgroundTask' : 'SMF_BackgroundTask';
+			$targetTaskClass = $context['smm_skeleton']['smf_target_version'] === '3.0'
+				? 'SMF\Tasks\BackgroundTask'
+				: 'SMF_BackgroundTask';
 			$namespace = new PhpNamespace($context['smm_skeleton']['author'] . '\\' . $baseClassname . '\\Tasks');
 			$namespace->addUse($targetTaskClass);
 			$namespace->addUse('SMF\Db\DatabaseApi', 'Db');
@@ -897,7 +926,8 @@ final class Handler
 			$class->setExtends($targetTaskClass);
 			$class->addComment('Generated by ' . SMM_NAME);
 
-			$context['smm_skeleton']['background_tasks'][$id]['callable'] = "\\\\{$context['smm_skeleton']['author']}\\\\$baseClassname\\\\Tasks\\\\$classname";
+			$context['smm_skeleton']['background_tasks'][$id]['callable'] =
+				"\\\\{$context['smm_skeleton']['author']}\\\\$baseClassname\\\\Tasks\\\\$classname";
 
 			$method = $class->addMethod('execute');
 			$method->setReturnType('bool');
@@ -1114,6 +1144,9 @@ final class Handler
 			return;
 
 		$used_hooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
-		updateSettings(['smm_hooks' => implode(',', array_unique(array_merge($context['smm_skeleton']['hooks'], $used_hooks)))]);
+
+		updateSettings([
+			'smm_hooks' => implode(',', array_unique(array_merge($context['smm_skeleton']['hooks'], $used_hooks)))
+		]);
 	}
 }

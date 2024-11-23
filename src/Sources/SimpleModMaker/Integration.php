@@ -24,8 +24,19 @@ final class Integration
 	 */
 	public function hooks(): void
 	{
-		add_integration_function('integrate_user_info', self::class . '::userInfo#', false, __FILE__);
-		add_integration_function('integrate_admin_areas', self::class . '::adminAreas#', false, __FILE__);
+		add_integration_function(
+			'integrate_user_info',
+			self::class . '::userInfo#',
+			false,
+			__FILE__
+		);
+
+		add_integration_function(
+			'integrate_admin_areas',
+			self::class . '::adminAreas#',
+			false,
+			__FILE__
+		);
 	}
 
 	/**
@@ -36,7 +47,6 @@ final class Integration
 		defined('SMM_NAME') || define('SMM_NAME', 'Simple Mod Maker');
 		defined('SMM_MODNAME_DEFAULT') || define('SMM_MODNAME_DEFAULT', 'My New Mod');
 		defined('SMM_FILENAME_PATTERN') || define('SMM_FILENAME_PATTERN', '^(?:Class-)?[A-Z][a-zA-Z]+$');
-		defined('SMM_COLUMN_TYPES') || define('SMM_COLUMN_TYPES', ['tinyint', 'int', 'mediumint', 'varchar', 'text', 'mediumtext']);
 	}
 
 	/**
