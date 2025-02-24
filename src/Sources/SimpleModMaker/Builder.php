@@ -1,8 +1,6 @@
 <?php declare(strict_types=1);
 
 /**
- * Builder.php
- *
  * @package Simple Mod Maker
  * @link https://github.com/dragomano/Simple-Mod-Maker
  * @author Bugo <bugo@dragomano.ru>
@@ -565,7 +563,7 @@ final class Builder
 			],
 			'hook' => [
 				[
-					'hook' => 'integrate_pre_load',
+					'hook' => Hook::PRE_LOAD,
 					'function' => $coreclass . '::hooks#',
 					'file' => '$sourcedir/' . $filename . '.php',
 				],

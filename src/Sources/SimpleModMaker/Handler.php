@@ -1,12 +1,10 @@
 <?php declare(strict_types=1);
 
 /**
- * Handler.php
- *
  * @package Simple Mod Maker
  * @link https://github.com/dragomano/Simple-Mod-Maker
  * @author Bugo <bugo@dragomano.ru>
- * @copyright 2022-2024 Bugo
+ * @copyright 2022-2025 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
  * @version 0.8
@@ -191,8 +189,8 @@ final class Handler
 				];
 
 				$context['smm_skeleton']['hooks'][] = empty($context['smm_skeleton']['legacy_tasks'][$id]['regularity'])
-					? 'integrate_daily_maintenance'
-					: 'integrate_weekly_maintenance';
+					? Hook::DAILY_MAINTENANCE
+					: Hook::WEEKLY_MAINTENANCE;
 			}
 		}
 
@@ -231,22 +229,22 @@ final class Handler
 		if (! empty($context['smm_skeleton']['settings_area'])) {
 			switch ($context['smm_skeleton']['settings_area']) {
 				case 1:
-					$context['smm_skeleton']['hooks'][] = 'integrate_general_mod_settings';
+					$context['smm_skeleton']['hooks'][] = Hook::GENERAL_MOD_SETTINGS;
 					break;
 
 				case 2:
-					$context['smm_skeleton']['hooks'][] = 'integrate_admin_areas';
-					$context['smm_skeleton']['hooks'][] = 'integrate_admin_search';
-					$context['smm_skeleton']['hooks'][] = 'integrate_modify_modifications';
+					$context['smm_skeleton']['hooks'][] = Hook::ADMIN_AREAS;
+					$context['smm_skeleton']['hooks'][] = Hook::ADMIN_SEARCH;
+					$context['smm_skeleton']['hooks'][] = Hook::MODIFY_MODIFICATIONS;
 					break;
 
 				default:
-					$context['smm_skeleton']['hooks'][] = 'integrate_admin_areas';
+					$context['smm_skeleton']['hooks'][] = Hook::ADMIN_AREAS;
 			}
 		}
 
 		if (! empty($context['smm_skeleton']['add_copyrights'])) {
-			$context['smm_skeleton']['hooks'][] = 'integrate_credits';
+			$context['smm_skeleton']['hooks'][] = Hook::CREDITS;
 		}
 
 		$context['smm_skeleton']['hooks'] = array_unique($context['smm_skeleton']['hooks']);
@@ -349,9 +347,9 @@ final class Handler
 		foreach ($context['smm_languages'] as $lang) {
 			$context['posting_fields']['title']['input']['html'] .= /** @lang text */
 				'<a
-				    class="button floatnone"
-				    :class="{ \'active\': tab === \'' . $lang['filename'] . '\' }"
-				    @click.prevent="tab = \'' . $lang['filename'] . '\'"
+					class="button floatnone"
+					:class="{ \'active\': tab === \'' . $lang['filename'] . '\' }"
+					@click.prevent="tab = \'' . $lang['filename'] . '\'"
 				>' . $lang['name'] . '</a>';
 		}
 
@@ -564,13 +562,13 @@ final class Handler
 		$files = array_map(static fn($item): string => str_replace('.php', '', basename($item)), $files);
 
 		$list = array_merge($files, [
-			'integrate_forum_stats',
-			'integrate_helpadmin',
-			'integrate_load_theme',
-			'integrate_post_end',
-			'integrate_pre_css_output',
-			'integrate_theme_context',
-			'integrate_user_info',
+			Hook::FORUM_STATS,
+			Hook::HELP_ADMIN,
+			Hook::LOAD_THEME,
+			Hook::POST_END,
+			Hook::PRE_CSS_OUTPUT,
+			Hook::THEME_CONTEXT,
+			Hook::USER_INFO,
 		], $hooks);
 
 		sort($list);
@@ -688,7 +686,7 @@ final class Handler
 					}
 				}
 
-				if ($hook === 'integrate_general_mod_settings' && $context['smm_skeleton']['settings_area'] === 1) {
+				if ($hook === Hook::GENERAL_MOD_SETTINGS && $context['smm_skeleton']['settings_area'] === 1) {
 					$this->fillConfigVars($method, $snake_name);
 				}
 			}
@@ -698,7 +696,7 @@ final class Handler
 
 		foreach ($context['smm_skeleton']['legacy_tasks'] as $task) {
 			$taskMethod = $class->addMethod($task['method']);
-			$hookName = empty($task['regularity']) ? 'integrate_daily_maintenance' : 'integrate_weekly_maintenance';
+			$hookName = empty($task['regularity']) ? Hook::DAILY_MAINTENANCE : Hook::WEEKLY_MAINTENANCE;
 			$taskMethod->addComment("Simple task via $hookName hook");
 			$taskMethod->setReturnType('void');
 
@@ -712,7 +710,7 @@ final class Handler
 		if ($context['smm_skeleton']['settings_area'] === 2) {
 			$settings = $class->addMethod('settings');
 
-			if (isset($hook_keys['integrate_admin_search'])) {
+			if (isset($hook_keys[Hook::ADMIN_SEARCH])) {
 				$settings->addComment('@return array|void');
 
 				$parameter = $settings->addParameter('return_config', false);
@@ -755,7 +753,7 @@ final class Handler
 
 			$this->fillConfigVars($settings, $snake_name);
 
-			if (isset($hook_keys['integrate_admin_search'])) {
+			if (isset($hook_keys[Hook::ADMIN_SEARCH])) {
 				$settings->addBody("if (\$return_config)");
 				$settings->addBody("\treturn \$config_vars;" . PHP_EOL);
 			}
@@ -1020,7 +1018,6 @@ final class Handler
 	private function getGeneratedContent(PhpNamespace $namespace, string $filename): string
 	{
 		$file = new PhpFile();
-		$file->setStrictTypes();
 		$file->addNamespace($namespace);
 		$file->addComment($filename);
 
@@ -1113,7 +1110,7 @@ final class Handler
 	private function getDefaultValue(array $option): string
 	{
 		$default = match ($option['type']) {
-			'int' => (int) $option['default'],
+			'int'   => (int) $option['default'],
 			'float' => (float) $option['default'],
 			default => $option['default'],
 		};

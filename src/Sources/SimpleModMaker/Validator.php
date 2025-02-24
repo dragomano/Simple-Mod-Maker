@@ -1,8 +1,6 @@
 <?php declare(strict_types=1);
 
 /**
- * Validator.php
- *
  * @package Simple Mod Maker
  * @link https://github.com/dragomano/Simple-Mod-Maker
  * @author Bugo <bugo@dragomano.ru>

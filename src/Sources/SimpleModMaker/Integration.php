@@ -1,8 +1,6 @@
 <?php declare(strict_types=1);
 
 /**
- * Integration.php
- *
  * @package Simple Mod Maker
  * @link https://github.com/dragomano/Simple-Mod-Maker
  * @author Bugo <bugo@dragomano.ru>
@@ -19,39 +17,16 @@ if (! defined('SMF'))
 
 final class Integration
 {
-	/**
-	 * Runs the mod's hooks
-	 */
-	public function hooks(): void
+	public function __construct()
 	{
 		add_integration_function(
-			'integrate_user_info',
-			self::class . '::userInfo#',
-			false,
-			__FILE__
-		);
-
-		add_integration_function(
-			'integrate_admin_areas',
+			Hook::ADMIN_AREAS,
 			self::class . '::adminAreas#',
 			false,
 			__FILE__
 		);
 	}
 
-	/**
-	 * @hook integrate_user_info
-	 */
-	public function userInfo(): void
-	{
-		defined('SMM_NAME') || define('SMM_NAME', 'Simple Mod Maker');
-		defined('SMM_MODNAME_DEFAULT') || define('SMM_MODNAME_DEFAULT', 'My New Mod');
-		defined('SMM_FILENAME_PATTERN') || define('SMM_FILENAME_PATTERN', '^(?:Class-)?[A-Z][a-zA-Z]+$');
-	}
-
-	/**
-	 * @hook integrate_admin_areas
-	 */
 	public function adminAreas(array &$admin_areas): void
 	{
 		global $txt;
@@ -69,16 +44,12 @@ final class Integration
 		];
 	}
 
-	/**
-	 * Directs the admin to the proper page of settings for the Mod Maker
-	 */
 	public function settings(): void
 	{
 		global $context, $txt;
 
 		loadTemplate('SimpleModMaker');
 
-		require_once __DIR__ . '/vendor/autoload.php';
 		require_once dirname(__DIR__) . '/ManageSettings.php';
 
 		$this->prepareForumLanguages();
@@ -106,8 +77,6 @@ final class Integration
 	}
 
 	/**
-	 * Implements the basic settings of the Mod Maker
-	 *
 	 * @return void|array
 	 */
 	public function basicSettings(bool $return_config = false)

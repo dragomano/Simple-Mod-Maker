@@ -1,8 +1,6 @@
 <?php declare(strict_types=1);
 
 /**
- * Printer.php
- *
  * @package Simple Mod Maker
  * @link https://github.com/dragomano/Simple-Mod-Maker
  * @author Bugo <bugo@dragomano.ru>
