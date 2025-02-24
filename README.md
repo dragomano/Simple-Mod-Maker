@@ -17,7 +17,6 @@ You just need to set the necessary options, click "Build" and get a modification
 
 ## Features
 
-- Copyright management: name, email, license, etc.
 - Creating templates for readme files added to the package.
 - Simply adding of the desired hooks you want to use. The hooks you once added are saved in the settings and are already displayed in the drop-down list when creating the next project. In addition, there is also a preset available the first time you use the generator.
 - Mod Settings Constructor - select option type, specify name and translations.
@@ -32,3 +31,5 @@ You just need to set the necessary options, click "Build" and get a modification
 - [TomSelect](https://github.com/orchidjs/tom-select), for the hook list search field.
 
 If you liked this mod, then give a star ⭐️ to this project.
+
+If you are profiting from using this mod, please [support the developer](https://ko-fi.com/dragomano).
