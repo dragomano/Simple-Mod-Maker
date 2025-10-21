@@ -7,11 +7,12 @@
  * @copyright 2022-2025 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.8
+ * @version 0.9
  */
 
 namespace Bugo\SimpleModMaker;
 
+use Bugo\SimpleModMaker\Hooks\HookFactory;
 use Exception;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\Method;
@@ -292,7 +293,7 @@ final class Handler
 			'attributes' => [
 				'id'       => 'hooks',
 				'name'     => 'hooks[]',
-				'multiple' => true
+				'multiple' => true,
 			],
 			'options' => [],
 		];
@@ -333,7 +334,7 @@ final class Handler
 		foreach ($txt['smm_settings_area_set'] as $key => $value) {
 			$context['posting_fields']['settings_area']['input']['options'][$value] = [
 				'value'    => $key,
-				'selected' => $key === $context['smm_skeleton']['settings_area']
+				'selected' => $key === $context['smm_skeleton']['settings_area'],
 			];
 		}
 
@@ -379,13 +380,13 @@ final class Handler
 		$context['posting_fields']['license']['label']['text'] = $txt['smm_license'];
 		$context['posting_fields']['license']['input'] = [
 			'type' => 'radio_select',
-			'tab' => self::TAB['basic'],
+			'tab'  => self::TAB['basic'],
 		];
 
 		foreach ($this->getAvailableLicenses() as $value => $license) {
 			$context['posting_fields']['license']['input']['options'][$license['short_name']] = [
 				'value'    => $value,
-				'selected' => $value === $context['smm_skeleton']['license']
+				'selected' => $value === $context['smm_skeleton']['license'],
 			];
 		}
 
@@ -394,7 +395,7 @@ final class Handler
 			'type' => 'checkbox',
 			'after' => $txt['smm_make_dir_subtext'],
 			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_dir']
+				'checked' => (bool) $context['smm_skeleton']['make_dir'],
 			],
 		];
 
@@ -402,7 +403,7 @@ final class Handler
 		$context['posting_fields']['use_lang_dir']['input'] = [
 			'type' => 'checkbox',
 			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['use_lang_dir']
+				'checked' => (bool) $context['smm_skeleton']['use_lang_dir'],
 			],
 		];
 
@@ -410,7 +411,7 @@ final class Handler
 		$context['posting_fields']['make_template']['input'] = [
 			'type' => 'checkbox',
 			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_template']
+				'checked' => (bool) $context['smm_skeleton']['make_template'],
 			],
 		];
 
@@ -418,7 +419,7 @@ final class Handler
 		$context['posting_fields']['make_script']['input'] = [
 			'type' => 'checkbox',
 			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_script']
+				'checked' => (bool) $context['smm_skeleton']['make_script'],
 			],
 		];
 
@@ -426,7 +427,7 @@ final class Handler
 		$context['posting_fields']['make_css']['input'] = [
 			'type' => 'checkbox',
 			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_css']
+				'checked' => (bool) $context['smm_skeleton']['make_css'],
 			],
 		];
 
@@ -434,7 +435,7 @@ final class Handler
 		$context['posting_fields']['make_readme']['input'] = [
 			'type' => 'checkbox',
 			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_readme']
+				'checked' => (bool) $context['smm_skeleton']['make_readme'],
 			],
 		];
 
@@ -443,7 +444,7 @@ final class Handler
 			'type' => 'checkbox',
 			'after' => $txt['smm_add_copyrights_subtext'],
 			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['add_copyrights']
+				'checked' => (bool) $context['smm_skeleton']['add_copyrights'],
 			],
 		];
 
@@ -461,13 +462,13 @@ final class Handler
 		$context['posting_fields']['smf_target_version']['label']['text'] = $txt['smm_smf_target_version'];
 		$context['posting_fields']['smf_target_version']['input'] = [
 			'type' => 'radio_select',
-			'tab'  => self::TAB['basic']
+			'tab'  => self::TAB['basic'],
 		];
 
 		foreach (['2.1', '3.0', '2.1/3.0'] as $value) {
 			$context['posting_fields']['smf_target_version']['input']['options'][$value] = [
 				'value'    => $value,
-				'selected' => $value === $context['smm_skeleton']['smf_target_version']
+				'selected' => $value === $context['smm_skeleton']['smf_target_version'],
 			];
 		}
 
@@ -558,10 +559,9 @@ final class Handler
 		require_once dirname(__DIR__) . '/ManageMaintenance.php';
 
 		$hooks = array_keys(get_integration_hooks());
-		$files = glob(__DIR__ . DIRECTORY_SEPARATOR . 'hooks' . DIRECTORY_SEPARATOR . 'integrate_*.php');
-		$files = array_map(static fn($item): string => str_replace('.php', '', basename($item)), $files);
+		$known = HookFactory::getAvailableHooks();
 
-		$list = array_merge($files, [
+		$list = array_merge($known, [
 			Hook::FORUM_STATS,
 			Hook::HELP_ADMIN,
 			Hook::LOAD_THEME,
@@ -622,9 +622,7 @@ final class Handler
 		$tasks = [];
 
 		$this->prepareScheduledTasks($tasks, $classname);
-
 		$this->prepareBackgroundTasks($tasks, $classname);
-
 		$this->addTaskExamples($class, $classname, $tasks);
 
 		$content = $this->getGeneratedContent(
@@ -637,7 +635,7 @@ final class Handler
 		);
 
 		$plugin = new Builder([
-			'skeleton'  => $context['smm_skeleton'],
+			'skeleton'  => (array) $context['smm_skeleton'],
 			'classname' => $classname,
 			'snakename' => $snake_name,
 			'path'      => $packagesdir . '/' . $snake_name . '_' . $context['smm_skeleton']['version']
@@ -664,31 +662,29 @@ final class Handler
 			$method = $class->addMethod($method_name)
 				->addComment('@hook ' . $hook);
 
-			if (file_exists($hook_file = __DIR__ . '/hooks/' . $hook . '.php')) {
-				$hook_data = require_once $hook_file;
+			$hookInstance = HookFactory::create($hook, $context, $classname, $snake_name);
 
-				if (! empty($hook_data['params'])) {
-					foreach ($hook_data['params'] as $param => $data) {
-						$parameter = isset($data[2]) ? $method->addParameter($param, $data[2]) : $method->addParameter($param);
-						$parameter->setType($data[0]);
+			if ($hookInstance !== null) {
+				$parameters = $hookInstance->getParameters();
+				foreach ($parameters as $param => $data) {
+					$parameter = isset($data[2]) ? $method->addParameter($param, $data[2]) : $method->addParameter($param);
+					$parameter->setType($data[0]);
 
-						if (! empty($data[1])) {
-							$parameter->setReference();
-						}
+					if (! empty($data[1])) {
+						$parameter->setReference();
 					}
 				}
 
-				$method->setReturnType(empty($hook_data['return']) ? 'void' : $hook_data['return']);
+				$method->setReturnType($hookInstance->getReturnType());
 
-				if (! empty($hook_data['body'])) {
-					foreach ($hook_data['body'] as $body) {
-						$method->addBody($body);
-					}
+				$bodyLines = $hookInstance->getBody();
+				foreach ($bodyLines as $body) {
+					$method->addBody($body);
 				}
+			}
 
-				if ($hook === Hook::GENERAL_MOD_SETTINGS && $context['smm_skeleton']['settings_area'] === 1) {
-					$this->fillConfigVars($method, $snake_name);
-				}
+			if ($hook === Hook::GENERAL_MOD_SETTINGS && $context['smm_skeleton']['settings_area'] === 1) {
+				$this->fillConfigVars($method, $snake_name);
 			}
 		}
 
@@ -1140,10 +1136,10 @@ final class Handler
 		if (empty($context['smm_skeleton']['hooks']))
 			return;
 
-		$used_hooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
+		$usedHooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
 
 		updateSettings([
-			'smm_hooks' => implode(',', array_unique(array_merge($context['smm_skeleton']['hooks'], $used_hooks)))
+			'smm_hooks' => implode(',', array_unique(array_merge($context['smm_skeleton']['hooks'], $usedHooks)))
 		]);
 	}
 }
