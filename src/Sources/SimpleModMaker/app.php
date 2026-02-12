@@ -4,10 +4,10 @@
  * @package Simple Mod Maker
  * @link https://github.com/dragomano/Simple-Mod-Maker
  * @author Bugo <bugo@dragomano.ru>
- * @copyright 2022-2025 Bugo
+ * @copyright 2022-2026 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
  *
- * @version 0.9
+ * @version 1.0
  */
 
 use Bugo\SimpleModMaker\Integration;

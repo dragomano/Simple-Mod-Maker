@@ -3,7 +3,7 @@
 <package-info xmlns="http://www.simplemachines.org/xml/package-info" xmlns:smf="http://www.simplemachines.org/">
 	<id>Bugo:SimpleModMaker</id>
 	<name>Simple Mod Maker</name>
-	<version>0.9</version>
+	<version>1.0</version>
 	<type>modification</type>
 
 	<install for="2.1.*">
@@ -11,7 +11,7 @@
 		<require-file name="Themes/default/SimpleModMaker.template.php" destination="$themedir"/>
 		<require-file name="Themes/default/css/simple_mod_maker.css" destination="$themedir/css"/>
 		<require-dir name="Themes/default/languages/SimpleModMaker" destination="$languagedir"/>
-		<hook hook="integrate_pre_include" function="Bugo\SimpleModMaker\app.php"/>
+		<hook hook="integrate_pre_include" function="$sourcedir/SimpleModMaker/app.php"/>
 		<code type="inline"><![CDATA[<?php
 			define('REQUIRED_PHP_VERSION', '8.0');
 			if (version_compare(PHP_VERSION, REQUIRED_PHP_VERSION, '<'))
@@ -28,7 +28,7 @@
 	</install>
 
 	<uninstall for="2.1.*">
-		<hook hook="integrate_pre_include" function="Bugo\SimpleModMaker\app.php" reverse="true"/>
+		<hook hook="integrate_pre_include" function="$sourcedir/SimpleModMaker/app.php" reverse="true"/>
 		<remove-file name="$themedir/SimpleModMaker.template.php"/>
 		<remove-file name="$themedir/css/simple_mod_maker.css"/>
 		<remove-dir name="$sourcedir/SimpleModMaker"/>
