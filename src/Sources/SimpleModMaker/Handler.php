@@ -13,11 +13,7 @@
 namespace Bugo\SimpleModMaker;
 
 use Bugo\SimpleModMaker\Hooks\HookFactory;
-use Exception;
-use Nette\PhpGenerator\ClassType;
-use Nette\PhpGenerator\Method;
-use Nette\PhpGenerator\PhpFile;
-use Nette\PhpGenerator\PhpNamespace;
+use Nette\Utils\Html;
 
 if (! defined('SMF'))
 	die('No direct access...');
@@ -32,486 +28,319 @@ final class Handler
 		'package'  => 'package',
 	];
 
-	/**
-	 * @throws Exception
-	 */
 	public function generator(): void
 	{
 		global $context, $txt, $scripturl;
 
+		$this->loadAssets();
+		$this->setupPageContext($context, $txt, $scripturl);
+
+		$skeletonBuilder = new SkeletonBuilder();
+		$skeleton = $skeletonBuilder->build();
+
+		$this->prepareFormFields($skeleton);
+
+		if ($this->shouldGeneratePackage($context, $skeleton)) {
+			$this->generatePackage($skeleton);
+		}
+
+		$context['sub_template'] = 'modification_post';
+	}
+
+	private function loadAssets(): void
+	{
 		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js', [
 			'external' => true
 		]);
+
 		loadCSSFile('https://cdn.jsdelivr.net/npm/tom-select@2/dist/css/tom-select.min.css', [
 			'external' => true
 		]);
-		loadCSSFile('simple_mod_maker.css');
 
+		loadCSSFile('simple_mod_maker.css');
+	}
+
+	private function setupPageContext(array &$context, array $txt, string $scripturl): void
+	{
 		$context['page_title']      = SMM_NAME . ' - ' . $txt['smm_generator'];
 		$context['page_area_title'] = $txt['smm_generator'];
 		$context['canonical_url']   = $scripturl . '?action=admin;area=smm;sa=generator';
 
 		$context[$context['admin_menu_name']]['tab_data'] = [
 			'title'       => SMM_NAME,
-			'description' => $txt['smm_add_desc']
+			'description' => $txt['smm_add_desc'],
 		];
 
 		$context['smm_column_types'] = self::COLUMN_TYPES;
-
-		$this->prepareSkeleton();
-		$this->prepareFormFields();
-		$this->setData();
-
-		$context['sub_template'] = 'modification_post';
 	}
 
-	private function prepareSkeleton(): void
-	{
-		global $context, $modSettings;
-
-		$postData = (new Validator())->validate();
-
-		$context['smm_skeleton'] = [
-			'name'               => $postData['name'] ?? SMM_MODNAME_DEFAULT,
-			'filename'           => $postData['filename'] ?? '',
-			'hooks'              => $postData['hooks'] ?? [],
-			'author'             => $modSettings['smm_mod_author'] ?? 'Unknown',
-			'email'              => $modSettings['smm_mod_email'] ?? 'no-reply@simplemachines.org',
-			'readmes'            => smf_json_decode($modSettings['smm_readme'] ?? '', true),
-			'version'            => $postData['version'] ?? '0.1',
-			'site'               => $postData['site'] ?? '',
-			'settings_area'      => (int) ($postData['settings_area'] ?? 0),
-			'options'            => $context['smm_skeleton']['options'] ?? [],
-			'tables'             => $context['smm_skeleton']['tables'] ?? [],
-			'scheduled_tasks'    => $context['smm_skeleton']['scheduled_tasks'] ?? [],
-			'background_tasks'   => $context['smm_skeleton']['background_tasks'] ?? [],
-			'legacy_tasks'       => $context['smm_skeleton']['legacy_tasks'] ?? [],
-			'license'            => $postData['license'] ?? 'mit',
-			'make_dir'           => $postData['make_dir'] ?? false,
-			'use_lang_dir'       => $postData['use_lang_dir'] ?? false,
-			'make_template'      => $postData['make_template'] ?? false,
-			'make_script'        => $postData['make_script'] ?? false,
-			'make_css'           => $postData['make_css'] ?? false,
-			'make_readme'        => $postData['make_readme'] ?? false,
-			'add_copyrights'     => $postData['add_copyrights'] ?? false,
-			'min_php_version'    => $postData['min_php_version'] ?? '',
-			'smf_target_version' => $postData['smf_target_version'] ?? '2.1',
-			'callbacks'          => $context['smm_skeleton']['callbacks'] ?? [],
-		];
-
-		$context['smm_skeleton']['license_data'] = $this->getAvailableLicenses()[$context['smm_skeleton']['license']];
-
-		if (! empty($postData['option_names'])) {
-			foreach ($postData['option_names'] as $id => $option) {
-				if (empty($option))
-					continue;
-
-				$context['smm_skeleton']['options'][$id] = [
-					'name'         => $option,
-					'type'         => $postData['option_types'][$id],
-					'default'      => $postData['option_types'][$id] === 'check'
-						? isset($postData['option_defaults'][$id])
-						: ($postData['option_defaults'][$id] ?? ''),
-					'variants'     => $postData['option_variants'][$id] ?? '',
-					'translations' => []
-				];
-			}
-
-			if (empty($context['smm_skeleton']['settings_area'])) {
-				$context['smm_skeleton']['settings_area'] = 1;
-			}
-		}
-
-		if (! empty($postData['table_names'])) {
-			foreach ($postData['table_names'] as $id => $table) {
-				if (empty($table))
-					continue;
-
-				$context['smm_skeleton']['tables'][$id] = [
-					'name'    => $table,
-					'columns' => []
-				];
-
-				if (! empty($postData['column_names'])) {
-					foreach ($postData['column_names'] as $table_id => $columns) {
-						foreach ($columns as $column_id => $column) {
-							$context['smm_skeleton']['tables'][$table_id]['columns'][$column_id] = [
-								'name'    => $postData['column_names'][$id][$column_id],
-								'type'    => $postData['column_types'][$id][$column_id],
-								'null'    => $postData['column_null'][$id][$column_id] ?? false,
-								'size'    => $postData['column_sizes'][$id][$column_id] ?? 0,
-								'auto'    => $postData['column_auto'][$id][$column_id] ?? false,
-								'default' => $postData['column_defaults'][$id][$column_id] ?? '',
-							];
-						}
-					}
-				}
-			}
-		}
-
-		if (! empty($postData['task_slugs'])) {
-			foreach ($postData['task_slugs'] as $id => $task_slug) {
-				if (empty($task_slug))
-					continue;
-
-				$context['smm_skeleton']['scheduled_tasks'][$id] = [
-					'slug'         => $task_slug,
-					'names'        => [],
-					'descriptions' => [],
-					'regularity'   => $postData['task_regularities'][$id] ?? '',
-				];
-			}
-
-			$context['smm_skeleton']['make_dir'] = true;
-		}
-
-		if (! empty($postData['background_task_classnames'])) {
-			foreach ($postData['background_task_classnames'] as $id => $classname) {
-				if (empty($classname))
-					continue;
-
-				$context['smm_skeleton']['background_tasks'][$id] = [
-					'classname'  => $classname,
-					'regularity' => $postData['background_task_regularities'][$id] ?? '',
-				];
-			}
-
-			$context['smm_skeleton']['make_dir'] = true;
-		}
-
-		if (! empty($postData['legacy_task_methods'])) {
-			foreach ($postData['legacy_task_methods'] as $id => $method) {
-				if (empty($method))
-					continue;
-
-				$context['smm_skeleton']['legacy_tasks'][$id] = [
-					'method'     => $method,
-					'regularity' => $postData['legacy_task_regularities'][$id] ?? '',
-				];
-
-				$context['smm_skeleton']['hooks'][] = empty($context['smm_skeleton']['legacy_tasks'][$id]['regularity'])
-					? Hook::DAILY_MAINTENANCE
-					: Hook::WEEKLY_MAINTENANCE;
-			}
-		}
-
-		foreach ($context['smm_languages'] as $lang) {
-			$context['smm_skeleton']['title'][$lang['filename']] = $postData['title_' . $lang['filename']] ?? '';
-			$context['smm_skeleton']['description'][$lang['filename']] = $postData['description_' . $lang['filename']] ?? '';
-
-			if (! empty($postData['option_translations'][$lang['filename']])) {
-				foreach ($postData['option_translations'][$lang['filename']] as $id => $translation) {
-					if (! empty($translation)) {
-						$context['smm_skeleton']['options'][$id]['translations'][$lang['filename']] = $translation;
-					}
-				}
-			}
-
-			if (! empty($postData['task_names'][$lang['filename']])) {
-				foreach ($postData['task_names'][$lang['filename']] as $id => $translation) {
-					if (! empty($translation)) {
-						$context['smm_skeleton']['scheduled_tasks'][$id]['names'][$lang['filename']] = $translation;
-					}
-				}
-			}
-
-			if (! empty($postData['task_descriptions'][$lang['filename']])) {
-				foreach ($postData['task_descriptions'][$lang['filename']] as $id => $translation) {
-					if (! empty($translation)) {
-						$context['smm_skeleton']['scheduled_tasks'][$id]['descriptions'][$lang['filename']] = $translation;
-					}
-				}
-			}
-		}
-
-		$context['smm_skeleton']['title']       = array_filter($context['smm_skeleton']['title']);
-		$context['smm_skeleton']['description'] = array_filter($context['smm_skeleton']['description']);
-
-		if (! empty($context['smm_skeleton']['settings_area'])) {
-			switch ($context['smm_skeleton']['settings_area']) {
-				case 1:
-					$context['smm_skeleton']['hooks'][] = Hook::GENERAL_MOD_SETTINGS;
-					break;
-
-				case 2:
-					$context['smm_skeleton']['hooks'][] = Hook::ADMIN_AREAS;
-					$context['smm_skeleton']['hooks'][] = Hook::ADMIN_SEARCH;
-					$context['smm_skeleton']['hooks'][] = Hook::MODIFY_MODIFICATIONS;
-					break;
-
-				default:
-					$context['smm_skeleton']['hooks'][] = Hook::ADMIN_AREAS;
-			}
-		}
-
-		if (! empty($context['smm_skeleton']['add_copyrights'])) {
-			$context['smm_skeleton']['hooks'][] = Hook::CREDITS;
-		}
-
-		$context['smm_skeleton']['hooks'] = array_unique($context['smm_skeleton']['hooks']);
-	}
-
-	private function prepareFormFields(): void
+	private function prepareFormFields(array $skeleton): void
 	{
 		global $context, $txt;
 
 		checkSubmitOnce('register');
 
-		$this->prepareHookList();
+		$this->prepareHookList($skeleton);
 		$this->searchHooks();
 
-		$context['posting_fields']['name']['label']['text'] = $txt['smm_name'];
-		$context['posting_fields']['name']['input'] = [
-			'type' => 'text',
-			'tab' => self::TAB['basic'],
-			'attributes' => [
-				'maxlength' => 255,
-				'value'     => $context['smm_skeleton']['name'],
-				'required'  => true,
-				'x-model'   => 'className',
+		$context['posting_fields'] = array_merge(
+			$this->buildBasicFields($skeleton, $txt),
+			$this->buildSettingsFields($skeleton, $txt, $context),
+			$this->buildPackageFields($skeleton, $txt)
+		);
+
+		$this->postProcessFields($context['posting_fields']);
+	}
+
+	private function buildBasicFields(array $skeleton, array $txt): array
+	{
+		$fields = [
+			'name' => [
+				'label' => ['text' => $txt['smm_name']],
+				'input' => [
+					'type' => 'text',
+					'tab' => self::TAB['basic'],
+					'attributes' => [
+						'maxlength' => 255,
+						'value'     => $skeleton['name'],
+						'required'  => true,
+						'x-model'   => 'className',
+					],
+				],
+			],
+			'filename' => [
+				'label' => ['text' => $txt['smm_filename']],
+				'input' => [
+					'type' => 'text',
+					'tab' => self::TAB['basic'],
+					'after' => $txt['smm_filename_subtext'],
+					'attributes' => [
+						'maxlength' => 255,
+						'required'  => true,
+						'pattern'   => SMM_FILENAME_PATTERN,
+						':value'    => "'Class-' + className.replace(/ /g, '')",
+					],
+				],
+			],
+			'hooks' => [
+				'label' => ['text' => $txt['smm_hooks']],
+				'input' => [
+					'type'  => 'select',
+					'tab' => self::TAB['basic'],
+					'after' => $txt['smm_hooks_subtext'],
+					'attributes' => [
+						'id'       => 'hooks',
+						'name'     => 'hooks[]',
+						'multiple' => true,
+					],
+					'options' => [],
+				],
+			],
+			'version' => [
+				'label' => ['text' => $txt['smm_mod_version']],
+				'input' => [
+					'type' => 'text',
+					'tab' => self::TAB['basic'],
+					'attributes' => [
+						'maxlength' => 255,
+						'value'     => $skeleton['version'],
+						'required'  => true,
+					],
+				],
+			],
+			'site' => [
+				'label' => ['text' => $txt['website']],
+				'input' => [
+					'type' => 'url',
+					'tab' => self::TAB['basic'],
+					'after' => $txt['smm_site_subtext'],
+					'attributes' => [
+						'maxlength'   => 255,
+						'value'       => $skeleton['site'],
+						'style'       => 'width: 100%',
+						'placeholder' => 'https://github.com/dragomano/Simple-Mod-Maker',
+					],
+				],
+			],
+			'license' => [
+				'label' => ['text' => $txt['smm_license']],
+				'input' => [
+					'type' => 'radio_select',
+					'tab'  => self::TAB['basic'],
+					'options' => [],
+				],
+			],
+			'min_php_version' => [
+				'label' => ['text' => $txt['smm_min_php_version']],
+				'input' => [
+					'type' => 'text',
+					'tab' => self::TAB['basic'],
+					'attributes' => [
+						'maxlength'   => 255,
+						'value'       => $skeleton['min_php_version'],
+						'placeholder' => '8.0',
+					],
+				],
+			],
+			'smf_target_version' => [
+				'label' => ['text' => $txt['smm_smf_target_version']],
+				'input' => [
+					'type' => 'radio_select',
+					'tab'  => self::TAB['basic'],
+					'options' => [],
+				],
 			],
 		];
 
-		$context['posting_fields']['filename']['label']['text'] = $txt['smm_filename'];
-		$context['posting_fields']['filename']['input'] = [
-			'type' => 'text',
-			'tab' => self::TAB['basic'],
-			'after' => $txt['smm_filename_subtext'],
-			'attributes' => [
-				'maxlength' => 255,
-				'required'  => true,
-				'pattern'   => SMM_FILENAME_PATTERN,
-				':value'    => "'Class-' + className.replace(/ /g, '')",
-			],
-		];
+		// Populate license options
+		foreach (License::getAll($txt) as $value => $license) {
+			$fields['license']['input']['options'][$license['short_name']] = [
+				'value'    => $value,
+				'selected' => $value === $skeleton['license'],
+			];
+		}
 
-		$context['posting_fields']['hooks']['label']['text'] = $txt['smm_hooks'];
-		$context['posting_fields']['hooks']['input'] = [
-			'type'  => 'select',
-			'tab' => self::TAB['basic'],
-			'after' => $txt['smm_hooks_subtext'],
-			'attributes' => [
-				'id'       => 'hooks',
-				'name'     => 'hooks[]',
-				'multiple' => true,
-			],
-			'options' => [],
-		];
+		// Populate SMF version options
+		foreach (['2.1', '3.0', '2.1/3.0'] as $value) {
+			$fields['smf_target_version']['input']['options'][$value] = [
+				'value'    => $value,
+				'selected' => $value === $skeleton['smf_target_version'],
+			];
+		}
 
-		$context['posting_fields']['version']['label']['text'] = $txt['smm_mod_version'];
-		$context['posting_fields']['version']['input'] = [
-			'type' => 'text',
-			'tab' => self::TAB['basic'],
-			'attributes' => [
-				'maxlength' => 255,
-				'value'     => $context['smm_skeleton']['version'],
-				'required'  => true,
-			],
-		];
+		return $fields;
+	}
 
-		$context['posting_fields']['site']['label']['text'] = $txt['website'];
-		$context['posting_fields']['site']['input'] = [
-			'type' => 'url',
-			'tab' => self::TAB['basic'],
-			'after' => $txt['smm_site_subtext'],
-			'attributes' => [
-				'maxlength'   => 255,
-				'value'       => $context['smm_skeleton']['site'],
-				'style'       => 'width: 100%',
-				'placeholder' => 'https://github.com/dragomano/Simple-Mod-Maker',
+	private function buildSettingsFields(array $skeleton, array $txt, array $context): array
+	{
+		$fields = [
+			'settings_area' => [
+				'label' => ['text' => $txt['smm_settings_area']],
+				'input' => [
+					'type' => 'select',
+					'tab'  => self::TAB['settings'],
+					'attributes' => [
+						'@change' => 'smm.changeSettingPlacement($event.target.value)',
+					],
+					'options' => [],
+				],
 			],
-		];
-
-		$context['posting_fields']['settings_area']['label']['text'] = $txt['smm_settings_area'];
-		$context['posting_fields']['settings_area']['input'] = [
-			'type' => 'select',
-			'tab'  => self::TAB['settings'],
-			'attributes' => [
-				'@change' => 'smm.changeSettingPlacement($event.target.value)',
-			]
 		];
 
 		foreach ($txt['smm_settings_area_set'] as $key => $value) {
-			$context['posting_fields']['settings_area']['input']['options'][$value] = [
+			$fields['settings_area']['input']['options'][$value] = [
 				'value'    => $key,
-				'selected' => $key === $context['smm_skeleton']['settings_area'],
+				'selected' => $key === $skeleton['settings_area'],
 			];
 		}
 
-		$context['posting_fields']['title']['label']['html'] = '<label>' . $txt['smm_mod_title_and_desc'] . '</label>';
-		$context['posting_fields']['title']['input']['tab']  = self::TAB['settings'];
-		$context['posting_fields']['title']['input']['html'] = '<div>';
+		// Build title/description fields with language tabs
+		$root = Html::el('div');
 
-		$context['posting_fields']['title']['input']['html'] .= '
-			<nav' . ($context['right_to_left'] ? '' : ' class="floatleft"') . '>';
+		$nav = $root->create('nav');
+		if (empty($context['right_to_left'])) {
+			$nav->class('floatleft');
+		}
 
 		foreach ($context['smm_languages'] as $lang) {
-			$context['posting_fields']['title']['input']['html'] .= /** @lang text */
-				'<a
-					class="button floatnone"
-					:class="{ \'active\': tab === \'' . $lang['filename'] . '\' }"
-					@click.prevent="tab = \'' . $lang['filename'] . '\'"
-				>' . $lang['name'] . '</a>';
+			$nav->create('a')
+				->setAttribute('class', 'button floatnone')
+				->setAttribute(':class', "{ 'active': tab === '{$lang['filename']}' }")
+				->setAttribute('@click.prevent', "tab = '{$lang['filename']}'")
+				->setText($lang['name']);
 		}
-
-		$context['posting_fields']['title']['input']['html'] .= '</nav>';
 
 		foreach ($context['smm_languages'] as $lang) {
-			$context['posting_fields']['title']['input']['html'] .= /** @lang text */ '
-				<div x-show="tab === \'' . $lang['filename'] . '\'">
-					<input
-						type="text"
-						name="title_' . $lang['filename'] . '"
-						value="' . ($context['smm_skeleton']['title'][$lang['filename']] ?? '') . '"
-						placeholder="' . $txt['smm_mod_title_default'] . '"
-						x-ref="title_' . $lang['filename'] . '"
-					>
-					<input
-						type="text"
-						name="description_' . $lang['filename'] . '"
-						value="' . ($context['smm_skeleton']['description'][$lang['filename']] ?? '') . '"
-						placeholder="' . $txt['smm_mod_desc_default'] . '"
-					>
-				</div>';
+			$langFile = $lang['filename'];
+
+			$div = $root->create('div')
+				->setAttribute('x-show', "tab === '$langFile'");
+
+			$div->create('input')
+				->setAttribute('type', 'text')
+				->setAttribute('name', "title_$langFile")
+				->setAttribute('value', $skeleton['title'][$langFile] ?? '')
+				->setAttribute('placeholder', $txt['smm_mod_title_default'])
+				->setAttribute('x-ref', "title_$langFile");
+
+			$div->create('input')
+				->setAttribute('type', 'text')
+				->setAttribute('name', "description_$langFile")
+				->setAttribute('value', $skeleton['description'][$langFile] ?? '')
+				->setAttribute('placeholder', $txt['smm_mod_desc_default']);
 		}
 
-		$context['posting_fields']['title']['input']['html'] .= '</div>';
+		$html = $root->render();
 
-		$context['posting_fields']['license']['label']['text'] = $txt['smm_license'];
-		$context['posting_fields']['license']['input'] = [
-			'type' => 'radio_select',
-			'tab'  => self::TAB['basic'],
-		];
-
-		foreach ($this->getAvailableLicenses() as $value => $license) {
-			$context['posting_fields']['license']['input']['options'][$license['short_name']] = [
-				'value'    => $value,
-				'selected' => $value === $context['smm_skeleton']['license'],
-			];
-		}
-
-		$context['posting_fields']['make_dir']['label']['text'] = $txt['smm_make_dir'];
-		$context['posting_fields']['make_dir']['input'] = [
-			'type' => 'checkbox',
-			'after' => $txt['smm_make_dir_subtext'],
-			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_dir'],
+		$fields['title'] = [
+			'label' => ['html' => Html::el('label', $txt['smm_mod_title_and_desc'])],
+			'input' => [
+				'tab'  => self::TAB['settings'],
+				'html' => $html,
 			],
 		];
 
-		$context['posting_fields']['use_lang_dir']['label']['text'] = $txt['smm_use_lang_dir'];
-		$context['posting_fields']['use_lang_dir']['input'] = [
-			'type' => 'checkbox',
-			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['use_lang_dir'],
-			],
-		];
-
-		$context['posting_fields']['make_template']['label']['text'] = $txt['smm_make_template'];
-		$context['posting_fields']['make_template']['input'] = [
-			'type' => 'checkbox',
-			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_template'],
-			],
-		];
-
-		$context['posting_fields']['make_script']['label']['text'] = $txt['smm_make_script'];
-		$context['posting_fields']['make_script']['input'] = [
-			'type' => 'checkbox',
-			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_script'],
-			],
-		];
-
-		$context['posting_fields']['make_css']['label']['text'] = $txt['smm_make_css'];
-		$context['posting_fields']['make_css']['input'] = [
-			'type' => 'checkbox',
-			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_css'],
-			],
-		];
-
-		$context['posting_fields']['make_readme']['label']['text'] = $txt['smm_make_readme'];
-		$context['posting_fields']['make_readme']['input'] = [
-			'type' => 'checkbox',
-			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['make_readme'],
-			],
-		];
-
-		$context['posting_fields']['add_copyrights']['label']['text'] = $txt['smm_add_copyrights'];
-		$context['posting_fields']['add_copyrights']['input'] = [
-			'type' => 'checkbox',
-			'after' => $txt['smm_add_copyrights_subtext'],
-			'attributes' => [
-				'checked' => (bool) $context['smm_skeleton']['add_copyrights'],
-			],
-		];
-
-		$context['posting_fields']['min_php_version']['label']['text'] = $txt['smm_min_php_version'];
-		$context['posting_fields']['min_php_version']['input'] = [
-			'type' => 'text',
-			'tab' => self::TAB['basic'],
-			'attributes' => [
-				'maxlength'   => 255,
-				'value'       => $context['smm_skeleton']['min_php_version'],
-				'placeholder' => '8.0',
-			],
-		];
-
-		$context['posting_fields']['smf_target_version']['label']['text'] = $txt['smm_smf_target_version'];
-		$context['posting_fields']['smf_target_version']['input'] = [
-			'type' => 'radio_select',
-			'tab'  => self::TAB['basic'],
-		];
-
-		foreach (['2.1', '3.0', '2.1/3.0'] as $value) {
-			$context['posting_fields']['smf_target_version']['input']['options'][$value] = [
-				'value'    => $value,
-				'selected' => $value === $context['smm_skeleton']['smf_target_version'],
-			];
-		}
-
-		$this->preparePostFields();
+		return $fields;
 	}
 
-	private function preparePostFields(): void
+	private function buildPackageFields(array $skeleton, array $txt): array
 	{
-		global $context;
+		$checkboxFields = [
+			'make_dir'       => ['smm_make_dir', 'smm_make_dir_subtext'],
+			'use_lang_dir'   => ['smm_use_lang_dir', null],
+			'make_template'  => ['smm_make_template', null],
+			'make_script'    => ['smm_make_script', null],
+			'make_css'       => ['smm_make_css', null],
+			'make_readme'    => ['smm_make_readme', null],
+			'add_copyrights' => ['smm_add_copyrights', 'smm_add_copyrights_subtext'],
+		];
 
-		foreach ($context['posting_fields'] as $item => $data) {
+		$fields = [];
+
+		foreach ($checkboxFields as $field => [$label, $subtext]) {
+			$fields[$field] = [
+				'label' => ['text' => $txt[$label]],
+				'input' => [
+					'type' => 'checkbox',
+					'attributes' => [
+						'checked' => (bool) $skeleton[$field],
+					],
+				],
+			];
+
+			if ($subtext) {
+				$fields[$field]['input']['after'] = $txt[$subtext];
+			}
+		}
+
+		return $fields;
+	}
+
+	private function postProcessFields(array &$fields): void
+	{
+		foreach ($fields as $item => &$data) {
 			if (isset($data['input']['after'])) {
-				$tag = 'div';
-
-				if (isset($data['input']['type']) && in_array($data['input']['type'], ['checkbox', 'number'])) {
-					$tag = 'span';
-				}
-
-				$context['posting_fields'][$item]['input']['after'] =
-					"<$tag class=\"descbox alternative2 smalltext\">{$data['input']['after']}</$tag>";
+				$tag = in_array($data['input']['type'] ?? '', ['checkbox', 'number']) ? 'span' : 'div';
+				$data['input']['after'] = "<$tag class=\"descbox alternative2 smalltext\">{$data['input']['after']}</$tag>";
 			}
 
 			if (isset($data['input']['type']) && $data['input']['type'] === 'checkbox') {
 				$data['input']['attributes']['class'] = 'checkbox';
-				$data['input']['after'] = /** @lang text */
-					'<label class="label" for="' . $item . '"></label>' . ($context['posting_fields'][$item]['input']['after'] ?? '');
-				$context['posting_fields'][$item] = $data;
+				$data['input']['after'] = '<label class="label" for="' . $item . '"></label>' . ($data['input']['after'] ?? '');
 			}
 
 			if (empty($data['input']['tab'])) {
-				$context['posting_fields'][$item]['input']['tab'] = self::TAB['package'];
+				$data['input']['tab'] = self::TAB['package'];
 			}
 		}
 	}
 
-	private function prepareHookList(): void
+	private function prepareHookList(array $skeleton): void
 	{
 		global $modSettings, $context;
 
-		$common_used_hooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
-
-		$hooks = array_merge($common_used_hooks, $context['smm_skeleton']['hooks']);
-
+		$commonUsedHooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
+		$hooks = array_merge($commonUsedHooks, $skeleton['hooks']);
 		sort($hooks);
 
 		$context['smm_hook_list'] = [
@@ -522,7 +351,7 @@ final class Handler
 		foreach ($hooks as $hook) {
 			$context['smm_hook_list']['data'][] = '{text: "' . $hook . '", value: "' . $hook . '"}';
 
-			if (in_array($hook, $context['smm_skeleton']['hooks'])) {
+			if (in_array($hook, $skeleton['hooks'])) {
 				$context['smm_hook_list']['items'][] = JavaScriptEscape($hook);
 			}
 		}
@@ -530,21 +359,24 @@ final class Handler
 
 	private function searchHooks(): void
 	{
-		global $smcFunc;
-
-		if (! isset($_REQUEST['hooks']))
+		if (! isset($_REQUEST['hooks'])) {
 			return;
+		}
+
+		global $smcFunc;
 
 		$data = json_decode(file_get_contents('php://input'), true) ?? [];
 
-		if (empty($data['search']))
+		if (empty($data['search'])) {
 			return;
+		}
 
 		$search = trim($smcFunc['strtolower']($data['search']));
 
-		if (($hooks = cache_get_data('all_smm_hooks', 30 * 24 * 60 * 60)) == null) {
-			$hooks = $this->getHookList();
+		$hooks = cache_get_data('all_smm_hooks', 30 * 24 * 60 * 60);
 
+		if ($hooks === null) {
+			$hooks = $this->getHookList();
 			cache_put_data('all_smm_hooks', $hooks, 30 * 24 * 60 * 60);
 		}
 
@@ -576,570 +408,52 @@ final class Handler
 		return $list;
 	}
 
-	/**
-	 * @throws Exception
-	 */
-	private function setData(): void
+	private function shouldGeneratePackage(array $context, array $skeleton): bool
 	{
-		global $context, $packagesdir;
+		return empty($context['post_errors']) && ! empty($skeleton) && isset($_POST['save']);
+	}
 
-		if (! empty($context['post_errors']) || empty($context['smm_skeleton']) || ! isset($_POST['save']))
-			return;
+	private function generatePackage(array $skeleton): void
+	{
+		global $packagesdir;
 
-		$this->rememberUsedHooks();
+		$this->rememberUsedHooks($skeleton);
 
-		$classname = strtr($context['smm_skeleton']['filename'], ['Class-' => '', '.php' => '']);
+		$classname = strtr($skeleton['filename'], ['Class-' => '', '.php' => '']);
+		$snakeName = $this->toSnakeCase($classname);
 
-		if (empty($context['smm_skeleton']['make_dir'])) {
-			$namespace = new PhpNamespace($context['smm_skeleton']['author']);
-			$class = $namespace->addClass($classname);
-		} else {
-			$namespace = new PhpNamespace($context['smm_skeleton']['author'] . '\\' . $classname);
-			$class = $namespace->addClass('Integration');
-		}
-
-		if ($context['smm_skeleton']['smf_target_version'] === '3.0') {
-			$namespace->addUse('SMF\Actions\Admin\ACP');
-			$namespace->addUse('SMF\Config');
-			$namespace->addUse('SMF\Db\DatabaseApi', 'Db');
-			$namespace->addUse('SMF\Lang');
-			$namespace->addUse('SMF\Menu');
-			$namespace->addUse('SMF\Theme');
-			$namespace->addUse('SMF\User');
-			$namespace->addUse('SMF\Utils');
-		}
-
-		$class->addComment('Generated by ' . SMM_NAME);
-
-		if ($context['smm_skeleton']['smf_target_version'] === '2.1/3.0') {
-			$class->addComment(PHP_EOL . 'Try to use https://github.com/dragomano/smf-compat package to make your mod compatible with both SMF versions');
-		}
-
-		$snake_name = $this->getSnakeName($classname);
-
-		$this->prepareUsedHooks($class, $classname, $snake_name);
-
-		$tasks = [];
-
-		$this->prepareScheduledTasks($tasks, $classname);
-		$this->prepareBackgroundTasks($tasks, $classname);
-		$this->addTaskExamples($class, $classname, $tasks);
-
-		$content = $this->getGeneratedContent(
-			$namespace,
-			(
-				empty($context['smm_skeleton']['make_dir'])
-					? $context['smm_skeleton']['filename']
-					: 'Integration'
-			) . '.php'
-		);
+		$generator = new Generator();
+		$result = $generator->generate($skeleton, $classname, $snakeName);
 
 		$plugin = new Builder([
-			'skeleton'  => (array) $context['smm_skeleton'],
+			'skeleton'  => $skeleton,
 			'classname' => $classname,
-			'snakename' => $snake_name,
-			'path'      => $packagesdir . '/' . $snake_name . '_' . $context['smm_skeleton']['version']
+			'snakename' => $snakeName,
+			'path'      => $packagesdir . '/' . $snakeName . '_' . $skeleton['version']
 		]);
 
-		$plugin->create($content)
-			->createTasks($tasks)
+		$plugin->create($result['content'])
+			->createTasks($result['tasks'])
 			->createPackage();
 	}
 
-	private function prepareUsedHooks(ClassType $class, string $classname, string $snake_name): void
+	private function rememberUsedHooks(array $skeleton): void
 	{
-		global $context;
+		global $modSettings;
 
-		$hooks = $class->addMethod('hooks')
-			->addBody("// add_integration_function('integrate_hook_name', self::class . '::methodName#', false, __FILE__);")
-			->setReturnType('void');
-
-		foreach ($context['smm_skeleton']['hooks'] as $hook) {
-			$method_name = $this->getMethodName($hook);
-
-			$hooks->addBody("add_integration_function(?, self::class . '::?#', false, __FILE__);", [$hook, $method_name]);
-
-			$method = $class->addMethod($method_name)
-				->addComment('@hook ' . $hook);
-
-			$hookInstance = HookFactory::create($hook, $context, $classname, $snake_name);
-
-			if ($hookInstance !== null) {
-				$parameters = $hookInstance->getParameters();
-				foreach ($parameters as $param => $data) {
-					$parameter = isset($data[2]) ? $method->addParameter($param, $data[2]) : $method->addParameter($param);
-					$parameter->setType($data[0]);
-
-					if (! empty($data[1])) {
-						$parameter->setReference();
-					}
-				}
-
-				$method->setReturnType($hookInstance->getReturnType());
-
-				$bodyLines = $hookInstance->getBody();
-				foreach ($bodyLines as $body) {
-					$method->addBody($body);
-				}
-			}
-
-			if ($hook === Hook::GENERAL_MOD_SETTINGS && $context['smm_skeleton']['settings_area'] === 1) {
-				$this->fillConfigVars($method, $snake_name);
-			}
-		}
-
-		$hook_keys = array_flip($context['smm_skeleton']['hooks']);
-
-		foreach ($context['smm_skeleton']['legacy_tasks'] as $task) {
-			$taskMethod = $class->addMethod($task['method']);
-			$hookName = empty($task['regularity']) ? Hook::DAILY_MAINTENANCE : Hook::WEEKLY_MAINTENANCE;
-			$taskMethod->addComment("Simple task via $hookName hook");
-			$taskMethod->setReturnType('void');
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$taskMethod->addBody("global \$smcFunc;" . PHP_EOL);
-			}
-
-			$taskMethod->addBody("// Add your code here");
-		}
-
-		if ($context['smm_skeleton']['settings_area'] === 2) {
-			$settings = $class->addMethod('settings');
-
-			if (isset($hook_keys[Hook::ADMIN_SEARCH])) {
-				$settings->addComment('@return array|void');
-
-				$parameter = $settings->addParameter('return_config', false);
-				$parameter->setType('bool');
-			}
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$settings->addBody("global \$context, \$txt, \$scripturl" . (empty($context['smm_skeleton']['options']) ? '' : ", \$modSettings") . ";" . PHP_EOL);
-				$settings->addBody("loadLanguage(?);" . PHP_EOL, [$classname . (empty($context['smm_skeleton']['use_lang_dir']) ? '' : '/')]);
-				$settings->addBody("\$context['page_title'] = \$context['settings_title'] = \$txt['{$snake_name}_title'];");
-				$settings->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=modsettings;save;sa=$snake_name';" . PHP_EOL);
-			} else {
-				$settings->addBody("Lang::load(?);" . PHP_EOL, [$classname . (empty($context['smm_skeleton']['use_lang_dir']) ? '' : '/')]);
-				$settings->addBody("Utils::\$context['page_title'] = Utils::\$context['settings_title'] = Lang::\$txt['{$snake_name}_title'];");
-				$settings->addBody("Utils::\$context['post_url'] = Config::\$scripturl . '?action=admin;area=modsettings;save;sa=$snake_name';" . PHP_EOL);
-			}
-
-			if (! empty($context['smm_skeleton']['options'])) {
-				$settings->addBody("// Add default settings");
-				$settings->addBody("\$addSettings = [];");
-
-				foreach ($context['smm_skeleton']['options'] as $option) {
-					if (! empty($option['default'])) {
-						if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-							$settings->addBody("if (! isset(\$modSettings['{$snake_name}_{$option['name']}']))");
-						} else {
-							$settings->addBody("if (! isset(Config::\$modSettings['{$snake_name}_{$option['name']}']))");
-						}
-
-						$settings->addBody("\t\$addSettings['{$snake_name}_{$option['name']}'] = {$this->getDefaultValue($option)};");
-					}
-				}
-
-				if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-					$settings->addBody("updateSettings(\$addSettings);" . PHP_EOL);
-				} else {
-					$settings->addBody("Config::updateModSettings(\$addSettings);" . PHP_EOL);
-				}
-			}
-
-			$this->fillConfigVars($settings, $snake_name);
-
-			if (isset($hook_keys[Hook::ADMIN_SEARCH])) {
-				$settings->addBody("if (\$return_config)");
-				$settings->addBody("\treturn \$config_vars;" . PHP_EOL);
-			}
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$settings->addBody("\$context[\$context['admin_menu_name']]['tab_data']['description'] = \$txt['{$snake_name}_description'];" . PHP_EOL);
-				$settings->addBody("// Saving?");
-				$settings->addBody("if (isset(\$_GET['save'])) {");
-				$settings->addBody("\tcheckSession();" . PHP_EOL);
-				$settings->addBody("\t\$save_vars = \$config_vars;");
-				$settings->addBody("\tsaveDBSettings(\$save_vars);" . PHP_EOL);
-				$settings->addBody("\tredirectexit('action=admin;area=modsettings;sa=$snake_name');");
-				$settings->addBody("}" . PHP_EOL);
-				$settings->addBody("prepareDBSettingContext(\$config_vars);");
-			} else {
-				$settings->addBody("Menu::\$loaded['admin']->tab_data['description'] = Lang::\$txt['{$snake_name}_description'];" . PHP_EOL);
-				$settings->addBody("// Saving?");
-				$settings->addBody("if (isset(\$_GET['save'])) {");
-				$settings->addBody("\tUser::\$me->checkSession();" . PHP_EOL);
-				$settings->addBody("\t\$save_vars = \$config_vars;");
-				$settings->addBody("\tACP::saveDBSettings(\$save_vars);" . PHP_EOL);
-				$settings->addBody("\tUtils::redirectexit('action=admin;area=modsettings;sa=$snake_name');");
-				$settings->addBody("}" . PHP_EOL);
-				$settings->addBody("ACP::prepareDBSettingContext(\$config_vars);");
-			}
-		}
-
-		if ($context['smm_skeleton']['settings_area'] === 3) {
-			$settings = $class->addMethod('settings');
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$settings->addBody("global \$context, \$txt;" . PHP_EOL);
-			}
-
-			if ($context['smm_skeleton']['make_template']) {
-				if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-					$settings->addBody("loadTemplate($classname);" . PHP_EOL);
-				} else {
-					$settings->addBody("Theme::loadTemplate($classname);" . PHP_EOL);
-				}
-			}
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$settings->addBody("require_once dirname(__DIR__) . '/ManageSettings.php';" . PHP_EOL);
-				$settings->addBody("\$context['page_title'] = \$txt['{$snake_name}_title'];" . PHP_EOL);
-				$settings->addBody("\$subActions = [");
-				$settings->addBody("\t'section1'  => [\$this, 'sectionExample1'],");
-				$settings->addBody("\t//'section2' => [\$this, 'sectionExample2'],");
-				$settings->addBody("];" . PHP_EOL);
-				$settings->addBody("\$context[\$context['admin_menu_name']]['tab_data'] = [");
-				$settings->addBody("\t'title' => \$txt['{$snake_name}_title'],");
-				$settings->addBody("\t'description' => \$txt['{$snake_name}_description'],");
-				$settings->addBody("\t'tabs' => [");
-				$settings->addBody("\t\t'section1'  => [],");
-				$settings->addBody("\t\t//'section2'  => [],");
-				$settings->addBody("\t]");
-				$settings->addBody("];" . PHP_EOL);
-				$settings->addBody("loadGeneralSettingParameters(\$subActions, 'section1');" . PHP_EOL);
-				$settings->addBody("call_helper(\$subActions[\$context['sub_action']]);");
-			} else {
-				$settings->addBody("Utils::\$context['page_title'] = Lang::\$txt['{$snake_name}_title'];" . PHP_EOL);
-				$settings->addBody("\$subActions = [");
-				$settings->addBody("\t'section1'  => [\$this, 'sectionExample1'],");
-				$settings->addBody("\t//'section2' => [\$this, 'sectionExample2'],");
-				$settings->addBody("];" . PHP_EOL);
-				$settings->addBody("Menu::\$loaded['admin']->tab_data = [");
-				$settings->addBody("\t'title' => Lang::\$txt['{$snake_name}_title'],");
-				$settings->addBody("\t'description' => Lang::\$txt['{$snake_name}_description'],");
-				$settings->addBody("\t'tabs' => [");
-				$settings->addBody("\t\t'section1'  => [],");
-				$settings->addBody("\t\t//'section2'  => [],");
-				$settings->addBody("\t]");
-				$settings->addBody("];" . PHP_EOL);
-				$settings->addBody("\$subAction = isset(\$_REQUEST['sa']) && isset(\$subActions[\$_REQUEST['sa']]) ? \$_REQUEST['sa'] : 'section1';" . PHP_EOL);
-				$settings->addBody("call_user_func(\$subActions[\$subAction]);");
-			}
-
-			$section = $class->addMethod('sectionExample1');
-			$section->addComment('@return array|void');
-			$parameter = $section->addParameter('return_config', false);
-			$parameter->setType('bool');
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$section->addBody("global \$context, \$txt, \$scripturl;" . PHP_EOL);
-				$section->addBody("require_once dirname(__DIR__) . '/ManageServer.php';" . PHP_EOL);
-				$section->addBody("\$context['page_title'] .= ' - ' . \$txt['{$snake_name}_section1_title'];");
-				$section->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=$snake_name;sa=section1;save';" . PHP_EOL);
-			} else {
-				$section->addBody("Utils::\$context['page_title'] .= ' - ' . Lang::\$txt['{$snake_name}_section1_title'];");
-				$section->addBody("Utils::\$context['post_url'] = Config::\$scripturl . '?action=admin;area=$snake_name;sa=section1;save';" . PHP_EOL);
-			}
-
-			$this->fillConfigVars($section, $snake_name);
-
-			$section->addBody("if (\$return_config)");
-			$section->addBody("\treturn \$config_vars;" . PHP_EOL);
-			$section->addBody("if (isset(\$_GET['save'])) {");
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$section->addBody("\tcheckSession();" . PHP_EOL);
-				$section->addBody("\tsaveDBSettings(\$config_vars);" . PHP_EOL);
-				$section->addBody("\tredirectexit('action=admin;area=$snake_name;sa=section1');");
-				$section->addBody("}" . PHP_EOL);
-				$section->addBody("prepareDBSettingContext(\$config_vars);");
-			} else {
-				$section->addBody("\tUser::\$me->checkSession();" . PHP_EOL);
-				$section->addBody("\tACP::saveDBSettings(\$config_vars);" . PHP_EOL);
-				$section->addBody("\tUtils::redirectexit('action=admin;area=$snake_name;sa=section1');");
-				$section->addBody("}" . PHP_EOL);
-				$section->addBody("ACP::prepareDBSettingContext(\$config_vars);");
-			}
-		}
-	}
-
-	private function prepareScheduledTasks(array &$tasks, string $baseClassname): void
-	{
-		global $context;
-
-		foreach ($context['smm_skeleton']['scheduled_tasks'] as $id => $task) {
-			$classname = $this->getCamelName($task['slug']);
-			$filename = $classname . '.php';
-
-			$targetTaskClass = $context['smm_skeleton']['smf_target_version'] === '3.0'
-				? 'SMF\Tasks\ScheduledTask'
-				: 'SMF_BackgroundTask';
-			$namespace = new PhpNamespace($context['smm_skeleton']['author'] . '\\' . $baseClassname . '\\Tasks');
-			$namespace->addUse($targetTaskClass);
-
-			$class = $namespace->addClass($classname);
-			$class->setExtends($targetTaskClass);
-			$class->addComment('Generated by ' . SMM_NAME);
-
-			$context['smm_skeleton']['scheduled_tasks'][$id]['callable'] =
-				"\\\\{$context['smm_skeleton']['author']}\\\\$baseClassname\\\\Tasks\\\\$classname::execute";
-
-			$method = $class->addMethod('execute');
-			$method->setReturnType('bool');
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$method->addBody("global \$smcFunc;" . PHP_EOL);
-			}
-
-			$method->addBody("// Add your code here" . PHP_EOL);
-			$method->addBody("// Return true if everything is OK");
-			$method->addBody("return true;");
-
-			$tasks[$task['slug']]['content'] = $this->getGeneratedContent($namespace, $filename);
-			$tasks[$task['slug']]['filename'] = $filename;
-		}
-	}
-
-	private function prepareBackgroundTasks(array &$tasks, string $baseClassname): void
-	{
-		global $context;
-
-		foreach ($context['smm_skeleton']['background_tasks'] as $id => $task) {
-			$classname = $task['classname'];
-			$filename = $classname . '.php';
-
-			$targetTaskClass = $context['smm_skeleton']['smf_target_version'] === '3.0'
-				? 'SMF\Tasks\BackgroundTask'
-				: 'SMF_BackgroundTask';
-			$namespace = new PhpNamespace($context['smm_skeleton']['author'] . '\\' . $baseClassname . '\\Tasks');
-			$namespace->addUse($targetTaskClass);
-			$namespace->addUse('SMF\Db\DatabaseApi', 'Db');
-
-			$class = $namespace->addClass($classname);
-			$class->setExtends($targetTaskClass);
-			$class->addComment('Generated by ' . SMM_NAME);
-
-			$context['smm_skeleton']['background_tasks'][$id]['callable'] =
-				"\\\\{$context['smm_skeleton']['author']}\\\\$baseClassname\\\\Tasks\\\\$classname";
-
-			$method = $class->addMethod('execute');
-			$method->setReturnType('bool');
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$method->addBody("global \$smcFunc;" . PHP_EOL);
-			}
-
-			$method->addBody("// Add your code here" . PHP_EOL);
-
-			if (empty($task['regularity'])) {
-				$method->addBody("// Return true if everything is OK");
-				$method->addBody("return true;");
-			} else {
-				$regularity = $task['regularity'] == 1 ? 1 : 7;
-				$method->addBody("// Run task again if you need");
-				$method->addBody("\$regularity = $regularity * 24 * 60 * 60;" . PHP_EOL);
-
-				if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-					$method->addBody("return (bool) \$smcFunc['db_insert']('insert',");
-				} else {
-					$method->addBody("return (bool) Db::\$db->insert('insert',");
-				}
-
-				$method->addBody("\t'{db_prefix}background_tasks',");
-				$method->addBody("\t[");
-				$method->addBody("\t\t'task_file'    => 'string',");
-				$method->addBody("\t\t'task_class'   => 'string',");
-				$method->addBody("\t\t'task_data'    => 'string',");
-				$method->addBody("\t\t'claimed_time' => 'int'");
-				$method->addBody("\t],");
-				$method->addBody("\t[");
-				$method->addBody("\t\t'\$sourcedir/$baseClassname/Tasks/$filename',");
-				$method->addBody("\t\t'\\\\' . self::class,");
-				$method->addBody("\t\t'',");
-				$method->addBody("\t\ttime() + \$regularity");
-				$method->addBody("\t],");
-				$method->addBody("\t['id_task'],");
-				$method->addBody("\t1");
-				$method->addBody(");" . PHP_EOL);
-			}
-
-			$tasks[$classname]['content'] = $this->getGeneratedContent($namespace, $filename);
-			$tasks[$classname]['filename'] = $filename;
-		}
-	}
-
-	private function addTaskExamples(ClassType $class, string $baseClassname, array $tasks): void
-	{
-		global $context;
-
-		if (empty($tasks))
+		if (empty($skeleton['hooks'])) {
 			return;
-
-		foreach ($context['smm_skeleton']['background_tasks'] as $task) {
-			if (! array_key_exists($task['classname'], $tasks))
-				continue;
-
-			$classname = $task['classname'];
-			$filename = $tasks[$classname]['filename'];
-
-			$method = $class->addMethod('run' . $task['classname']);
-			$method->setReturnType('void');
-
-			$method->addComment('Call this method to run a background task');
-
-			if ($context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$method->addBody("global \$smcFunc;" . PHP_EOL);
-				$method->addBody("\$smcFunc['db_insert']('insert',");
-			} else {
-				$method->addBody("Db::\$db->insert('insert',");
-			}
-
-			$method->addBody("\t'{db_prefix}background_tasks',");
-			$method->addBody("\t[");
-			$method->addBody("\t\t'task_file'  => 'string',");
-			$method->addBody("\t\t'task_class' => 'string',");
-			$method->addBody("\t\t'task_data'  => 'string'");
-			$method->addBody("\t],");
-			$method->addBody("\t[");
-			$method->addBody("\t\t'\$sourcedir/$baseClassname/Tasks/$filename',");
-			$method->addBody("\t\t'{$task['callable']}',");
-			$method->addBody("\t\t''");
-			$method->addBody("\t],");
-			$method->addBody("\t['id_task']");
-			$method->addBody(");" . PHP_EOL);
 		}
-	}
-
-	private function getGeneratedContent(PhpNamespace $namespace, string $filename): string
-	{
-		$file = new PhpFile();
-		$file->addNamespace($namespace);
-		$file->addComment($filename);
-
-		$file = $this->addLicenseBlock($file);
-
-		return (new Printer())->printFile($file);
-	}
-
-	private function addLicenseBlock(PhpFile $file): PhpFile
-	{
-		global $context;
-
-		$license = $context['smm_skeleton']['license_data'];
-
-		$file->addComment('');
-		$file->addComment("@package {$context['smm_skeleton']['name']}");
-		$file->addComment("@link {$context['smm_skeleton']['site']}");
-		$file->addComment("@author {$context['smm_skeleton']['author']} <{$context['smm_skeleton']['email']}>");
-		$file->addComment("@copyright " . date('Y') . " {$context['smm_skeleton']['author']}");
-		$file->addComment("@license {$license['link']} {$license['full_name']}");
-		$file->addComment('');
-		$file->addComment("@version " . $context['smm_skeleton']['version']);
-
-		return $file;
-	}
-
-	private function fillConfigVars(Method $method, string $snake_name): void
-	{
-		global $context;
-
-		$method->addBody("\$config_vars = [");
-
-		if (! empty($context['smm_skeleton']['options'])) {
-			foreach ($context['smm_skeleton']['options'] as $option) {
-				if (in_array($option['type'], ['select-multiple', 'select'])) {
-					$is_multiple = var_export($option['type'] === 'select-multiple', true);
-					$option['type'] = 'select';
-
-					$method->addBody(
-						"\t['{$option['type']}', '{$snake_name}_{$option['name']}', \$txt['$snake_name']['{$option['name']}_set'], 'multiple' => $is_multiple],"
-					);
-				} else {
-					$method->addBody("\t['{$option['type']}', '{$snake_name}_{$option['name']}'],");
-				}
-
-				if ($option['type'] === 'callback') {
-					$context['smm_skeleton']['callbacks'][] = $option['name'];
-				}
-			}
-		} else {
-			$method->addBody("\t// ['check', '{$snake_name}_enable'],");
-		}
-
-		$method->addBody("];" . PHP_EOL);
-	}
-
-	private function getAvailableLicenses(): array
-	{
-		global $txt;
-
-		return [
-			'gpl' => [
-				'short_name' => 'GPL 3.0+',
-				'full_name'  => 'GPL-3.0-or-later',
-				'link'       => 'https://spdx.org/licenses/GPL-3.0-or-later.html',
-			],
-			'mit' => [
-				'short_name' => 'MIT',
-				'full_name'  => 'The MIT License',
-				'link'       => 'https://opensource.org/licenses/MIT',
-			],
-			'bsd' => [
-				'short_name' => 'BSD-3-Clause',
-				'full_name'  => 'The 3-Clause BSD License',
-				'link'       => 'https://opensource.org/licenses/BSD-3-Clause',
-			],
-			'mpl' => [
-				'short_name' => 'MPL-2.0',
-				'full_name'  => 'Mozilla Public License 2.0',
-				'link'       => 'https://opensource.org/licenses/MPL-2.0',
-			],
-			'own' => [
-				'short_name' => $txt['smm_license_own'],
-				'full_name'  => $txt['smm_license_name'],
-				'link'       => $txt['smm_license_link'],
-			]
-		];
-	}
-
-	private function getDefaultValue(array $option): string
-	{
-		$default = match ($option['type']) {
-			'int'   => (int) $option['default'],
-			'float' => (float) $option['default'],
-			default => $option['default'],
-		};
-
-		return var_export($default, true);
-	}
-
-	private function getSnakeName(string $value): string
-	{
-		return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $value));
-	}
-
-	private function getCamelName(string $value): string
-	{
-		return str_replace(' ', '', ucwords(str_replace('_', ' ', $value)));
-	}
-
-	private function getMethodName(string $hook): string
-	{
-		return lcfirst(str_replace(' ', '', ucwords(strtr($hook, ['integrate' => '', '_' => ' ']))));
-	}
-
-	private function rememberUsedHooks(): void
-	{
-		global $context, $modSettings;
-
-		if (empty($context['smm_skeleton']['hooks']))
-			return;
 
 		$usedHooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
 
 		updateSettings([
-			'smm_hooks' => implode(',', array_unique(array_merge($context['smm_skeleton']['hooks'], $usedHooks)))
+			'smm_hooks' => implode(',', array_unique(array_merge($skeleton['hooks'], $usedHooks)))
 		]);
+	}
+
+	private function toSnakeCase(string $value): string
+	{
+		return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $value));
 	}
 }

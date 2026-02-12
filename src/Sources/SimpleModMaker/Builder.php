@@ -180,16 +180,13 @@ final class Builder
 		return $this;
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	public function createPackage(): void
 	{
 		$this->preparePackageInfo();
 
-		$filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . bin2hex(random_bytes(5)) . '_smf21';
-
 		try {
+			$filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . bin2hex(random_bytes(5)) . '_smf21';
+
 			$phar = new PharData($filename . '.tmp');
 			$phar->buildFromDirectory($this->path);
 			$phar->convertToData(Phar::ZIP, Phar::NONE, 'zip');
@@ -397,8 +394,10 @@ final class Builder
 	private function getDefaultValue(array $column): ?string
 	{
 		$value = match ($column['type']) {
-			'tinyint', 'int', 'mediumint' => (int) $column['default'],
-			default => $column['default'],
+			'tinyint',
+			'int',
+			'mediumint' => (int) $column['default'],
+			default     => $column['default'],
 		};
 
 		return var_export($value, true);
@@ -422,8 +421,10 @@ final class Builder
 			if ($this->skeleton['settings_area'] === 3) {
 				loadLanguage('SimpleModMaker/', $lang);
 
-				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section1_title'] = '" . sprintf($txt['smm_tab_example'], 1) . "';";
-				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section2_title'] = '" . sprintf($txt['smm_tab_example'], 2) . "';";
+				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section1_title'] = '"
+					. sprintf($txt['smm_tab_example'], 1) . "';";
+				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section2_title'] = '"
+					. sprintf($txt['smm_tab_example'], 2) . "';";
 			}
 		}
 
