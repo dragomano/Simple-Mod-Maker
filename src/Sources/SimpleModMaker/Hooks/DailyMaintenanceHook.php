@@ -14,7 +14,7 @@ namespace Bugo\SimpleModMaker\Hooks;
 
 class DailyMaintenanceHook extends AbstractHook
 {
-	private array $legacyTasks;
+	private readonly array $legacyTasks;
 
 	public function __construct(array $context, string $classname, string $snakeName)
 	{

@@ -24,22 +24,23 @@ class SkeletonBuilder
 		global $context, $modSettings;
 
 		$postData = (new Validator())->validate();
-
 		$skeleton = $this->buildBasicStructure($postData, $modSettings);
+
 		$skeleton['options'] = $this->processOptions($postData, $skeleton);
 		$skeleton['tables']  = $this->processTables($postData);
 
 		$tasks = $this->processTasks($postData);
+
 		$skeleton['scheduled_tasks']  = $tasks['scheduled_tasks'];
 		$skeleton['background_tasks'] = $tasks['background_tasks'];
 		$skeleton['legacy_tasks']     = $tasks['legacy_tasks'];
 		$skeleton['make_dir']         = $skeleton['make_dir'] || $tasks['make_dir'];
 
 		$translations = $this->processTranslations($postData, $skeleton);
+
 		$skeleton['title']       = $translations['title'];
 		$skeleton['description'] = $translations['description'];
-
-		$skeleton['hooks'] = $this->determineHooks($skeleton);
+		$skeleton['hooks']       = $this->determineHooks($skeleton);
 
 		$context['smm_skeleton'] = $skeleton;
 
@@ -249,7 +250,7 @@ class SkeletonBuilder
 	{
 		global $context;
 
-		$title = [];
+		$title       = [];
 		$description = [];
 
 		foreach ($context['smm_languages'] as $lang) {

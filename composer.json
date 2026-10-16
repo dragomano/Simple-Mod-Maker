@@ -1,12 +1,13 @@
 {
   "require": {
-    "php": "^8.0"
+    "php": "^8.2"
   },
   "require-dev": {
-    "rector/rector": "^2.0"
+    "rector/rector": "^2.6"
   },
   "scripts": {
-    "check": "vendor/bin/rector process --dry-run --clear-cache"
+    "check": "vendor/bin/rector process --dry-run --clear-cache",
+    "rector": "vendor/bin/rector process"
   },
   "prefer-stable": true
 }

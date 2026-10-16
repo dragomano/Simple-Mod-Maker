@@ -35,7 +35,7 @@ final class Integration
 
 		$admin_areas['config']['areas']['smm'] = [
 			'label'       => SMM_NAME,
-			'function'    => [$this, 'settings'],
+			'function'    => $this->settings(...),
 			'icon'        => 'maintain',
 			'subsections' => [
 				'basic'     => [$txt['smm_basic']],
@@ -57,7 +57,7 @@ final class Integration
 		$context['page_title'] = SMM_NAME;
 
 		$subActions = [
-			'basic'     => [$this, 'basicSettings'],
+			'basic'     => $this->basicSettings(...),
 			'generator' => [new Handler, 'generator']
 		];
 

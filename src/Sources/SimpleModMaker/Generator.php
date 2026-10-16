@@ -52,10 +52,10 @@ class Generator
 	{
 		if (empty($skeleton['make_dir'])) {
 			$namespace = new PhpNamespace($skeleton['author']);
-			$class = $namespace->addClass($classname);
+			$class     = $namespace->addClass($classname);
 		} else {
 			$namespace = new PhpNamespace($skeleton['author'] . '\\' . $classname);
-			$class = $namespace->addClass('Integration');
+			$class     = $namespace->addClass('Integration');
 		}
 
 		if ($skeleton['smf_target_version'] === '3.0') {
@@ -85,7 +85,7 @@ class Generator
 
 	private function generateHooksMethods(ClassType $class, array $skeleton, string $classname, string $snakeName): void
 	{
-		global $context;
+		$context = ['smm_skeleton' => $skeleton];
 
 		$hooks = $class->addMethod('hooks')->setReturnType('void');
 
@@ -95,15 +95,16 @@ class Generator
 
 		foreach ($skeleton['hooks'] as $hook) {
 			$methodName = $this->getMethodName($hook);
+
 			$hooks->addBody("add_integration_function(?, self::class . '::?#', false, __FILE__);", [$hook, $methodName])
 				->addComment("@uses $methodName");
 
-			$method = $class->addMethod($methodName);
-
+			$method       = $class->addMethod($methodName);
 			$hookInstance = HookFactory::create($hook, $context, $classname, $snakeName);
 
 			if ($hookInstance !== null) {
 				$parameters = $hookInstance->getParameters();
+
 				foreach ($parameters as $param => $data) {
 					$parameter = isset($data[2]) ? $method->addParameter($param, $data[2]) : $method->addParameter($param);
 					$parameter->setType($data[0]);
@@ -116,6 +117,7 @@ class Generator
 				$method->setReturnType($hookInstance->getReturnType());
 
 				$bodyLines = $hookInstance->getBody();
+
 				foreach ($bodyLines as $body) {
 					$method->addBody($body);
 				}
@@ -131,7 +133,8 @@ class Generator
 	{
 		foreach ($skeleton['legacy_tasks'] as $task) {
 			$taskMethod = $class->addMethod($task['method']);
-			$hookName = empty($task['regularity']) ? Hook::DAILY_MAINTENANCE : Hook::WEEKLY_MAINTENANCE;
+			$hookName   = empty($task['regularity']) ? Hook::DAILY_MAINTENANCE : Hook::WEEKLY_MAINTENANCE;
+
 			$taskMethod->addComment("Simple task via $hookName hook");
 			$taskMethod->setReturnType('void');
 
@@ -162,6 +165,7 @@ class Generator
 
 		if (isset($hookKeys[Hook::ADMIN_SEARCH])) {
 			$settings->addComment('@return array|void');
+
 			$parameter = $settings->addParameter('return_config', false);
 			$parameter->setType('bool');
 		}
@@ -269,6 +273,7 @@ class Generator
 	{
 		$section = $class->addMethod('sectionExample1');
 		$section->addComment('@return array|void');
+
 		$parameter = $section->addParameter('return_config', false);
 		$parameter->setType('bool');
 
@@ -335,6 +340,7 @@ class Generator
 			foreach ($skeleton['options'] as $option) {
 				if (in_array($option['type'], ['select-multiple', 'select'])) {
 					$isMultiple = var_export($option['type'] === 'select-multiple', true);
+
 					$option['type'] = 'select';
 
 					$method->addBody(
@@ -355,15 +361,16 @@ class Generator
 		$method->addBody("];" . PHP_EOL);
 	}
 
-	private function generateScheduledTasks(array &$tasks, array $skeleton, string $baseClassname): void
+	private function generateScheduledTasks(array &$tasks, array &$skeleton, string $baseClassname): void
 	{
 		foreach ($skeleton['scheduled_tasks'] as $id => $task) {
 			$classname = $this->toCamelCase($task['slug']);
-			$filename = $classname . '.php';
+			$filename  = $classname . '.php';
 
 			$targetTaskClass = $skeleton['smf_target_version'] === '3.0'
 				? 'SMF\Tasks\ScheduledTask'
 				: 'SMF_BackgroundTask';
+
 			$namespace = new PhpNamespace($skeleton['author'] . '\\' . $baseClassname . '\\Tasks');
 			$namespace->addUse($targetTaskClass);
 
@@ -385,20 +392,21 @@ class Generator
 			$method->addBody("// Return true if everything is OK");
 			$method->addBody("return true;");
 
-			$tasks[$task['slug']]['content'] = $this->getGeneratedContent($namespace, $filename, $skeleton);
+			$tasks[$task['slug']]['content']  = $this->getGeneratedContent($namespace, $filename, $skeleton);
 			$tasks[$task['slug']]['filename'] = $filename;
 		}
 	}
 
-	private function generateBackgroundTasks(array &$tasks, array $skeleton, string $baseClassname): void
+	private function generateBackgroundTasks(array &$tasks, array &$skeleton, string $baseClassname): void
 	{
 		foreach ($skeleton['background_tasks'] as $id => $task) {
 			$classname = $task['classname'];
-			$filename = $classname . '.php';
+			$filename  = $classname . '.php';
 
 			$targetTaskClass = $skeleton['smf_target_version'] === '3.0'
 				? 'SMF\Tasks\BackgroundTask'
 				: 'SMF_BackgroundTask';
+
 			$namespace = new PhpNamespace($skeleton['author'] . '\\' . $baseClassname . '\\Tasks');
 			$namespace->addUse($targetTaskClass);
 			$namespace->addUse('SMF\Db\DatabaseApi', 'Db');
@@ -451,7 +459,7 @@ class Generator
 				$method->addBody(");" . PHP_EOL);
 			}
 
-			$tasks[$classname]['content'] = $this->getGeneratedContent($namespace, $filename, $skeleton);
+			$tasks[$classname]['content']  = $this->getGeneratedContent($namespace, $filename, $skeleton);
 			$tasks[$classname]['filename'] = $filename;
 		}
 	}

@@ -32,11 +32,12 @@ final class Handler
 	{
 		global $context, $txt, $scripturl;
 
+		$this->validateSubmission();
 		$this->loadAssets();
 		$this->setupPageContext($context, $txt, $scripturl);
 
 		$skeletonBuilder = new SkeletonBuilder();
-		$skeleton = $skeletonBuilder->build();
+		$skeleton        = $skeletonBuilder->build();
 
 		$this->prepareFormFields($skeleton);
 
@@ -45,6 +46,42 @@ final class Handler
 		}
 
 		$context['sub_template'] = 'modification_post';
+	}
+
+	private function validateSubmission(): void
+	{
+		if (! isset($_POST['save'])) {
+			return;
+		}
+
+		checkSession('post');
+
+		$sequence = $_POST['seqnum'] ?? null;
+
+		if (
+			! is_string($sequence)
+			|| ! ctype_digit($sequence)
+			|| ! isset($_SESSION['smm_form_sequences'][$sequence])
+		) {
+			fatal_lang_error('error_form_already_submitted', false);
+			return;
+		}
+
+		$_REQUEST['seqnum'] = $sequence;
+
+		checkSubmitOnce('check');
+
+		unset($_SESSION['smm_form_sequences'][$sequence]);
+	}
+
+	private function registerFormSequence(): void
+	{
+		global $context;
+
+		checkSubmitOnce('register');
+
+		$_SESSION['smm_form_sequences'][$context['form_sequence_number']] = true;
+		$_SESSION['smm_form_sequences'] = array_slice($_SESSION['smm_form_sequences'], -20, null, true);
 	}
 
 	private function loadAssets(): void
@@ -78,8 +115,7 @@ final class Handler
 	{
 		global $context, $txt;
 
-		checkSubmitOnce('register');
-
+		$this->registerFormSequence();
 		$this->prepareHookList($skeleton);
 		$this->searchHooks();
 
@@ -340,7 +376,8 @@ final class Handler
 		global $modSettings, $context;
 
 		$commonUsedHooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
-		$hooks = array_merge($commonUsedHooks, $skeleton['hooks']);
+		$hooks           = array_merge($commonUsedHooks, $skeleton['hooks']);
+
 		sort($hooks);
 
 		$context['smm_hook_list'] = [
@@ -372,11 +409,11 @@ final class Handler
 		}
 
 		$search = trim($smcFunc['strtolower']($data['search']));
-
-		$hooks = cache_get_data('all_smm_hooks', 30 * 24 * 60 * 60);
+		$hooks  = cache_get_data('all_smm_hooks', 30 * 24 * 60 * 60);
 
 		if ($hooks === null) {
 			$hooks = $this->getHookList();
+
 			cache_put_data('all_smm_hooks', $hooks, 30 * 24 * 60 * 60);
 		}
 
@@ -421,9 +458,8 @@ final class Handler
 
 		$classname = strtr($skeleton['filename'], ['Class-' => '', '.php' => '']);
 		$snakeName = $this->toSnakeCase($classname);
-
 		$generator = new Generator();
-		$result = $generator->generate($skeleton, $classname, $snakeName);
+		$result    = $generator->generate($skeleton, $classname, $snakeName);
 
 		$plugin = new Builder([
 			'skeleton'  => $skeleton,

@@ -1,9 +1,9 @@
 {
   "require": {
-    "php": "^8.0",
+    "php": "^8.2",
     "ext-dom": "*",
     "ext-json": "*",
-    "nette/php-generator": "^4.1"
+    "nette/php-generator": "^4.2"
   },
   "autoload": {
     "psr-4": {
@@ -16,7 +16,7 @@
   "config": {
     "sort-packages": true,
     "platform": {
-      "php": "8.0"
+      "php": "8.2"
     }
   }
 }
