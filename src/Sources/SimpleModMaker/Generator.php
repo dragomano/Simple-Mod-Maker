@@ -315,13 +315,15 @@ class Generator
 
 		foreach ($skeleton['options'] as $option) {
 			if (! empty($option['default'])) {
+				$settingKey = $snakeName . '_' . $option['name'];
+
 				if ($skeleton['smf_target_version'] !== '3.0') {
-					$method->addBody("if (! isset(\$modSettings['{$snakeName}_{$option['name']}']))");
+					$method->addBody("if (! isset(\$modSettings[" . var_export($settingKey, true) . ']))');
 				} else {
-					$method->addBody("if (! isset(Config::\$modSettings['{$snakeName}_{$option['name']}']))");
+					$method->addBody("if (! isset(Config::\$modSettings[" . var_export($settingKey, true) . ']))');
 				}
 
-				$method->addBody("\t\$addSettings['{$snakeName}_{$option['name']}'] = {$this->getDefaultValue($option)};");
+				$method->addBody("\t\$addSettings[" . var_export($settingKey, true) . '] = ' . $this->getDefaultValue($option) . ';');
 			}
 		}
 
@@ -338,16 +340,22 @@ class Generator
 
 		if (! empty($skeleton['options'])) {
 			foreach ($skeleton['options'] as $option) {
+				$settingKey = $snakeName . '_' . $option['name'];
+
 				if (in_array($option['type'], ['select-multiple', 'select'])) {
 					$isMultiple = var_export($option['type'] === 'select-multiple', true);
 
 					$option['type'] = 'select';
 
 					$method->addBody(
-						"\t['{$option['type']}', '{$snakeName}_{$option['name']}', \$txt['$snakeName']['{$option['name']}_set'], 'multiple' => $isMultiple],"
+						"\t[" . var_export($option['type'], true) . ', ' . var_export($settingKey, true)
+						. ', $txt' . '[' . var_export($snakeName, true) . ']' . '['
+						. var_export($option['name'] . '_set', true) . "], 'multiple' => $isMultiple],"
 					);
 				} else {
-					$method->addBody("\t['{$option['type']}', '{$snakeName}_{$option['name']}'],");
+					$method->addBody(
+						"\t[" . var_export($option['type'], true) . ', ' . var_export($settingKey, true) . "],"
+					);
 				}
 
 				if ($option['type'] === 'callback') {
@@ -355,7 +363,7 @@ class Generator
 				}
 			}
 		} else {
-			$method->addBody("\t// ['check', '{$snakeName}_enable'],");
+			$method->addBody("\t// ['check', " . var_export($snakeName . '_enable', true) . "],");
 		}
 
 		$method->addBody("];" . PHP_EOL);
@@ -449,7 +457,7 @@ class Generator
 				$method->addBody("\t\t'claimed_time' => 'int'");
 				$method->addBody("\t],");
 				$method->addBody("\t[");
-				$method->addBody("\t\t'\$sourcedir/$baseClassname/Tasks/$filename',");
+				$method->addBody("\t\t" . var_export('$sourcedir/' . $baseClassname . '/Tasks/' . $filename, true) . ',');
 				$method->addBody("\t\t'\\\\' . self::class,");
 				$method->addBody("\t\t'',");
 				$method->addBody("\t\ttime() + \$regularity");
@@ -497,8 +505,8 @@ class Generator
 			$method->addBody("\t\t'task_data'  => 'string'");
 			$method->addBody("\t],");
 			$method->addBody("\t[");
-			$method->addBody("\t\t'\$sourcedir/$baseClassname/Tasks/$filename',");
-			$method->addBody("\t\t'{$task['callable']}',");
+			$method->addBody("\t\t" . var_export('$sourcedir/' . $baseClassname . '/Tasks/' . $filename, true) . ',');
+			$method->addBody("\t\t" . var_export($task['callable'], true) . ',');
 			$method->addBody("\t\t''");
 			$method->addBody("\t],");
 			$method->addBody("\t['id_task']");
@@ -520,13 +528,13 @@ class Generator
 		$license = $skeleton['license_data'];
 
 		$file->addComment('');
-		$file->addComment("@package {$skeleton['name']}");
-		$file->addComment("@link {$skeleton['site']}");
-		$file->addComment("@author {$skeleton['author']} <{$skeleton['email']}>");
-		$file->addComment("@copyright " . date('Y') . " {$skeleton['author']}");
-		$file->addComment("@license {$license['link']} {$license['full_name']}");
+		$file->addComment('@package ' . Serializer::phpComment((string) $skeleton['name']));
+		$file->addComment('@link ' . Serializer::phpComment((string) $skeleton['site']));
+		$file->addComment('@author ' . Serializer::phpComment((string) $skeleton['author']) . ' <' . Serializer::phpComment((string) $skeleton['email']) . '>');
+		$file->addComment('@copyright ' . date('Y') . ' ' . Serializer::phpComment((string) $skeleton['author']));
+		$file->addComment('@license ' . Serializer::phpComment((string) $license['link']) . ' ' . Serializer::phpComment((string) $license['full_name']));
 		$file->addComment('');
-		$file->addComment("@version " . $skeleton['version']);
+		$file->addComment('@version ' . Serializer::phpComment((string) $skeleton['version']));
 
 		return $file;
 	}

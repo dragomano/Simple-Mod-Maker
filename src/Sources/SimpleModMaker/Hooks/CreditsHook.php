@@ -29,14 +29,16 @@ class CreditsHook extends AbstractHook
 		$name   = $this->context['smm_skeleton']['name'];
 		$author = $this->context['smm_skeleton']['author'];
 
+		$copyright = var_export("$name by $author &copy; " . date('Y'), true);
+
 		if ($this->context['smm_skeleton']['smf_target_version'] !== '3.0') {
 			return [
 				"global \$context;" . PHP_EOL,
-				"\$context['copyrights']['mods'][] = '$name by $author &copy; " . date('Y') . "';",
+				"\$context['copyrights']['mods'][] = $copyright;",
 			];
 		} else {
 			return [
-				"Utils::\$context['copyrights']['mods'][] = '$name by $author &copy; " . date('Y') . "';",
+				"Utils::\$context['copyrights']['mods'][] = $copyright;",
 			];
 		}
 	}

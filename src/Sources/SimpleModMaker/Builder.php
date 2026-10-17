@@ -217,7 +217,7 @@ final class Builder
 		header_remove('content-encoding');
 		header('Content-Description: File Transfer');
 		header('Content-Type: application/octet-stream');
-		header('Content-Disposition: attachment; filename=' . $pretty_name);
+		header('Content-Disposition: ' . $this->buildContentDisposition($pretty_name));
 		header('Content-Transfer-Encoding: binary');
 		header('Expires: 0');
 		header('Cache-Control: must-revalidate');
@@ -275,9 +275,13 @@ final class Builder
 		$database .= "\n\n";
 
 		if (! empty($this->skeleton['min_php_version'])) {
-			$minPhpVersion = $this->skeleton['min_php_version'];
-			$database .= "if (version_compare(PHP_VERSION, '$minPhpVersion', '<')) {\n";
-			$database .= "\tdie('This mod needs PHP $minPhpVersion or greater. You will not be able to install/use this mod. Please, contact your host and ask for a php upgrade.');\n";
+			$minPhpVersion = (string) $this->skeleton['min_php_version'];
+
+			$database .= "if (version_compare(PHP_VERSION, " . var_export($minPhpVersion, true) . ", '<')) {\n";
+			$database .= "\tdie(" . var_export(
+				"This mod needs PHP $minPhpVersion or greater. You will not be able to install/use this mod. Please, contact your host and ask for a php upgrade.",
+				true
+			) . ");\n";
 			$database .= "}\n\n";
 		}
 
@@ -289,7 +293,7 @@ final class Builder
 
 		foreach ($this->skeleton['tables'] as $table) {
 			$database .= "\$tables[] = [\n";
-			$database .= "\t'name' => '{$table['name']}',\n";
+			$database .= "\t'name' => " . var_export($table['name'], true) . ",\n";
 			$database .= "\t'columns' => [\n";
 
 			$table_index = false;
@@ -300,17 +304,16 @@ final class Builder
 				}
 
 				$database .= "\t\t[\n";
-				$database .= "\t\t\t'name' => '{$column['name']}',\n";
-				$database .= "\t\t\t'type' => '{$column['type']}',\n";
+				$database .= "\t\t\t'name' => " . var_export($column['name'], true) . ",\n";
+				$database .= "\t\t\t'type' => " . var_export($column['type'], true) . ",\n";
 
 				if (! in_array($column['type'], ['text', 'mediumtext'])) {
 					if (! empty($column['size'])) {
-						$database .= "\t\t\t'size' => {$column['size']},\n";
+						$database .= "\t\t\t'size' => " . (int) $column['size'] . ",\n";
 					}
 
-					if (empty($column['auto']) && strlen($column['default'])) {
-						$default = $this->getDefaultValue($column);
-						$database .= "\t\t\t'default' => $default,\n";
+					if (empty($column['auto']) && strlen((string) $column['default'])) {
+						$database .= "\t\t\t'default' => {$this->getDefaultValue($column)},\n";
 					}
 				}
 
@@ -333,7 +336,7 @@ final class Builder
 				$database .= "\t'indexes' => [\n";
 				$database .= "\t\t[\n";
 				$database .= "\t\t\t'type' => 'primary',\n";
-				$database .= "\t\t\t'columns' => ['$table_index'],\n";
+				$database .= "\t\t\t'columns' => [" . var_export($table_index, true) . "],\n";
 				$database .= "\t\t]\n";
 				$database .= "\t],\n";
 			}
@@ -389,10 +392,10 @@ final class Builder
 			$database .= "\t\tstrtotime('tomorrow'),\n";
 			$database .= "\t\t0,\n";
 			$database .= "\t\t$regularity,\n";
-			$database .= "\t\t'$unit',\n";
+			$database .= "\t\t" . var_export($unit, true) . ",\n";
 			$database .= "\t\t0,\n";
-			$database .= "\t\t'{$task['slug']}',\n";
-			$database .= "\t\t'{$task['callable']}'\n";
+			$database .= "\t\t" . var_export($task['slug'], true) . ",\n";
+			$database .= "\t\t" . var_export($task['callable'] ?? '', true) . "\n";
 			$database .= "\t],\n";
 			$database .= "\t['id_task']\n";
 			$database .= ");\n\n";
@@ -420,34 +423,37 @@ final class Builder
 		foreach ($this->skeleton['title'] as $lang => $value) {
 			$title = $value ?: $this->skeleton['name'];
 
-			$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_title'] = '$title';";
+			$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_title'] = " . var_export($title, true) . ';';
 		}
 
 		foreach ($this->skeleton['description'] as $lang => $value) {
 			$description = $value ?: '';
 
-			$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_description'] = '$description';";
+			$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_description'] = " . var_export($description, true) . ';';
 
 			if ($this->skeleton['settings_area'] === 3) {
 				loadLanguage('SimpleModMaker/', $lang);
 
-				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section1_title'] = '"
-					. sprintf($txt['smm_tab_example'], 1) . "';";
-				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section2_title'] = '"
-					. sprintf($txt['smm_tab_example'], 2) . "';";
+				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section1_title'] = "
+					. var_export(sprintf($txt['smm_tab_example'], 1), true) . ';';
+				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section2_title'] = "
+					. var_export(sprintf($txt['smm_tab_example'], 2), true) . ';';
 			}
 		}
 
 		foreach ($this->skeleton['options'] as $option) {
 			foreach ($option['translations'] as $lang => $value) {
-				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_{$option['name']}'] = '$value';";
+				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_{$option['name']}'] = " . var_export($value, true) . ';';
 
 				if (in_array($option['type'], ['select-multiple', 'select'])) {
 					if (! empty($option['variants'])) {
-						$variants  = explode('|', $option['variants']);
-						$variants = "'" . implode("','", $variants) . "'";
+						$variants = array_map(
+							fn(string $variant): string => var_export($variant, true),
+							array_map(strval(...), explode('|', $option['variants']))
+						);
 
-						$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_{$option['name']}_set'] = [$variants];";
+						$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_{$option['name']}_set'] = ["
+							. implode(', ', $variants) . '];';
 					}
 				}
 			}
@@ -455,11 +461,11 @@ final class Builder
 
 		foreach ($this->skeleton['scheduled_tasks'] as $task) {
 			foreach ($task['names'] as $lang => $value) {
-				$languages[$lang][] = PHP_EOL . "\$txt['scheduled_task_{$task['slug']}'] = '$value';";
+				$languages[$lang][] = PHP_EOL . "\$txt['scheduled_task_{$task['slug']}'] = " . var_export($value, true) . ';';
 			}
 
 			foreach ($task['descriptions'] as $lang => $value) {
-				$languages[$lang][] = PHP_EOL . "\$txt['scheduled_task_desc_{$task['slug']}'] = '$value';";
+				$languages[$lang][] = PHP_EOL . "\$txt['scheduled_task_desc_{$task['slug']}'] = " . var_export($value, true) . ';';
 			}
 		}
 
@@ -472,7 +478,7 @@ final class Builder
 				if (! is_file($lang_file = $lang_dir . $lang . '.php')) {
 					$header = "<?php\n\n";
 					$header .= "/**\n";
-					$header .= " * @package {$this->skeleton['name']}\n";
+					$header .= " * @package " . Serializer::phpComment($this->skeleton['name']) . "\n";
 					$header .= " */\n";
 					$content = $header . $content;
 				}
@@ -511,31 +517,39 @@ final class Builder
 				if (is_array($value)) {
 					$root->appendChild($xml->createElement('empty'));
 
-					$element = $root->appendChild($xml->createElement($key));
+					$element = $root->appendChild($xml->createElement($this->sanitizeXmlName((string) $key)));
 
 					foreach ($value as $k => $v) {
 						if (is_array($v)) {
 							if ($k === '@attributes') {
 								foreach ($v as $i => $j) {
-									($element->appendChild($xml->createAttribute($i)))
-										->appendChild($xml->createTextNode($j));
+									($element->appendChild($xml->createAttribute($this->sanitizeXmlName((string) $i))))
+										->appendChild($xml->createTextNode((string) $j));
 								}
 							} else {
 								foreach ($v as $r => $s) {
-									$e = $element->appendChild($xml->createElement($k, is_string($r) ? $r : ''));
-									foreach ($s as $x => $y) {
-										($e->appendChild($xml->createAttribute($x)))
-											->appendChild($xml->createTextNode($y));
+									$e = $element->appendChild(
+										$xml->createElement($this->sanitizeXmlName((string) $k))
+									);
+
+									if (is_string($r)) {
+										$e->appendChild($xml->createTextNode($r));
+									}
+
+									foreach ((array) $s as $x => $y) {
+										($e->appendChild($xml->createAttribute($this->sanitizeXmlName((string) $x))))
+											->appendChild($xml->createTextNode((string) $y));
 									}
 								}
 							}
 						} else {
-							$element->appendChild($xml->createElement($k, $v));
+							$element->appendChild($xml->createElement($this->sanitizeXmlName((string) $k)))
+								->appendChild($xml->createTextNode((string) $v));
 						}
 					}
 				} else {
-					$element = $root->appendChild($xml->createElement($key, $value));
-					$root->appendChild($element);
+					$root->appendChild($xml->createElement($this->sanitizeXmlName((string) $key)))
+						->appendChild($xml->createTextNode((string) $value));
 				}
 			}
 
@@ -547,7 +561,8 @@ final class Builder
 			// Replace spaces with tabs
 			$xml_string = preg_replace_callback('/^(?: {2})+/m', function ($m) {
 				$spaces = strlen($m[0]);
-				$tabs = $spaces / 2;
+				$tabs   = $spaces / 2;
+
 				return str_repeat("\t", $tabs);
 			}, $xml_string);
 
@@ -712,6 +727,34 @@ final class Builder
 			'2.1/3.0' => '2.1.*, 3.0.*',
 			default   => $this->skeleton['smf_target_version'] . '.*',
 		};
+	}
+
+	/**
+	 * Builds a safe Content-Disposition header. The ASCII fallback strips any
+	 * character that could break the quoted-string or inject headers, while the
+	 * RFC 5987 parameter preserves the original (possibly Unicode) name.
+	 */
+	private function buildContentDisposition(string $filename): string
+	{
+		$ascii = preg_replace('/[^A-Za-z0-9._\-]/', '_', $filename) ?? 'download.zip';
+
+		return "attachment; filename=\"$ascii\"; filename*=UTF-8''" . rawurlencode($filename);
+	}
+
+	/**
+	 * Reduces an arbitrary label to a valid XML element/attribute name so that
+	 * user data can never be interpreted as markup. Values are always emitted
+	 * through createTextNode(), which escapes them for the XML context.
+	 */
+	private function sanitizeXmlName(string $name): string
+	{
+		$name = preg_replace('/[^A-Za-z0-9_\-]/', '-', $name) ?? '';
+
+		if ($name === '' || preg_match('/^[A-Za-z_]/', $name) !== 1) {
+			$name = 'n' . $name;
+		}
+
+		return $name;
 	}
 
 	/**

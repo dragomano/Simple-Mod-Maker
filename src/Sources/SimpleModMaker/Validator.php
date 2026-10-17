@@ -22,12 +22,29 @@ final class Validator
 		$data = [];
 
 		if (isset($_POST['save'])) {
-			$data = $_POST;
-
-			array_walk_recursive($data, fn(&$value) => $value = htmlspecialchars($value));
+			// Store normalized source values only. Escaping is the responsibility
+			// of each output context (PHP via var_export(), HTML and inline script
+			// payloads via Serializer), never of the input layer.
+			$data = $this->normalize($_POST);
 
 			$this->findErrors($data);
 		}
+
+		return $data;
+	}
+
+	/**
+	 * Recursively trims scalar input while preserving the original characters:
+	 * quotes, ampersands, backslashes and Unicode are kept intact so that later
+	 * serialization steps work with real source text instead of HTML entities.
+	 */
+	private function normalize(array $data): array
+	{
+		array_walk_recursive($data, function (&$value): void {
+			if (is_scalar($value)) {
+				$value = trim((string) $value);
+			}
+		});
 
 		return $data;
 	}

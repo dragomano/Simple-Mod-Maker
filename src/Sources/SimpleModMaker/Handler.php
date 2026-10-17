@@ -138,7 +138,7 @@ final class Handler
 					'tab' => self::TAB['basic'],
 					'attributes' => [
 						'maxlength' => 255,
-						'value'     => $skeleton['name'],
+						'value'     => Serializer::html($skeleton['name']),
 						'required'  => true,
 						'x-model'   => 'className',
 					],
@@ -179,7 +179,7 @@ final class Handler
 					'tab' => self::TAB['basic'],
 					'attributes' => [
 						'maxlength' => 255,
-						'value'     => $skeleton['version'],
+						'value'     => Serializer::html($skeleton['version']),
 						'required'  => true,
 					],
 				],
@@ -192,7 +192,7 @@ final class Handler
 					'after' => $txt['smm_site_subtext'],
 					'attributes' => [
 						'maxlength'   => 255,
-						'value'       => $skeleton['site'],
+						'value'       => Serializer::html($skeleton['site']),
 						'style'       => 'width: 100%',
 						'placeholder' => 'https://github.com/dragomano/Simple-Mod-Maker',
 					],
@@ -213,7 +213,7 @@ final class Handler
 					'tab' => self::TAB['basic'],
 					'attributes' => [
 						'maxlength'   => 255,
-						'value'       => $skeleton['min_php_version'],
+						'value'       => Serializer::html($skeleton['min_php_version']),
 						'placeholder' => '8.0',
 					],
 				],
@@ -376,22 +376,18 @@ final class Handler
 		global $modSettings, $context;
 
 		$commonUsedHooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
-		$hooks           = array_merge($commonUsedHooks, $skeleton['hooks']);
+		$hooks           = array_values(array_unique(array_merge($commonUsedHooks, $skeleton['hooks'])));
 
 		sort($hooks);
 
-		$context['smm_hook_list'] = [
-			'data'  => [],
-			'items' => [],
-		];
+		// The hook list is consumed by Tom Select inside an inline <script>. It is
+		// serialized as real data (JSON) instead of hand-built object literals, so a
+		// hook name can never break out of the script context or create markup.
+		$context['smm_hook_list']['data'] = Serializer::json(
+			array_map(fn(string $hook): array => ['text' => $hook, 'value' => $hook], $hooks)
+		);
 
-		foreach ($hooks as $hook) {
-			$context['smm_hook_list']['data'][] = '{text: "' . $hook . '", value: "' . $hook . '"}';
-
-			if (in_array($hook, $skeleton['hooks'])) {
-				$context['smm_hook_list']['items'][] = JavaScriptEscape($hook);
-			}
-		}
+		$context['smm_hook_list']['items'] = Serializer::json(array_values($skeleton['hooks']));
 	}
 
 	private function searchHooks(): void

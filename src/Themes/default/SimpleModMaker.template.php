@@ -47,7 +47,10 @@ function template_modification_post()
 		method="post"
 		accept-charset="', $context['character_set'], '"
 		onsubmit="submitonce(this);"
-		x-data="{ tab: \'', $language, '\', className: \'', $context['smm_skeleton']['name'], '\' }"
+		x-data="', htmlspecialchars(\Bugo\SimpleModMaker\Serializer::json([
+			'tab'       => $language,
+			'className' => $context['smm_skeleton']['name'],
+		]), ENT_QUOTES), '"
 	>
 		<div class="windowbg">
 			<div class="smm_tabs">
@@ -729,8 +732,8 @@ function template_modification_post()
 			allowEmptyOption: true,
 			closeAfterSelect: false,
 			placeholder: "integrate_load_theme",
-			options: [', implode(',', $context['smm_hook_list']['data']), '],
-			items: [', implode(',', $context['smm_hook_list']['items']), '],
+			options: ', $context['smm_hook_list']['data'], ',
+			items: ', $context['smm_hook_list']['items'], ',
 			shouldLoad: function (search) {
 				return search.length >= 3;
 			},
@@ -748,7 +751,7 @@ function template_modification_post()
 				.then(function (json) {
 					let data = [];
 					for (let i = 0; i < json.length; i++) {
-						data.push({text: json[i].innerHTML, value: json[i].value})
+						data.push({text: json[i].value, value: json[i].value})
 					}
 
 					callback(data)
@@ -759,10 +762,10 @@ function template_modification_post()
 			},
 			render: {
 				option: function (item, escape) {
-					return `<div>${item.value}</div>`;
+					return `<div>${escape(item.value)}</div>`;
 				},
 				item: function (item, escape) {
-					return `<div>${item.value}</div>`;
+					return `<div>${escape(item.value)}</div>`;
 				},
 				option_create: function (data, escape) {
 					return `<div class="create">', $txt['ban_add'], ' <strong>` + escape(data.input) + `</strong>&hellip;</div>`;
@@ -814,7 +817,7 @@ function template_modification_post()
 
 			handleOptions() {
 				return {
-					options: ', json_encode($context['smm_skeleton']['options']), ',
+					options: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['options']), ',
 					addOption() {
 						this.options.push({
 							name: "",
@@ -832,7 +835,7 @@ function template_modification_post()
 
 			handleTables() {
 				return {
-					tables: ', json_encode($context['smm_skeleton']['tables']), ',
+					tables: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['tables']), ',
 					addTable() {
 						this.tables.push({
 							name: "",
@@ -860,9 +863,9 @@ function template_modification_post()
 
 			handleTasks() {
 				return {
-					scheduledTasks: ', json_encode($context['smm_skeleton']['scheduled_tasks'] ?? []), ',
-					backgroundTasks: ', json_encode($context['smm_skeleton']['background_tasks'] ?? []), ',
-					legacyTasks: ', json_encode($context['smm_skeleton']['legacy_tasks'] ?? []), ',
+					scheduledTasks: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['scheduled_tasks'] ?? []), ',
+					backgroundTasks: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['background_tasks'] ?? []), ',
+					legacyTasks: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['legacy_tasks'] ?? []), ',
 					addTask(type = "scheduled") {
 						switch (type) {
 							case "scheduled":
