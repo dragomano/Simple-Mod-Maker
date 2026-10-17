@@ -55,23 +55,6 @@ final class Handler
 		}
 
 		checkSession('post');
-
-		$sequence = $_POST['seqnum'] ?? null;
-
-		if (
-			! is_string($sequence)
-			|| ! ctype_digit($sequence)
-			|| ! isset($_SESSION['smm_form_sequences'][$sequence])
-		) {
-			fatal_lang_error('error_form_already_submitted', false);
-			return;
-		}
-
-		$_REQUEST['seqnum'] = $sequence;
-
-		checkSubmitOnce('check');
-
-		unset($_SESSION['smm_form_sequences'][$sequence]);
 	}
 
 	private function registerFormSequence(): void
