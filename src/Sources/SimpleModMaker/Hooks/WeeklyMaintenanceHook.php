@@ -33,7 +33,7 @@ class WeeklyMaintenanceHook extends AbstractHook
 				continue;
 			}
 
-			$tasks .= "\$this->{$task['method']};";
+			$tasks .= "\$this->{$task['method']}();";
 		}
 
 		return [

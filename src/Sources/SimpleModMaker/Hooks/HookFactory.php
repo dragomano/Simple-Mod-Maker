@@ -70,6 +70,7 @@ class HookFactory
 		'integrate_ssi_topPoster'                  => SsiTopPosterHook::class,
 		'integrate_ssi_topTopics'                  => SsiTopTopicsHook::class,
 		'integrate_ssi_whosOnline'                 => SsiWhosOnlineHook::class,
+		'integrate_weekly_maintenance'             => WeeklyMaintenanceHook::class,
 	];
 
 	public static function create(

@@ -45,7 +45,7 @@ class DailyMaintenanceHook extends AbstractHook
 		$body = [];
 		foreach ($this->legacyTasks as $task) {
 			if (empty($task['regularity'])) {
-				$body[] = "\$this->{$task['method']};";
+				$body[] = "\$this->{$task['method']}();";
 			}
 		}
 
