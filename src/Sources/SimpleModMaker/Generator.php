@@ -90,13 +90,13 @@ class Generator
 		$hooks = $class->addMethod('hooks')->setReturnType('void');
 
 		if (empty($skeleton['hooks'])) {
-			$hooks->addBody("// add_integration_function('integrate_hook_name', self::class . '::methodName#', false, __FILE__);");
+			$hooks->addBody("// add_integration_function('integrate_hook_name', self::class . '::methodName#', false);");
 		}
 
 		foreach ($skeleton['hooks'] as $hook) {
 			$methodName = $this->getMethodName($hook);
 
-			$hooks->addBody("add_integration_function(?, self::class . '::?#', false, __FILE__);", [$hook, $methodName])
+			$hooks->addBody("add_integration_function(?, self::class . '::?#', false);", [$hook, $methodName])
 				->addComment("@uses $methodName");
 
 			$method       = $class->addMethod($methodName);

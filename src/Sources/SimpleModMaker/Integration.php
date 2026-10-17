@@ -19,12 +19,7 @@ final class Integration
 {
 	public function __construct()
 	{
-		add_integration_function(
-			Hook::ADMIN_AREAS,
-			self::class . '::adminAreas#',
-			false,
-			__FILE__
-		);
+		add_integration_function(Hook::ADMIN_AREAS, self::class . '::adminAreas#', false);
 	}
 
 	public function adminAreas(array &$admin_areas): void
