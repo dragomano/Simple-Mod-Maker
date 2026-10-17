@@ -185,11 +185,14 @@ class Generator
 			$this->addDefaultSettings($settings, $skeleton, $snakeName);
 		}
 
+		$settings->addBody("\$config_vars = [];");
+
 		$this->fillConfigVars($settings, $skeleton, $snakeName);
 
 		if (isset($hookKeys[Hook::ADMIN_SEARCH])) {
-			$settings->addBody("if (\$return_config)");
-			$settings->addBody("\treturn \$config_vars;" . PHP_EOL);
+			$settings->addBody(PHP_EOL . "if (\$return_config) {");
+			$settings->addBody("\treturn \$config_vars;");
+			$settings->addBody("}" . PHP_EOL);
 		}
 
 		if ($skeleton['smf_target_version'] !== '3.0') {
@@ -287,10 +290,13 @@ class Generator
 			$section->addBody("Utils::\$context['post_url'] = Config::\$scripturl . '?action=admin;area=$snakeName;sa=section1;save';" . PHP_EOL);
 		}
 
+		$section->addBody("\$config_vars = [];");
+
 		$this->fillConfigVars($section, $skeleton, $snakeName);
 
-		$section->addBody("if (\$return_config)");
-		$section->addBody("\treturn \$config_vars;" . PHP_EOL);
+		$section->addBody(PHP_EOL . "if (\$return_config) {");
+		$section->addBody("\treturn \$config_vars;");
+		$section->addBody("}" . PHP_EOL);
 		$section->addBody("if (isset(\$_GET['save'])) {");
 
 		if ($skeleton['smf_target_version'] !== '3.0') {
@@ -318,12 +324,13 @@ class Generator
 				$settingKey = $snakeName . '_' . $option['name'];
 
 				if ($skeleton['smf_target_version'] !== '3.0') {
-					$method->addBody("if (! isset(\$modSettings[" . var_export($settingKey, true) . ']))');
+					$method->addBody("if (! isset(\$modSettings[" . var_export($settingKey, true) . '])) {');
 				} else {
-					$method->addBody("if (! isset(Config::\$modSettings[" . var_export($settingKey, true) . ']))');
+					$method->addBody("if (! isset(Config::\$modSettings[" . var_export($settingKey, true) . '])) {');
 				}
 
 				$method->addBody("\t\$addSettings[" . var_export($settingKey, true) . '] = ' . $this->getDefaultValue($option) . ';');
+				$method->addBody('}');
 			}
 		}
 
@@ -336,8 +343,6 @@ class Generator
 
 	private function fillConfigVars(Method $method, array &$skeleton, string $snakeName): void
 	{
-		$method->addBody("\$config_vars = [");
-
 		if (! empty($skeleton['options'])) {
 			foreach ($skeleton['options'] as $option) {
 				$settingKey = $snakeName . '_' . $option['name'];
@@ -348,13 +353,13 @@ class Generator
 					$option['type'] = 'select';
 
 					$method->addBody(
-						"\t[" . var_export($option['type'], true) . ', ' . var_export($settingKey, true)
+						"\$config_vars[] = [" . var_export($option['type'], true) . ', ' . var_export($settingKey, true)
 						. ', $txt' . '[' . var_export($snakeName, true) . ']' . '['
-						. var_export($option['name'] . '_set', true) . "], 'multiple' => $isMultiple],"
+						. var_export($option['name'] . '_set', true) . "], 'multiple' => $isMultiple];"
 					);
 				} else {
 					$method->addBody(
-						"\t[" . var_export($option['type'], true) . ', ' . var_export($settingKey, true) . "],"
+						"\$config_vars[] = [" . var_export($option['type'], true) . ', ' . var_export($settingKey, true) . '];'
 					);
 				}
 
@@ -363,10 +368,8 @@ class Generator
 				}
 			}
 		} else {
-			$method->addBody("\t// ['check', " . var_export($snakeName . '_enable', true) . "],");
+			$method->addBody("// \$config_vars[] = ['check', " . var_export($snakeName . '_enable', true) . '];');
 		}
-
-		$method->addBody("];" . PHP_EOL);
 	}
 
 	private function generateScheduledTasks(array &$tasks, array &$skeleton, string $baseClassname): void
