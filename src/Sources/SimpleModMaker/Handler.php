@@ -282,7 +282,7 @@ final class Handler
 			$nav->create('a')
 				->setAttribute('class', 'button floatnone')
 				->setAttribute(':class', "{ 'active': tab === '{$lang['filename']}' }")
-				->setAttribute('@click.prevent', "tab = '{$lang['filename']}'")
+				->setAttribute('x-on:click.prevent', "tab = '{$lang['filename']}'")
 				->setText($lang['name']);
 		}
 
