@@ -33,6 +33,10 @@ final class Builder
 	private readonly string $path;
 
 	/**
+	 * @var list<string>
+	 */
+	private readonly array $allowed_bases;
+	/**
 	 * @param array{
 	 *     skeleton: array,
 	 *     classname: string,
@@ -47,10 +51,11 @@ final class Builder
 			throw new InvalidArgumentException('Missing required options.');
 		}
 
-		$this->skeleton   = $options['skeleton'];
-		$this->classname  = $options['classname'];
-		$this->snake_name = $options['snakename'];
-		$this->path       = $options['path'];
+		$this->skeleton      = $options['skeleton'];
+		$this->classname     = $options['classname'];
+		$this->snake_name    = $options['snakename'];
+		$this->path          = $options['path'];
+		$this->allowed_bases = $this->resolveAllowedBases($options);
 	}
 
 	public function create(string $content): Builder
@@ -59,8 +64,9 @@ final class Builder
 
 		require_once dirname(__DIR__) . '/Subs-Package.php';
 
-		deltree($this->path);
+		$this->assertPathWithinAllowedBase();
 
+		deltree($this->path);
 		mktree($this->path, 0777);
 
 		package_put_contents(
@@ -163,6 +169,8 @@ final class Builder
 
 	public function createTasks(array $tasks): Builder
 	{
+		$this->assertPathWithinAllowedBase();
+
 		foreach ($tasks as $task) {
 			$this->addSecurityCheck($task['content']);
 
@@ -411,11 +419,13 @@ final class Builder
 
 		foreach ($this->skeleton['title'] as $lang => $value) {
 			$title = $value ?: $this->skeleton['name'];
+
 			$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_title'] = '$title';";
 		}
 
 		foreach ($this->skeleton['description'] as $lang => $value) {
 			$description = $value ?: '';
+
 			$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_description'] = '$description';";
 
 			if ($this->skeleton['settings_area'] === 3) {
@@ -566,9 +576,9 @@ final class Builder
 			],
 			'hook' => [
 				[
-					'hook' => Hook::PRE_LOAD,
+					'hook'     => Hook::PRE_LOAD,
 					'function' => $coreclass . '::hooks#',
-					'file' => '$sourcedir/' . $filename . '.php',
+					'file'     => '$sourcedir/' . $filename . '.php',
 				],
 			],
 		];
@@ -603,7 +613,7 @@ final class Builder
 
 		if (empty($this->skeleton['make_dir'])) {
 			$data['install']['require-file']['Adding main source file'] = [
-				'name' => 'Sources/' . $this->skeleton['filename'] . '.php',
+				'name'        => 'Sources/' . $this->skeleton['filename'] . '.php',
 				'destination' => '$sourcedir',
 			];
 
@@ -612,7 +622,7 @@ final class Builder
 			];
 		} else {
 			$data['install']['require-dir']['Adding main source files'] = [
-				'name' => 'Sources/' . $this->classname,
+				'name'        => 'Sources/' . $this->classname,
 				'destination' => '$sourcedir',
 			];
 
@@ -623,7 +633,7 @@ final class Builder
 
 		if (! empty($this->skeleton['make_template'])) {
 			$data['install']['require-file']['Adding main template file'] = [
-				'name' => 'Themes/default/' . $this->classname . '.template.php',
+				'name'        => 'Themes/default/' . $this->classname . '.template.php',
 				'destination' => '$themedir',
 			];
 
@@ -634,7 +644,7 @@ final class Builder
 
 		if (! empty($this->skeleton['make_script'])) {
 			$data['install']['require-file']['Adding JS file'] = [
-				'name' => 'Themes/default/scripts/' . $this->snake_name . '.js',
+				'name'        => 'Themes/default/scripts/' . $this->snake_name . '.js',
 				'destination' => '$themedir/scripts',
 			];
 
@@ -645,7 +655,7 @@ final class Builder
 
 		if (! empty($this->skeleton['make_css'])) {
 			$data['install']['require-file']['Adding CSS file'] = [
-				'name' => 'Themes/default/css/' . $this->snake_name . '.css',
+				'name'        => 'Themes/default/css/' . $this->snake_name . '.css',
 				'destination' => '$themedir/css',
 			];
 
@@ -656,12 +666,12 @@ final class Builder
 
 		if (empty($this->skeleton['use_lang_dir'])) {
 			foreach ($languages as $lang) {
-				$language_file = 'Themes/default/languages/' . $this->classname . '.' . $lang . '.php';
+				$language_file     = 'Themes/default/languages/' . $this->classname . '.' . $lang . '.php';
 				$language_filepath = $this->path . '/' . $language_file;
 
 				if (is_file($language_filepath)) {
 					$data['install']['require-file']['Adding ' . ucfirst($lang) . ' language file'] = [
-						'name' => $language_file,
+						'name'        => $language_file,
 						'destination' => rtrim($this->getLanguagesPath(), '/'),
 					];
 
@@ -672,7 +682,7 @@ final class Builder
 			}
 		} else {
 			$data['install']['require-dir']['Adding language files'] = [
-				'name' => 'Themes/default/languages/' . $this->classname,
+				'name'        => 'Themes/default/languages/' . $this->classname,
 				'destination' => rtrim($this->getLanguagesPath(), '/'),
 			];
 
@@ -683,7 +693,7 @@ final class Builder
 
 		if (! empty($this->skeleton['options'])) {
 			$data['install']['redirect'][] = [
-				'url' => '?action=admin;area=modsettings;sa=' . $this->snake_name,
+				'url'     => '?action=admin;area=modsettings;sa=' . $this->snake_name,
 				'timeout' => '3000',
 			];
 		}
@@ -700,8 +710,103 @@ final class Builder
 	{
 		return match ($this->skeleton['smf_target_version']) {
 			'2.1/3.0' => '2.1.*, 3.0.*',
-			default => $this->skeleton['smf_target_version'] . '.*',
+			default   => $this->skeleton['smf_target_version'] . '.*',
 		};
+	}
+
+	/**
+	 * @param array<string, mixed> $options
+	 * @return list<string>
+	 */
+	private function resolveAllowedBases(array $options): array
+	{
+		$bases = [];
+
+		foreach (['allowed_bases', 'allowed_base', 'base', 'package_base', 'build_base'] as $key) {
+			if (! isset($options[$key])) {
+				continue;
+			}
+
+			if (is_array($options[$key])) {
+				$bases = array_merge($bases, $options[$key]);
+			} else {
+				$bases[] = (string) $options[$key];
+			}
+		}
+
+		if ($bases === []) {
+			global $packagesdir;
+
+			if (isset($packagesdir) && is_string($packagesdir) && $packagesdir !== '') {
+				$bases[] = $packagesdir;
+			}
+
+			$bases[] = sys_get_temp_dir();
+			$bases[] = (string) (getcwd() ?: sys_get_temp_dir());
+		}
+
+		$resolved = [];
+
+		foreach ($bases as $base) {
+			if (! is_string($base) || trim($base) === '') {
+				continue;
+			}
+
+			$real = realpath($base);
+
+			$resolved[] = rtrim($real !== false ? $real : $base, "\\/");
+		}
+
+		return array_values(array_unique($resolved));
+	}
+
+	private function assertPathWithinAllowedBase(): void
+	{
+		$path = $this->path;
+
+		if (! is_string($path) || trim($path) === '') {
+			throw new InvalidArgumentException('Build path is invalid.');
+		}
+
+		$resolved = realpath($path);
+
+		if ($resolved === false) {
+			$parent = realpath(dirname($path));
+
+			if ($parent === false) {
+				throw new InvalidArgumentException('Build path is outside the allowed base directory.');
+			}
+
+			$resolved = rtrim($parent, "\\/") . DIRECTORY_SEPARATOR . basename($path);
+		} else {
+			$resolved = rtrim($resolved, "\\/");
+		}
+
+		$baseName = basename($resolved);
+
+		if ($baseName === '' || $baseName === '.' || $baseName === '..') {
+			throw new InvalidArgumentException('Build path is invalid.');
+		}
+
+		foreach ($this->allowed_bases as $base) {
+			$base = rtrim($base, "\\/");
+
+			if ($base === '') {
+				continue;
+			}
+
+			if (strcasecmp($resolved, $base) === 0) {
+				throw new InvalidArgumentException('Build path cannot be the allowed base directory itself.');
+			}
+
+			$prefix = $base . DIRECTORY_SEPARATOR;
+
+			if (strncasecmp($resolved, $prefix, strlen($prefix)) === 0) {
+				return;
+			}
+		}
+
+		throw new InvalidArgumentException('Build path is outside the allowed base directory.');
 	}
 
 	private function addSecurityCheck(string &$content): void

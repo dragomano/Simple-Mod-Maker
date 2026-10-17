@@ -465,7 +465,7 @@ final class Handler
 			'skeleton'  => $skeleton,
 			'classname' => $classname,
 			'snakename' => $snakeName,
-			'path'      => $packagesdir . '/' . $snakeName . '_' . $skeleton['version']
+			'path'      => $packagesdir . '/' . $snakeName . '_' . $skeleton['version'] . '_' . bin2hex(random_bytes(8)),
 		]);
 
 		$plugin->create($result['content'])

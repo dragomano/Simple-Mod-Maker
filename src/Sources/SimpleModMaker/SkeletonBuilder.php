@@ -60,7 +60,7 @@ class SkeletonBuilder
 			'author'             => $modSettings['smm_mod_author'] ?? 'Unknown',
 			'email'              => $modSettings['smm_mod_email'] ?? 'no-reply@simplemachines.org',
 			'readmes'            => smf_json_decode($modSettings['smm_readme'] ?? '', true),
-			'version'            => $postData['version'] ?? '0.1',
+			'version'            => preg_replace('/[^A-Za-z0-9.\-_+]/', '_', (string) ($postData['version'] ?? '0.1')),
 			'site'               => $postData['site'] ?? '',
 			'settings_area'      => (int) ($postData['settings_area'] ?? 0),
 			'license'            => $license,

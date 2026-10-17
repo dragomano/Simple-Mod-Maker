@@ -141,3 +141,4 @@ $txt['smm_error_no_valid_filename'] = 'The filename does not match the rules!';
 $txt['smm_error_option_name_too_long'] = 'The option name should not be longer than 30 characters.';
 $txt['smm_error_table_name_too_long'] = 'The table name should not be longer than 64 characters.';
 $txt['smm_error_column_name_too_long'] = 'The column name should not be longer than 64 characters.';
+$txt['smm_error_invalid_version'] = 'The version contains invalid characters!';

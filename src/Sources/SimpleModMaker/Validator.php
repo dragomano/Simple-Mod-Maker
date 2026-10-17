@@ -46,11 +46,17 @@ final class Validator
 			$errors[] = 'no_filename';
 		}
 
+		$filenamePattern = SMM_FILENAME_PATTERN;
+
+		if (! str_starts_with($filenamePattern, '/')) {
+			$filenamePattern = '/' . $filenamePattern . '/';
+		}
+
 		if (! empty($data['filename']) && empty(
 			filter_var(
 				$data['filename'],
 				FILTER_VALIDATE_REGEXP,
-				['options' => ['regexp' => '/' . SMM_FILENAME_PATTERN . '/']]
+				['options' => ['regexp' => $filenamePattern]]
 			))
 		) {
 			$errors[] = 'no_valid_filename';
@@ -74,20 +80,49 @@ final class Validator
 
 		if (! empty($data['column_names'])) {
 			foreach ($data['column_names'] as $table) {
-				foreach ($table as $column) {
-					if (strlen($column) > 64) {
+				foreach ((array) $table as $column) {
+					if (strlen((string) $column) > 64) {
 						$errors[] = 'column_name_too_long';
 					}
 				}
 			}
 		}
 
+		if (array_key_exists('version', $data) && ! $this->isSafeBuildVersion($data['version'])) {
+			$errors[] = 'invalid_version';
+		}
+
 		if (! empty($errors)) {
 			$context['post_errors'] = [];
 
 			foreach ($errors as $error) {
-				$context['post_errors'][] = $txt['smm_error_' . $error];
+				$context['post_errors'][] = $txt['smm_error_' . $error] ?? $error;
 			}
 		}
+	}
+
+	private function isSafeBuildVersion(mixed $value): bool
+	{
+		if (! is_string($value)) {
+			return false;
+		}
+
+		if ($value === '') {
+			return true;
+		}
+
+		if (strpbrk($value, "/\\\x00") !== false) {
+			return false;
+		}
+
+		if (preg_match('/[\x00-\x1F\x7F]/', $value) === 1) {
+			return false;
+		}
+
+		if (str_contains($value, '..')) {
+			return false;
+		}
+
+		return true;
 	}
 }
