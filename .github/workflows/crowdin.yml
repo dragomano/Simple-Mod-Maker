@@ -21,11 +21,11 @@ jobs:
     steps:
       - name: Checkout
         if: env.CROWDIN_API_TOKEN != null
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Crowdin Action
         if: env.CROWDIN_API_TOKEN != null
-        uses: crowdin/github-action@v1
+        uses: crowdin/github-action@v3
         with:
           upload_sources: true
           upload_translations: false
