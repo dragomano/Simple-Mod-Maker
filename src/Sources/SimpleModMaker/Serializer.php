@@ -46,6 +46,17 @@ final class Serializer
 		return (string) json_encode($value, self::JSON_FLAGS);
 	}
 
+	/**
+	 * Serialize data for an HTML attribute containing JSON.
+	 *
+	 * JSON_HEX_* protects the value from the script context; HTML escaping is
+	 * still required for the surrounding attribute context.
+	 */
+	public static function jsonAttribute(mixed $value): string
+	{
+		return self::html(self::json($value));
+	}
+
 	public static function html(string $value): string
 	{
 		return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE);

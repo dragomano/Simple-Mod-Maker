@@ -47,10 +47,10 @@ function template_modification_post()
 		method="post"
 		accept-charset="', $context['character_set'], '"
 		onsubmit="submitonce(this);"
-		x-data="', htmlspecialchars(\Bugo\SimpleModMaker\Serializer::json([
+		x-data="', \Bugo\SimpleModMaker\Serializer::jsonAttribute([
 			'tab'       => $language,
 			'className' => $context['smm_skeleton']['name'],
-		]), ENT_QUOTES), '"
+		]), '"
 	>
 		<div class="windowbg">
 			<div class="smm_tabs">
