@@ -17,6 +17,48 @@ if (! defined('SMF'))
 
 final class Validator
 {
+	private const LICENSES = ['gpl', 'mit', 'bsd', 'mpl', 'own'];
+
+	private const TARGET_VERSIONS = ['2.1', '3.0', '2.1/3.0'];
+
+	private const SETTINGS_AREAS = [0, 1, 2, 3];
+
+	private const OPTION_TYPES = [
+		'check', 'text', 'large_text', 'select', 'select-multiple', 'int', 'float',
+		'bbc', 'boards', 'password', 'permissions', 'url', 'color', 'date',
+		'datetime-local', 'email', 'time', 'callback',
+	];
+
+	private const COLUMN_TYPES = ['tinyint', 'int', 'mediumint', 'varchar', 'text', 'mediumtext'];
+
+	private const SCHEDULED_REGULARITIES = [0, 1, 2];
+
+	private const BACKGROUND_REGULARITIES = [0, 1, 2];
+
+	private const LEGACY_REGULARITIES = [0, 1];
+
+	private const IDENTIFIER_PATTERNS = [
+		'option_names'               => '/^[a-z][a-z_]+$/',
+		'table_names'                => '/^[a-z][a-z_]+$/',
+		'column_names'               => '/^[a-z][a-z_]+$/',
+		'task_slugs'                 => '/^[a-z][a-z_]+$/',
+		'background_task_classnames' => '/^[A-Z][a-zA-Z_]+$/',
+		'legacy_task_methods'        => '/^[a-z][a-zA-Z]+$/',
+	];
+
+	private const HOOK_PATTERN = '/^[a-z][a-z0-9_]*$/';
+
+	private const MIN_PHP_VERSION_PATTERN = '/^\d+(\.\d+){0,2}$/';
+
+	private const MAX_LENGTHS = [
+		'name'            => 255,
+		'version'         => 255,
+		'site'            => 255,
+		'min_php_version' => 255,
+	];
+
+	private const MAX_COLUMN_SIZE = 65535;
+
 	public function validate(): array
 	{
 		$data = [];
@@ -69,7 +111,9 @@ final class Validator
 			$filenamePattern = '/' . $filenamePattern . '/';
 		}
 
-		if (! empty($data['filename']) && empty(
+		if (! empty($data['filename']) && ! is_string($data['filename'])) {
+			$errors[] = 'invalid_data_type';
+		} elseif (! empty($data['filename']) && empty(
 			filter_var(
 				$data['filename'],
 				FILTER_VALIDATE_REGEXP,
@@ -81,7 +125,7 @@ final class Validator
 
 		if (! empty($data['option_names'])) {
 			foreach ($data['option_names'] as $option) {
-				if (strlen($option) > 30) {
+				if (strlen((string) $option) > 30) {
 					$errors[] = 'option_name_too_long';
 				}
 			}
@@ -89,7 +133,7 @@ final class Validator
 
 		if (! empty($data['table_names'])) {
 			foreach ($data['table_names'] as $table) {
-				if (strlen($table) > 64) {
+				if (strlen((string) $table) > 64) {
 					$errors[] = 'table_name_too_long';
 				}
 			}
@@ -109,6 +153,8 @@ final class Validator
 			$errors[] = 'invalid_version';
 		}
 
+		$this->checkStructure($data, $errors);
+
 		if (! empty($errors)) {
 			$context['post_errors'] = [];
 
@@ -116,6 +162,346 @@ final class Validator
 				$context['post_errors'][] = $txt['smm_error_' . $error] ?? $error;
 			}
 		}
+	}
+
+	/**
+	 * Server-side schema for the whole form: scalar/array shapes, allowed
+	 * enum values, identifiers, size ranges and consistency of related
+	 * arrays. Erroneous data must never reach the generator and its file
+	 * operations.
+	 */
+	private function checkStructure(array $data, array &$errors): void
+	{
+		$this->checkBasicFields($data, $errors);
+		$this->checkOptions($data, $errors);
+		$this->checkTables($data, $errors);
+		$this->checkTasks($data, $errors);
+		$this->checkTranslations($data, $errors);
+	}
+
+	private function checkBasicFields(array $data, array &$errors): void
+	{
+		foreach (['name', 'version', 'site', 'min_php_version'] as $field) {
+			if (array_key_exists($field, $data) && ! is_scalar($data[$field])) {
+				$errors[] = 'invalid_data_type';
+			} elseif (isset(self::MAX_LENGTHS[$field])
+				&& is_string($data[$field] ?? null)
+				&& strlen($data[$field]) > self::MAX_LENGTHS[$field]
+			) {
+				$errors[] = 'invalid_data_type';
+			}
+		}
+
+		if (isset($data['min_php_version']) && is_string($data['min_php_version'])
+			&& $data['min_php_version'] !== ''
+			&& preg_match(self::MIN_PHP_VERSION_PATTERN, $data['min_php_version']) !== 1
+		) {
+			$errors[] = 'invalid_data_type';
+		}
+
+		if (isset($data['hooks']) && $data['hooks'] !== []) {
+			if (! $this->isScalarList($data['hooks'])) {
+				$errors[] = 'invalid_data_type';
+			} else {
+				foreach ($data['hooks'] as $hook) {
+					if (! is_string($hook) || preg_match(self::HOOK_PATTERN, $hook) !== 1) {
+						$errors[] = 'invalid_data_type';
+					}
+				}
+			}
+		}
+
+		if (isset($data['license']) && $data['license'] === '') {
+			$errors[] = 'invalid_license';
+		} elseif (isset($data['license']) && $data['license'] !== ''
+			&& ! in_array((string) $data['license'], self::LICENSES, true)
+		) {
+			$errors[] = 'invalid_license';
+		}
+
+		if (isset($data['smf_target_version'])
+			&& ! in_array((string) $data['smf_target_version'], self::TARGET_VERSIONS, true)
+		) {
+			$errors[] = 'invalid_smf_version';
+		}
+
+		if (isset($data['settings_area'])
+			&& ! in_array((int) $data['settings_area'], self::SETTINGS_AREAS, true)
+		) {
+			$errors[] = 'invalid_settings_area';
+		}
+
+		foreach (['make_dir', 'use_lang_dir', 'make_template', 'make_script', 'make_css', 'make_readme', 'add_copyrights'] as $field) {
+			if (isset($data[$field]) && ! is_scalar($data[$field])) {
+				$errors[] = 'invalid_data_type';
+			}
+		}
+	}
+
+	private function checkOptions(array $data, array &$errors): void
+	{
+		if (! isset($data['option_names'])) {
+			$this->checkRelatedScalarArray($data, 'option_types', $errors);
+			$this->checkRelatedScalarArray($data, 'option_defaults', $errors);
+			$this->checkRelatedScalarArray($data, 'option_variants', $errors);
+			return;
+		}
+
+		if (! is_array($data['option_names'])) {
+			$errors[] = 'invalid_data_type';
+			return;
+		}
+
+		foreach ($data['option_names'] as $id => $name) {
+			if (! is_scalar($name)) {
+				$errors[] = 'invalid_data_type';
+				continue;
+			}
+
+			if ($name === '') {
+				continue;
+			}
+
+			if (! is_string($name) || preg_match(self::IDENTIFIER_PATTERNS['option_names'], $name) !== 1) {
+				$errors[] = 'invalid_identifier';
+			}
+
+			// Consistency: every filled option must come with a known type.
+			if (! isset($data['option_types'][$id])
+				|| ! is_string($data['option_types'][$id])
+				|| ! in_array($data['option_types'][$id], self::OPTION_TYPES, true)
+			) {
+				$errors[] = 'invalid_option_type';
+			}
+
+			if (isset($data['option_defaults'][$id]) && ! is_scalar($data['option_defaults'][$id])) {
+				$errors[] = 'invalid_data_type';
+			}
+		}
+
+		$this->checkRelatedScalarArray($data, 'option_types', $errors);
+		$this->checkRelatedScalarArray($data, 'option_defaults', $errors);
+		$this->checkRelatedScalarArray($data, 'option_variants', $errors);
+	}
+
+	private function checkTables(array $data, array &$errors): void
+	{
+		if (! isset($data['table_names'])) {
+			$this->checkNestedColumns($data, $errors);
+			return;
+		}
+
+		if (! is_array($data['table_names'])) {
+			$errors[] = 'invalid_data_type';
+			return;
+		}
+
+		foreach ($data['table_names'] as $table) {
+			if (! is_scalar($table)) {
+				$errors[] = 'invalid_data_type';
+				continue;
+			}
+
+			if ($table === '') {
+				continue;
+			}
+
+			if (! is_string($table) || preg_match(self::IDENTIFIER_PATTERNS['table_names'], $table) !== 1) {
+				$errors[] = 'invalid_identifier';
+			}
+		}
+
+		$this->checkNestedColumns($data, $errors);
+	}
+
+	private function checkNestedColumns(array $data, array &$errors): void
+	{
+		$columnFields = ['column_names', 'column_types', 'column_null', 'column_sizes', 'column_auto', 'column_defaults'];
+
+		foreach ($columnFields as $field) {
+			if (! isset($data[$field])) {
+				continue;
+			}
+
+			if (! is_array($data[$field])) {
+				$errors[] = 'invalid_data_type';
+				return;
+			}
+		}
+
+		if (empty($data['column_names']) || ! is_array($data['column_names'])) {
+			return;
+		}
+
+		foreach ($data['column_names'] as $tableId => $columns) {
+			if (! is_array($columns)) {
+				$errors[] = 'invalid_data_type';
+				continue;
+			}
+
+			foreach ($columns as $columnId => $column) {
+				if (! is_scalar($column)) {
+					$errors[] = 'invalid_data_type';
+					continue;
+				}
+
+				if ($column === '') {
+					continue;
+				}
+
+				if (! is_string($column) || preg_match(self::IDENTIFIER_PATTERNS['column_names'], $column) !== 1) {
+					$errors[] = 'invalid_identifier';
+				}
+
+				// Consistency: every filled column must come with a known type.
+				if (! isset($data['column_types'][$tableId][$columnId])
+					|| ! is_string($data['column_types'][$tableId][$columnId])
+					|| ! in_array($data['column_types'][$tableId][$columnId], self::COLUMN_TYPES, true)
+				) {
+					$errors[] = 'invalid_column_type';
+				}
+
+				if (isset($data['column_sizes'][$tableId][$columnId])) {
+					$size = $data['column_sizes'][$tableId][$columnId];
+
+					if (! is_scalar($size) || ! preg_match('/^\d+$/', (string) $size)
+						|| (int) $size < 1 || (int) $size > self::MAX_COLUMN_SIZE
+					) {
+						$errors[] = 'invalid_size';
+					}
+				}
+
+				if (isset($data['column_defaults'][$tableId][$columnId])
+					&& ! is_scalar($data['column_defaults'][$tableId][$columnId])
+				) {
+					$errors[] = 'invalid_data_type';
+				}
+			}
+		}
+	}
+
+	private function checkTasks(array $data, array &$errors): void
+	{
+		// Scheduled tasks
+		$this->checkTaskList($data, 'task_slugs', 'task_regularities', self::SCHEDULED_REGULARITIES, $errors);
+
+		// Background tasks
+		$this->checkTaskList(
+			$data,
+			'background_task_classnames',
+			'background_task_regularities',
+			self::BACKGROUND_REGULARITIES,
+			$errors
+		);
+
+		// Legacy tasks
+		$this->checkTaskList($data, 'legacy_task_methods', 'legacy_task_regularities', self::LEGACY_REGULARITIES, $errors);
+	}
+
+	private function checkTaskList(array $data, string $nameField, string $regularityField, array $allowedRegularities, array &$errors): void
+	{
+		if (! isset($data[$nameField])) {
+			$this->checkRelatedScalarArray($data, $regularityField, $errors);
+			return;
+		}
+
+		if (! is_array($data[$nameField])) {
+			$errors[] = 'invalid_data_type';
+			return;
+		}
+
+		foreach ($data[$nameField] as $id => $value) {
+			if (! is_scalar($value)) {
+				$errors[] = 'invalid_data_type';
+				continue;
+			}
+
+			if ($value === '') {
+				continue;
+			}
+
+			if (! is_string($value) || preg_match(self::IDENTIFIER_PATTERNS[$nameField], $value) !== 1) {
+				$errors[] = 'invalid_identifier';
+			}
+
+			// Consistency: every filled task must come with an allowed regularity.
+			if (! isset($data[$regularityField][$id])
+				|| ! is_scalar($data[$regularityField][$id])
+				|| ! in_array((int) $data[$regularityField][$id], $allowedRegularities, true)
+			) {
+				$errors[] = 'invalid_regularities';
+			}
+		}
+
+		$this->checkRelatedScalarArray($data, $regularityField, $errors);
+	}
+
+	private function checkTranslations(array $data, array &$errors): void
+	{
+		global $context;
+
+		$languages = array_column($context['smm_languages'] ?? [], 'filename');
+
+		// Title and description per language
+		foreach ($languages as $langFile) {
+			foreach (['title_' . $langFile, 'description_' . $langFile] as $field) {
+				if (isset($data[$field]) && ! is_scalar($data[$field])) {
+					$errors[] = 'invalid_data_type';
+				}
+			}
+		}
+
+		// Nested translations: option_translations, task_names, task_descriptions
+		$nestedFields = ['option_translations', 'task_names', 'task_descriptions'];
+
+		foreach ($nestedFields as $field) {
+			if (! isset($data[$field])) {
+				continue;
+			}
+
+			if (! is_array($data[$field])) {
+				$errors[] = 'invalid_data_type';
+				continue;
+			}
+
+			foreach ($data[$field] as $translations) {
+				if (! is_array($translations) || ! $this->isScalarValues($translations)) {
+					$errors[] = 'invalid_data_type';
+				}
+			}
+		}
+	}
+
+	/**
+	 * An optional sibling array (types, defaults, regularities, etc.) must be
+	 * an array of scalars when present at all. Sparse keys are legitimate:
+	 * unchecked checkboxes simply do not arrive in the POST payload.
+	 */
+	private function checkRelatedScalarArray(array $data, string $field, array &$errors): void
+	{
+		if (! isset($data[$field])) {
+			return;
+		}
+
+		if (! is_array($data[$field]) || ! $this->isScalarValues($data[$field])) {
+			$errors[] = 'invalid_data_type';
+		}
+	}
+
+	private function isScalarList(mixed $value): bool
+	{
+		return is_array($value) && array_is_list($value) && $this->isScalarValues($value);
+	}
+
+	private function isScalarValues(array $value): bool
+	{
+		foreach ($value as $item) {
+			if (! is_scalar($item)) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	private function isSafeBuildVersion(mixed $value): bool
