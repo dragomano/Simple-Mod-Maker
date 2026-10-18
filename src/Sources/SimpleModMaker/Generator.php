@@ -352,10 +352,11 @@ class Generator
 
 					$option['type'] = 'select';
 
+					$txtKey = $skeleton['smf_target_version'] === '3.0' ? 'Lang::$txt' : '$txt';
+
 					$method->addBody(
 						"\$config_vars[] = [" . var_export($option['type'], true) . ', ' . var_export($settingKey, true)
-						. ', $txt' . '[' . var_export($snakeName, true) . ']' . '['
-						. var_export($option['name'] . '_set', true) . "], 'multiple' => $isMultiple];"
+						. ', ' . $txtKey . '[' . var_export($settingKey . '_set', true) . "], 'multiple' => $isMultiple];"
 					);
 				} else {
 					$method->addBody(
