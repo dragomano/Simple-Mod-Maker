@@ -18,6 +18,8 @@ class Hook
 
 	public const ADMIN_SEARCH = 'integrate_admin_search';
 
+	public const AUTOLOAD = 'integrate_autoload';
+
 	public const CREDITS = 'integrate_credits';
 
 	public const DAILY_MAINTENANCE = 'integrate_daily_maintenance';

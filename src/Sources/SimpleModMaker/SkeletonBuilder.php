@@ -314,6 +314,10 @@ class SkeletonBuilder
 			}
 		}
 
+		if (! empty($skeleton['scheduled_tasks']) || ! empty($skeleton['background_tasks'])) {
+			$hooks[] = Hook::AUTOLOAD;
+		}
+
 		// Settings hooks
 		if (! empty($skeleton['settings_area'])) {
 			$hooks = array_merge($hooks, $this->getSettingsHooks($skeleton['settings_area']));
