@@ -223,19 +223,19 @@ class Generator
 		$settings = $class->addMethod('settings');
 
 		if ($skeleton['smf_target_version'] !== '3.0') {
-			$settings->addBody("global \$context, \$txt;" . PHP_EOL);
+			$settings->addBody("global \$context, \$txt, \$sourcedir;" . PHP_EOL);
 		}
 
 		if ($skeleton['make_template']) {
 			if ($skeleton['smf_target_version'] !== '3.0') {
-				$settings->addBody("loadTemplate($classname);" . PHP_EOL);
+				$settings->addBody('loadTemplate(?);' . PHP_EOL, [$classname]);
 			} else {
-				$settings->addBody("Theme::loadTemplate($classname);" . PHP_EOL);
+				$settings->addBody('Theme::loadTemplate(?);' . PHP_EOL, [$classname]);
 			}
 		}
 
 		if ($skeleton['smf_target_version'] !== '3.0') {
-			$settings->addBody("require_once dirname(__DIR__) . '/ManageSettings.php';" . PHP_EOL);
+			$settings->addBody("require_once \$sourcedir . '/ManageSettings.php';" . PHP_EOL);
 			$settings->addBody("\$context['page_title'] = \$txt['{$snakeName}_title'];" . PHP_EOL);
 			$settings->addBody("\$subActions = [");
 			$settings->addBody("\t'section1'  => [\$this, 'sectionExample1'],");
@@ -281,8 +281,8 @@ class Generator
 		$parameter->setType('bool');
 
 		if ($skeleton['smf_target_version'] !== '3.0') {
-			$section->addBody("global \$context, \$txt, \$scripturl;" . PHP_EOL);
-			$section->addBody("require_once dirname(__DIR__) . '/ManageServer.php';" . PHP_EOL);
+			$section->addBody("global \$context, \$txt, \$scripturl, \$sourcedir;" . PHP_EOL);
+			$section->addBody("require_once \$sourcedir . '/ManageServer.php';" . PHP_EOL);
 			$section->addBody("\$context['page_title'] .= ' - ' . \$txt['{$snakeName}_section1_title'];");
 			$section->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=$snakeName;sa=section1;save';" . PHP_EOL);
 		} else {
