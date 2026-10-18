@@ -328,7 +328,7 @@ class SkeletonBuilder
 			$hooks[] = Hook::CREDITS;
 		}
 
-		return array_unique($hooks);
+		return array_values(array_unique($hooks));
 	}
 
 	private function getSettingsHooks(int $settingsArea): array

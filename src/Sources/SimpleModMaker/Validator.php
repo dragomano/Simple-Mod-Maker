@@ -37,6 +37,21 @@ final class Validator
 
 	private const LEGACY_REGULARITIES = [0, 1];
 
+	private const RESERVED_CLASS_NAMES = [
+		'abstract', 'and', 'array', 'as', 'bool', 'break', 'callable', 'case', 'catch',
+		'class', 'clone', 'const', 'continue', 'declare', 'default', 'die', 'do', 'echo',
+		'else', 'elseif', 'empty', 'enddeclare', 'endfor', 'endforeach', 'endif',
+		'endswitch', 'endwhile', 'exit', 'extends', 'false', 'final', 'finally', 'float',
+		'for', 'foreach', 'fn', 'function', 'global', 'goto', 'if', 'implements',
+		'include', 'include_once', 'instanceof', 'int', 'interface', 'isset', 'iterable',
+		'list', 'match', 'mixed', 'namespace', 'never', 'new', 'null', 'or', 'parent',
+		'print', 'private', 'protected', 'public', 'readonly', 'require', 'require_once',
+		'return', 'self', 'static', 'string', 'switch', 'throw', 'trait', 'true', 'try',
+		'unset', 'use', 'var', 'void', 'while', 'xor', 'yield',
+	];
+
+	private const SMF3_IMPORTS = ['ACP', 'Config', 'Db', 'Lang', 'Menu', 'Theme', 'User', 'Utils'];
+
 	private const IDENTIFIER_PATTERNS = [
 		'option_names'               => '/^[a-z][a-z_]+$/',
 		'table_names'                => '/^[a-z][a-z_]+$/',
@@ -176,6 +191,7 @@ final class Validator
 		$this->checkOptions($data, $errors);
 		$this->checkTables($data, $errors);
 		$this->checkTasks($data, $errors);
+		$this->checkNameConflicts($data, $errors);
 		$this->checkTranslations($data, $errors);
 	}
 
@@ -434,6 +450,132 @@ final class Validator
 		}
 
 		$this->checkRelatedScalarArray($data, $regularityField, $errors);
+	}
+
+	private function checkNameConflicts(array $data, array &$errors): void
+	{
+		$this->checkTaskClassnames($data, $errors);
+		$this->checkMethodNames($data, $errors);
+		$this->checkModClassname($data, $errors);
+	}
+
+	private function checkTaskClassnames(array $data, array &$errors): void
+	{
+		$classnames = $this->getTaskClassnames($data);
+
+		foreach ($classnames as $classname) {
+			if (in_array(strtolower($classname), self::RESERVED_CLASS_NAMES, true)) {
+				$errors[] = 'reserved_name';
+			}
+		}
+
+		if (count($classnames) !== count(array_unique(array_map(strtolower(...), $classnames)))) {
+			$errors[] = 'conflicting_task_class';
+		}
+	}
+
+	private function checkMethodNames(array $data, array &$errors): void
+	{
+		$legacyMethods   = array_map(strtolower(...), $this->getStringValues($data['legacy_task_methods'] ?? []));
+		$hookMethods     = array_map(strtolower(...), $this->getHookMethodNames($data));
+		$reservedMethods = array_map(strtolower(...), $this->getGeneratorMethodNames($data));
+
+		foreach ([$legacyMethods, $hookMethods] as $methods) {
+			if (count($methods) !== count(array_unique($methods))) {
+				$errors[] = 'conflicting_method';
+			}
+		}
+
+		foreach ($legacyMethods as $method) {
+			if (in_array($method, $reservedMethods, true) || in_array($method, $hookMethods, true)) {
+				$errors[] = 'conflicting_method';
+			}
+		}
+	}
+
+	private function checkModClassname(array $data, array &$errors): void
+	{
+		if (! empty($data['make_dir']) || $this->getTaskClassnames($data) !== []) {
+			return;
+		}
+
+		if (! str_contains((string) ($data['smf_target_version'] ?? ''), '3.0')) {
+			return;
+		}
+
+		$classname = strtr((string) ($data['filename'] ?? ''), ['Class-' => '', '.php' => '']);
+
+		if ($classname !== '' && in_array(strtolower($classname), array_map(strtolower(...), self::SMF3_IMPORTS), true)) {
+			$errors[] = 'reserved_name';
+		}
+	}
+
+	private function getTaskClassnames(array $data): array
+	{
+		$classnames = [];
+
+		foreach ($this->getStringValues($data['task_slugs'] ?? []) as $slug) {
+			// Mirrors Generator::toCamelCase()
+			$classnames[] = str_replace(' ', '', ucwords(str_replace('_', ' ', $slug)));
+		}
+
+		$classnames = array_merge(
+			$classnames,
+			$this->getStringValues($data['background_task_classnames'] ?? [])
+		);
+
+		return array_values($classnames);
+	}
+
+	private function getHookMethodNames(array $data): array
+	{
+		$hooks = array_values(array_unique(array_filter((array) ($data['hooks'] ?? []), is_string(...))));
+
+		$methods = [];
+
+		foreach ($hooks as $hook) {
+			if ($hook === '') {
+				continue;
+			}
+
+			// Mirrors Generator::getMethodName()
+			$methods[] = lcfirst(str_replace(' ', '', ucwords(strtr($hook, ['integrate' => '', '_' => ' ']))));
+		}
+
+		return $methods;
+	}
+
+	private function getGeneratorMethodNames(array $data): array
+	{
+		$methods = ['hooks'];
+		$area    = (int) ($data['settings_area'] ?? 0);
+
+		if ($area === 2 || $area === 3) {
+			$methods[] = 'settings';
+		}
+
+		if ($area === 3) {
+			$methods[] = 'sectionExample1';
+		}
+
+		foreach ($this->getStringValues($data['background_task_classnames'] ?? []) as $classname) {
+			$methods[] = 'run' . $classname;
+		}
+
+		return $methods;
+	}
+
+	private function getStringValues(mixed $values): array
+	{
+		$result = [];
+
+		foreach ((array) $values as $value) {
+			if (is_string($value) && $value !== '') {
+				$result[] = $value;
+			}
+		}
+
+		return $result;
 	}
 
 	private function checkTranslations(array $data, array &$errors): void

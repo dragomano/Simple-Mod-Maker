@@ -151,3 +151,6 @@ $txt['smm_error_invalid_column_type'] = 'An unknown column type is selected!';
 $txt['smm_error_invalid_regularities'] = 'An unknown task run frequency is selected!';
 $txt['smm_error_invalid_identifier'] = 'One of the names does not match the allowed format!';
 $txt['smm_error_invalid_size'] = 'The column size must be a positive integer!';
+$txt['smm_error_conflicting_method'] = 'Some method names conflict with the generated ones!';
+$txt['smm_error_conflicting_task_class'] = 'Some task class names conflict with each other!';
+$txt['smm_error_reserved_name'] = 'The name is reserved and cannot be used!';
