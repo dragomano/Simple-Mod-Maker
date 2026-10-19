@@ -295,7 +295,7 @@ function template_modification_post()
 																			<input
 																				type="text"
 																				x-model="column.name"
-																				:name="`column_names[${index}][]`"
+																				:name="`column_names[${index}][${column_index}]`"
 																				:id="column_name"
 																				pattern="^[a-z][a-z_]+$"
 																				maxlength="64"
@@ -306,7 +306,7 @@ function template_modification_post()
 																		<template x-if="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type)">
 																			<td>
 																				<label>
-																					<input type="checkbox" x-model="column.auto" :name="`column_auto[${index}][]`">
+																					<input type="checkbox" x-model="column.auto" :name="`column_auto[${index}][${column_index}]`">
 																						', $txt['smm_column_auto'], '
 																					</input>
 																				</label>
@@ -315,11 +315,11 @@ function template_modification_post()
 																		<template x-if="[\'text\', \'mediumtext\'].includes(column.type)">
 																			<td>
 																				<label>
-																					<input type="checkbox" x-model="column.null" :name="`column_null[${index}][]`">
+																					<input type="checkbox" x-model="column.null" :name="`column_null[${index}][${column_index}]`">
 																						', $txt['smm_column_null'], '
 																					</input>
 																				</label>
-																				<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][]`">
+																				<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][${column_index}]`">
 																			</td>
 																		</template>
 																	</tr>
@@ -327,11 +327,11 @@ function template_modification_post()
 																		<td>
 																			<label :for="type_id"><strong>', $txt['smm_column_type'], '</strong></label>
 																			<template x-if="column.auto">
-																				<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][]`">
+																				<input type="hidden" x-model="column.default" :name="`column_defaults[${index}][${column_index}]`">
 																			</template>
 																		</td>
 																		<td :colspan="column.auto ? 2 : 1">
-																			<select x-model="column.type" :name="`column_types[${index}][]`" :id="type_id">';
+																			<select x-model="column.type" :name="`column_types[${index}][${column_index}]`" :id="type_id">';
 
 	foreach ($context['smm_column_types'] as $type) {
 		echo '
@@ -353,7 +353,7 @@ function template_modification_post()
 																					min="1"
 																					step="1"
 																					x-model="column.size"
-																					:name="`column_sizes[${index}][]`"
+																					:name="`column_sizes[${index}][${column_index}]`"
 																					:id="size_id"
 																					:value="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type) ? 10 : 255"
 																				>
@@ -369,7 +369,7 @@ function template_modification_post()
 																		<template x-if="! [\'text\', \'mediumtext\'].includes(column.type) && ! column.auto">
 																			<td colspan="2">
 																				<template x-if="column.type === \'varchar\'">
-																					<input x-model="column.default" :name="`column_defaults[${index}][]`" :id="default_id">
+																					<input x-model="column.default" :name="`column_defaults[${index}][${column_index}]`" :id="default_id">
 																				</template>
 																				<template x-if="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type)">
 																					<input
@@ -377,7 +377,7 @@ function template_modification_post()
 																						min="0"
 																						step="1"
 																						x-model="column.default"
-																						:name="`column_defaults[${index}][]`"
+																						:name="`column_defaults[${index}][${column_index}]`"
 																						:id="default_id"
 																					>
 																				</template>
@@ -846,17 +846,47 @@ function template_modification_post()
 						this.tables.splice(index, 1);
 					},
 					addColumn(table_index) {
-						this.tables[table_index].columns.push({
+						const column = {
 							name: "",
 							type: "int",
 							null: false,
 							size: 10,
 							auto: false,
 							default: ""
-						});
+						};
+
+						this.tables[table_index].columns.push(column);
+						this.watchColumn(column);
 					},
 					removeColumn(table_index, column_index) {
 						this.tables[table_index].columns.splice(column_index, 1);
+					},
+					watchColumn(column) {
+						this.$watch(() => column.type, type => this.normalizeColumn(column));
+						this.$watch(() => column.auto, auto => {
+							if (auto) column.default = "";
+						});
+						this.normalizeColumn(column);
+					},
+					normalizeColumn(column) {
+						const intTypes = ["tinyint", "int", "mediumint"];
+						const textTypes = ["text", "mediumtext"];
+
+						column.auto = intTypes.includes(column.type) && column.auto;
+						column.null = textTypes.includes(column.type) && column.null;
+
+						if (textTypes.includes(column.type)) {
+							column.size = 0;
+							column.default = "";
+						} else {
+							if (! column.size) {
+								column.size = intTypes.includes(column.type) ? 10 : 255;
+							}
+
+							if (column.auto) {
+								column.default = "";
+							}
+						}
 					}
 				}
 			}

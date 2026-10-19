@@ -149,13 +149,21 @@ class SkeletonBuilder
 		}
 
 		foreach ($postData['column_names'][$tableId] as $columnId => $columnName) {
+			$type    = $postData['column_types'][$tableId][$columnId] ?? '';
+			$isText  = in_array($type, ['text', 'mediumtext'], true);
+			$isInt   = in_array($type, ['tinyint', 'int', 'mediumint'], true);
+			$auto    = $isInt && ! empty($postData['column_auto'][$tableId][$columnId] ?? false);
+			$null    = $isText && ! empty($postData['column_null'][$tableId][$columnId] ?? false);
+			$size    = $isText ? 0 : (int) ($postData['column_sizes'][$tableId][$columnId] ?? ($isInt ? 10 : 255));
+			$default = ($auto || $isText) ? '' : ($postData['column_defaults'][$tableId][$columnId] ?? '');
+
 			$columns[$columnId] = [
 				'name'    => $columnName,
-				'type'    => $postData['column_types'][$tableId][$columnId],
-				'null'    => $postData['column_null'][$tableId][$columnId] ?? false,
-				'size'    => $postData['column_sizes'][$tableId][$columnId] ?? 0,
-				'auto'    => $postData['column_auto'][$tableId][$columnId] ?? false,
-				'default' => $postData['column_defaults'][$tableId][$columnId] ?? '',
+				'type'    => $type,
+				'null'    => $null,
+				'size'    => $size,
+				'auto'    => $auto,
+				'default' => $default,
 			];
 		}
 
