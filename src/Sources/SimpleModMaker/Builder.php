@@ -77,7 +77,7 @@ final class Builder
 			)
 		);
 
-		if (! empty($this->skeleton['make_template']) || ! empty($this->skeleton['callbacks'])) {
+		if (TemplateUtil::needsTemplate($this->skeleton)) {
 			mktree($this->path . '/Themes/default', 0777);
 
 			$template = "<?php\n\n";
@@ -646,7 +646,7 @@ final class Builder
 			];
 		}
 
-		if (! empty($this->skeleton['make_template'])) {
+		if (TemplateUtil::needsTemplate($this->skeleton)) {
 			$data['install']['require-file']['Adding main template file'] = [
 				'name'        => 'Themes/default/' . $this->classname . '.template.php',
 				'destination' => '$themedir',

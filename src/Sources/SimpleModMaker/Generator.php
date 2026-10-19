@@ -27,6 +27,8 @@ class Generator
 {
 	public function generate(array &$skeleton, string $classname, string $snakeName): array
 	{
+		$skeleton['callbacks'] = $this->collectCallbacks($skeleton['options'], $snakeName);
+
 		[$namespace, $class] = $this->createClassStructure($skeleton, $classname);
 
 		$this->generateHooksMethods($class, $skeleton, $classname, $snakeName);
@@ -124,6 +126,10 @@ class Generator
 			}
 
 			if ($hook === Hook::GENERAL_MOD_SETTINGS && $skeleton['settings_area'] === 1) {
+				if (TemplateUtil::needsTemplate($skeleton)) {
+					$this->addLoadTemplate($method, $skeleton, $classname);
+				}
+
 				$this->fillConfigVars($method, $skeleton, $snakeName);
 			}
 		}
@@ -146,7 +152,7 @@ class Generator
 		}
 	}
 
-	private function generateSettingsMethods(ClassType $class, array &$skeleton, string $classname, string $snakeName): void
+	private function generateSettingsMethods(ClassType $class, array $skeleton, string $classname, string $snakeName): void
 	{
 		$hookKeys = array_flip($skeleton['hooks']);
 
@@ -159,7 +165,7 @@ class Generator
 		}
 	}
 
-	private function generateSettingsArea2(ClassType $class, array &$skeleton, string $classname, string $snakeName, array $hookKeys): void
+	private function generateSettingsArea2(ClassType $class, array $skeleton, string $classname, string $snakeName, array $hookKeys): void
 	{
 		$settings = $class->addMethod('settings');
 
@@ -179,6 +185,10 @@ class Generator
 			$settings->addBody("Lang::load(?);" . PHP_EOL, [$classname . (empty($skeleton['use_lang_dir']) ? '' : '/')]);
 			$settings->addBody("Utils::\$context['page_title'] = Utils::\$context['settings_title'] = Lang::\$txt['{$snakeName}_title'];");
 			$settings->addBody("Utils::\$context['post_url'] = Config::\$scripturl . '?action=admin;area=modsettings;save;sa=$snakeName';" . PHP_EOL);
+		}
+
+		if (TemplateUtil::needsTemplate($skeleton)) {
+			$this->addLoadTemplate($settings, $skeleton, $classname);
 		}
 
 		if (! empty($skeleton['options'])) {
@@ -218,7 +228,7 @@ class Generator
 		}
 	}
 
-	private function generateSettingsArea3(ClassType $class, array &$skeleton, string $classname, string $snakeName): void
+	private function generateSettingsArea3(ClassType $class, array $skeleton, string $classname, string $snakeName): void
 	{
 		$settings = $class->addMethod('settings');
 
@@ -226,12 +236,8 @@ class Generator
 			$settings->addBody("global \$context, \$txt, \$sourcedir;" . PHP_EOL);
 		}
 
-		if ($skeleton['make_template']) {
-			if ($skeleton['smf_target_version'] !== '3.0') {
-				$settings->addBody('loadTemplate(?);' . PHP_EOL, [$classname]);
-			} else {
-				$settings->addBody('Theme::loadTemplate(?);' . PHP_EOL, [$classname]);
-			}
+		if (TemplateUtil::needsTemplate($skeleton)) {
+			$this->addLoadTemplate($settings, $skeleton, $classname);
 		}
 
 		if ($skeleton['smf_target_version'] !== '3.0') {
@@ -272,7 +278,7 @@ class Generator
 		$this->generateSectionExample($class, $skeleton, $snakeName);
 	}
 
-	private function generateSectionExample(ClassType $class, array &$skeleton, string $snakeName): void
+	private function generateSectionExample(ClassType $class, array $skeleton, string $snakeName): void
 	{
 		$section = $class->addMethod('sectionExample1');
 		$section->addComment('@return array|void');
@@ -341,7 +347,7 @@ class Generator
 		}
 	}
 
-	private function fillConfigVars(Method $method, array &$skeleton, string $snakeName): void
+	private function fillConfigVars(Method $method, array $skeleton, string $snakeName): void
 	{
 		if (! empty($skeleton['options'])) {
 			foreach ($skeleton['options'] as $option) {
@@ -363,14 +369,31 @@ class Generator
 						"\$config_vars[] = [" . var_export($option['type'], true) . ', ' . var_export($settingKey, true) . '];'
 					);
 				}
-
-				if ($option['type'] === 'callback') {
-					$skeleton['callbacks'][] = $option['name'];
-				}
 			}
 		} else {
 			$method->addBody("// \$config_vars[] = ['check', " . var_export($snakeName . '_enable', true) . '];');
 		}
+	}
+
+	private function collectCallbacks(array $options, string $snakeName): array
+	{
+		$callbacks = [];
+
+		foreach ($options as $option) {
+			if (($option['type'] ?? '') === 'callback' && ! empty($option['name'])) {
+				$callbacks[] = $snakeName . '_' . $option['name'];
+			}
+		}
+
+		return array_values(array_unique($callbacks));
+	}
+
+	private function addLoadTemplate(Method $method, array $skeleton, string $classname): void
+	{
+		$method->addBody(
+			$skeleton['smf_target_version'] === '3.0' ? 'Theme::loadTemplate(?);' . PHP_EOL : 'loadTemplate(?);' . PHP_EOL,
+			[$classname]
+		);
 	}
 
 	private function generateScheduledTasks(array &$tasks, array &$skeleton, string $baseClassname): void
