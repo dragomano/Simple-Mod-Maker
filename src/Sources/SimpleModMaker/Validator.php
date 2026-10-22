@@ -31,6 +31,10 @@ final class Validator
 
 	private const COLUMN_TYPES = ['tinyint', 'int', 'mediumint', 'varchar', 'text', 'mediumtext'];
 
+	private const INT_COLUMN_TYPES = ['tinyint', 'int', 'mediumint'];
+
+	private const TEXT_COLUMN_TYPES = ['text', 'mediumtext'];
+
 	private const SCHEDULED_REGULARITIES = [0, 1, 2];
 
 	private const BACKGROUND_REGULARITIES = [0, 1, 2];
@@ -312,7 +316,7 @@ final class Validator
 			return;
 		}
 
-		foreach ($data['table_names'] as $table) {
+		foreach ($data['table_names'] as $tableId => $table) {
 			if (! is_scalar($table)) {
 				$errors[] = 'invalid_data_type';
 				continue;
@@ -324,6 +328,11 @@ final class Validator
 
 			if (! is_string($table) || preg_match(self::IDENTIFIER_PATTERNS['table_names'], $table) !== 1) {
 				$errors[] = 'invalid_identifier';
+			}
+
+			// A table declared without a single column would become an empty CREATE TABLE
+			if ($this->getStringValues($data['column_names'][$tableId] ?? []) === []) {
+				$errors[] = 'empty_columns';
 			}
 		}
 
@@ -355,6 +364,9 @@ final class Validator
 				continue;
 			}
 
+			$names       = [];
+			$autoColumns = 0;
+
 			foreach ($columns as $columnId => $column) {
 				if (! is_scalar($column)) {
 					$errors[] = 'invalid_data_type';
@@ -367,6 +379,16 @@ final class Validator
 
 				if (! is_string($column) || preg_match(self::IDENTIFIER_PATTERNS['column_names'], $column) !== 1) {
 					$errors[] = 'invalid_identifier';
+				} elseif (isset($names[strtolower($column)])) {
+					$errors[] = 'duplicate_columns';
+				} else {
+					$names[strtolower($column)] = true;
+				}
+
+				foreach (['column_null', 'column_auto'] as $flag) {
+					if (isset($data[$flag][$tableId][$columnId]) && ! is_scalar($data[$flag][$tableId][$columnId])) {
+						$errors[] = 'invalid_data_type';
+					}
 				}
 
 				// Consistency: every filled column must come with a known type.
@@ -375,6 +397,22 @@ final class Validator
 					|| ! in_array($data['column_types'][$tableId][$columnId], self::COLUMN_TYPES, true)
 				) {
 					$errors[] = 'invalid_column_type';
+					continue;
+				}
+
+				$type   = $data['column_types'][$tableId][$columnId];
+				$isInt  = in_array($type, self::INT_COLUMN_TYPES, true);
+				$isText = in_array($type, self::TEXT_COLUMN_TYPES, true);
+				$auto   = ! empty($data['column_auto'][$tableId][$columnId] ?? false);
+				$null   = ! empty($data['column_null'][$tableId][$columnId] ?? false);
+
+				// Flags that do not suit the type are dropped by the generator silently
+				if (($auto && ! $isInt) || ($null && ! $isText) || ($isText && isset($data['column_sizes'][$tableId][$columnId]))) {
+					$errors[] = 'invalid_column_attributes';
+				}
+
+				if ($auto && $isInt) {
+					$autoColumns++;
 				}
 
 				if (isset($data['column_sizes'][$tableId][$columnId])) {
@@ -387,11 +425,24 @@ final class Validator
 					}
 				}
 
-				if (isset($data['column_defaults'][$tableId][$columnId])
-					&& ! is_scalar($data['column_defaults'][$tableId][$columnId])
-				) {
-					$errors[] = 'invalid_data_type';
+				if (isset($data['column_defaults'][$tableId][$columnId])) {
+					$default = $data['column_defaults'][$tableId][$columnId];
+
+					if (! is_scalar($default)) {
+						$errors[] = 'invalid_data_type';
+					} elseif ((string) $default !== '') {
+						if ($isText || $auto) {
+							$errors[] = 'invalid_column_attributes';
+						} elseif ($isInt && preg_match('/^\d+$/', (string) $default) !== 1) {
+							$errors[] = 'invalid_default';
+						}
+					}
 				}
+			}
+
+			// MySQL allows a single auto-increment column per table
+			if ($autoColumns > 1) {
+				$errors[] = 'multiple_auto_columns';
 			}
 		}
 	}

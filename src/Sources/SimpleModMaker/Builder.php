@@ -332,15 +332,17 @@ final class Builder
 
 			$database .= "\t],\n";
 
+			// The generated installer always passes the indexes array to db_create_table()
+			$database .= "\t'indexes' => [\n";
+
 			if (! empty($table_index)) {
-				$database .= "\t'indexes' => [\n";
 				$database .= "\t\t[\n";
 				$database .= "\t\t\t'type' => 'primary',\n";
 				$database .= "\t\t\t'columns' => [" . var_export($table_index, true) . "],\n";
 				$database .= "\t\t]\n";
-				$database .= "\t],\n";
 			}
 
+			$database .= "\t],\n";
 			$database .= "];\n\n";
 		}
 
