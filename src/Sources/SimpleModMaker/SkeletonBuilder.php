@@ -131,7 +131,7 @@ class SkeletonBuilder
 				continue;
 			}
 
-			$tables[$id] = [
+			$tables[] = [
 				'name'    => $table,
 				'columns' => $this->processTableColumns($postData, $id),
 			];
@@ -157,7 +157,7 @@ class SkeletonBuilder
 			$size    = $isText ? 0 : (int) ($postData['column_sizes'][$tableId][$columnId] ?? ($isInt ? 10 : 255));
 			$default = ($auto || $isText) ? '' : ($postData['column_defaults'][$tableId][$columnId] ?? '');
 
-			$columns[$columnId] = [
+			$columns[] = [
 				'name'    => $columnName,
 				'type'    => $type,
 				'null'    => $null,

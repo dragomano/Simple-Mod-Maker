@@ -255,7 +255,7 @@ function template_modification_post()
 														<input
 															type="text"
 															x-model="table.name"
-															name="table_names[]"
+															:name="`table_names[${index}]`"
 															:id="table_name"
 															pattern="^[a-z][a-z_]+$"
 															maxlength="64"
@@ -355,7 +355,6 @@ function template_modification_post()
 																					x-model="column.size"
 																					:name="`column_sizes[${index}][${column_index}]`"
 																					:id="size_id"
-																					:value="[\'tinyint\', \'int\', \'mediumint\'].includes(column.type) ? 10 : 255"
 																				>
 																			</td>
 																		</template>
@@ -836,6 +835,9 @@ function template_modification_post()
 			handleTables() {
 				return {
 					tables: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['tables']), ',
+					init() {
+						this.tables.forEach(table => table.columns.forEach(column => this.watchColumn(column)));
+					},
 					addTable() {
 						this.tables.push({
 							name: "",
