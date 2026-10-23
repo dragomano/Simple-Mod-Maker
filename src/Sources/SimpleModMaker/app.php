@@ -17,6 +17,7 @@ if (! defined('SMF'))
 
 defined('SMM_NAME') || define('SMM_NAME', 'Simple Mod Maker');
 defined('SMM_MODNAME_DEFAULT') || define('SMM_MODNAME_DEFAULT', 'My New Mod');
+defined('SMM_VENDOR_DEFAULT') || define('SMM_VENDOR_DEFAULT', 'MyMods');
 defined('SMM_FILENAME_PATTERN') || define('SMM_FILENAME_PATTERN', '^(?:Class-)?[A-Z][a-zA-Z]+$');
 
 require_once __DIR__ . '/vendor/autoload.php';

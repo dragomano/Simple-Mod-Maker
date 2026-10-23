@@ -34,9 +34,9 @@ class AutoloadHook extends AbstractHook
 			];
 		}
 
-		$author = $this->context['smm_skeleton']['author'];
+		$namespace = $this->context['smm_skeleton']['namespace'];
 
-		$prefix = var_export($author . '\\' . $this->classname . '\\', true);
+		$prefix = var_export($namespace . '\\' . $this->classname . '\\', true);
 		$path   = var_export($this->classname . '/', true);
 
 		return [

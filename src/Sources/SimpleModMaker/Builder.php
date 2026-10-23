@@ -584,7 +584,7 @@ final class Builder
 		];
 
 		$filename  = empty($this->skeleton['make_dir']) ? $this->skeleton['filename'] : $this->classname . '/Integration';
-		$coreclass = $this->skeleton['author'] . '\\' . $this->classname . (empty($this->skeleton['make_dir']) ? '' : '\Integration');
+		$coreclass = $this->skeleton['namespace'] . '\\' . $this->classname . (empty($this->skeleton['make_dir']) ? '' : '\Integration');
 		$languages = array_keys($this->skeleton['readmes']);
 
 		$data['install'] = [

@@ -17,6 +17,12 @@ if (! defined('SMF'))
 
 final class Validator
 {
+	/**
+	 * Shared with the form field: the namespace consists of valid PHP identifier
+	 * segments and has nothing to do with the display name of the author.
+	 */
+	public const NAMESPACE_PATTERN = '^[A-Za-z_][A-Za-z0-9_]*(\\\\[A-Za-z_][A-Za-z0-9_]*)*$';
+
 	private const LICENSES = ['gpl', 'mit', 'bsd', 'mpl', 'own'];
 
 	private const TARGET_VERSIONS = ['2.1', '3.0', '2.1/3.0'];
@@ -71,6 +77,7 @@ final class Validator
 
 	private const MAX_LENGTHS = [
 		'name'            => 255,
+		'namespace'       => 255,
 		'version'         => 255,
 		'site'            => 255,
 		'min_php_version' => 255,
@@ -192,6 +199,7 @@ final class Validator
 	private function checkStructure(array $data, array &$errors): void
 	{
 		$this->checkBasicFields($data, $errors);
+		$this->checkNamespace($data, $errors);
 		$this->checkOptions($data, $errors);
 		$this->checkTables($data, $errors);
 		$this->checkTasks($data, $errors);
@@ -255,6 +263,36 @@ final class Validator
 			if (isset($data[$field]) && ! is_scalar($data[$field])) {
 				$errors[] = 'invalid_data_type';
 			}
+		}
+	}
+
+	/**
+	 * The author name is metadata for the license block, while the code lives in
+	 * a namespace of its own: display names like "Иван Петров" cannot be used
+	 * as PHP namespace segments.
+	 */
+	private function checkNamespace(array $data, array &$errors): void
+	{
+		if (! isset($data['namespace'])) {
+			return;
+		}
+
+		if (! is_scalar($data['namespace'])) {
+			$errors[] = 'invalid_data_type';
+			return;
+		}
+
+		$namespace = (string) $data['namespace'];
+
+		// An empty value is not an error: the default vendor is used instead
+		if ($namespace === '') {
+			return;
+		}
+
+		if (strlen($namespace) > self::MAX_LENGTHS['namespace']
+			|| preg_match('/' . self::NAMESPACE_PATTERN . '/', $namespace) !== 1
+		) {
+			$errors[] = 'invalid_namespace';
 		}
 	}
 

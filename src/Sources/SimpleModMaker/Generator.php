@@ -53,10 +53,10 @@ class Generator
 	private function createClassStructure(array $skeleton, string $classname): array
 	{
 		if (empty($skeleton['make_dir'])) {
-			$namespace = new PhpNamespace($skeleton['author']);
+			$namespace = new PhpNamespace($skeleton['namespace']);
 			$class     = $namespace->addClass($classname);
 		} else {
-			$namespace = new PhpNamespace($skeleton['author'] . '\\' . $classname);
+			$namespace = new PhpNamespace($skeleton['namespace'] . '\\' . $classname);
 			$class     = $namespace->addClass('Integration');
 		}
 
@@ -413,8 +413,11 @@ class Generator
 				->addBody('// Return true if everything is OK')
 				->addBody('return true;');
 
+			$taskFqcn = $skeleton['namespace'] . '\\' . $baseClassname . '\\Tasks\\' . $classname;
+
+			// Keep the doubled separators of the stored callable for any namespace depth
 			$skeleton['scheduled_tasks'][$id]['callable'] =
-				"\\\\{$skeleton['author']}\\\\$baseClassname\\\\Tasks\\\\$classname::execute";
+				'\\\\' . str_replace('\\', '\\\\', $taskFqcn) . '::execute';
 
 			$tasks[$task['slug']]['content']  = $this->getGeneratedContent($namespace, $filename, $skeleton);
 			$tasks[$task['slug']]['filename'] = $filename;
@@ -470,8 +473,10 @@ class Generator
 				$method->addBody(");" . PHP_EOL);
 			}
 
-			$skeleton['background_tasks'][$id]['callable'] =
-				"\\\\{$skeleton['author']}\\\\$baseClassname\\\\Tasks\\\\$classname";
+			$taskFqcn = $skeleton['namespace'] . '\\' . $baseClassname . '\\Tasks\\' . $classname;
+
+			// Keep the doubled separators of the stored callable for any namespace depth
+			$skeleton['background_tasks'][$id]['callable'] = '\\\\' . str_replace('\\', '\\\\', $taskFqcn);
 
 			$tasks[$classname]['content']  = $this->getGeneratedContent($namespace, $filename, $skeleton);
 			$tasks[$classname]['filename'] = $filename;
@@ -480,7 +485,7 @@ class Generator
 
 	private function createTaskClass(array $skeleton, string $baseClassname, string $classname, string $parentClass): array
 	{
-		$namespace = new PhpNamespace($skeleton['author'] . '\\' . $baseClassname . '\\Tasks');
+		$namespace = new PhpNamespace($skeleton['namespace'] . '\\' . $baseClassname . '\\Tasks');
 
 		// The parent import is ambiguous when its short name equals the class name
 		if (strcasecmp($classname, $this->getShortClassName($parentClass)) !== 0) {
@@ -560,7 +565,7 @@ class Generator
 
 	private function addTaskClassUse(PhpNamespace $namespace, array $skeleton, string $baseClassname, string $classname): string
 	{
-		$taskFqcn  = $skeleton['author'] . '\\' . $baseClassname . '\\Tasks\\' . $classname;
+		$taskFqcn  = $skeleton['namespace'] . '\\' . $baseClassname . '\\Tasks\\' . $classname;
 		$shortName = $this->getShortClassName($taskFqcn);
 
 		$usedNames = array_map(

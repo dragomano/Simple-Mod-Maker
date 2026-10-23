@@ -5,12 +5,20 @@
     "ext-json": "*",
     "nette/php-generator": "^4.2"
   },
+  "require-dev": {
+    "phpunit/phpunit": "^11.5",
+    "rector/rector": "^2.6"
+  },
   "autoload": {
     "psr-4": {
       "Bugo\\SimpleModMaker\\": ""
     }
   },
   "scripts": {
+    "check": "vendor/bin/rector process --dry-run --clear-cache",
+    "rector": "vendor/bin/rector process",
+    "test": "phpunit --colors=always",
+    "test-coverage": "phpunit --colors=always --coverage-html coverage",
     "build": "composer update --no-dev -o"
   },
   "config": {

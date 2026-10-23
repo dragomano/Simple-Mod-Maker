@@ -58,6 +58,7 @@ class SkeletonBuilder
 			'filename'           => $postData['filename'] ?? '',
 			'hooks'              => $postData['hooks'] ?? [],
 			'author'             => $modSettings['smm_mod_author'] ?? 'Unknown',
+			'namespace'          => $this->getNamespace($postData, $modSettings),
 			'email'              => $modSettings['smm_mod_email'] ?? 'no-reply@simplemachines.org',
 			'readmes'            => smf_json_decode($modSettings['smm_readme'] ?? '', true),
 			'version'            => preg_replace('/[^A-Za-z0-9.\-_+]/', '_', (string) ($postData['version'] ?? '0.1')),
@@ -83,6 +84,25 @@ class SkeletonBuilder
 			'title'              => [],
 			'description'        => [],
 		];
+	}
+
+	private function getNamespace(array $postData, array $modSettings): string
+	{
+		// The submitted value wins, then the remembered vendor
+		foreach ([$postData['namespace'] ?? '', $modSettings['smm_mod_namespace'] ?? ''] as $value) {
+			if (is_scalar($value) && trim((string) $value) !== '') {
+				return trim((string) $value);
+			}
+		}
+
+		// Only the Latin part of a display name can become a valid namespace
+		$vendor = (string) preg_replace('/[^A-Za-z0-9_]/', '', (string) ($modSettings['smm_mod_author'] ?? ''));
+
+		if ($vendor !== '' && preg_match('/^[A-Za-z_]/', $vendor) === 1) {
+			return $vendor;
+		}
+
+		return SMM_VENDOR_DEFAULT;
 	}
 
 	private function processOptions(array $postData, array &$skeleton): array

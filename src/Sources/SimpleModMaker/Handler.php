@@ -141,6 +141,21 @@ final class Handler
 					],
 				],
 			],
+			'namespace' => [
+				'label' => ['text' => $txt['smm_namespace']],
+				'input' => [
+					'type'  => 'text',
+					'tab'   => self::TAB['basic'],
+					'after' => $txt['smm_namespace_subtext'],
+					'attributes' => [
+						'maxlength'   => 255,
+						'value'       => Serializer::html($skeleton['namespace']),
+						'required'    => true,
+						'pattern'     => Validator::NAMESPACE_PATTERN,
+						'placeholder' => SMM_VENDOR_DEFAULT,
+					],
+				],
+			],
 			'hooks' => [
 				'label' => ['text' => $txt['smm_hooks']],
 				'input' => [
@@ -434,6 +449,7 @@ final class Handler
 		global $packagesdir;
 
 		$this->rememberUsedHooks($skeleton);
+		$this->rememberNamespace($skeleton);
 
 		$classname = strtr($skeleton['filename'], ['Class-' => '', '.php' => '']);
 		$snakeName = $this->toSnakeCase($classname);
@@ -464,6 +480,24 @@ final class Handler
 
 		updateSettings([
 			'smm_hooks' => implode(',', array_unique(array_merge($skeleton['hooks'], $usedHooks)))
+		]);
+	}
+
+	/**
+	 * The vendor is remembered so that the next build does not require the same
+	 * namespace to be typed again.
+	 */
+	private function rememberNamespace(array $skeleton): void
+	{
+		global $modSettings;
+
+		// The vendor is reused on the next builds, so the latest one is kept
+		if (empty($skeleton['namespace']) || ($modSettings['smm_mod_namespace'] ?? '') === $skeleton['namespace']) {
+			return;
+		}
+
+		updateSettings([
+			'smm_mod_namespace' => $skeleton['namespace']
 		]);
 	}
 
