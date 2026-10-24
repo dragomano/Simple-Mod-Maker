@@ -374,7 +374,7 @@ final class Handler
 		global $modSettings, $context;
 
 		$commonUsedHooks = isset($modSettings['smm_hooks']) ? explode(',', $modSettings['smm_hooks']) : [];
-		$hooks           = array_values(array_unique(array_merge($commonUsedHooks, $skeleton['hooks'])));
+		$hooks           = array_values(array_unique(array_filter(array_merge($commonUsedHooks, $skeleton['hooks']))));
 
 		sort($hooks);
 
@@ -390,20 +390,24 @@ final class Handler
 
 	private function searchHooks(): void
 	{
-		if (! isset($_REQUEST['hooks'])) {
+		// The AJAX lookup passes ;hooks in the URL, while a submitted form
+		// carries the selected hooks as the hooks[] array.
+		if (! isset($_REQUEST['hooks']) || ! is_string($_REQUEST['hooks'])) {
 			return;
 		}
 
 		global $smcFunc;
 
-		$data = json_decode(file_get_contents('php://input'), true) ?? [];
+		$data   = json_decode((string) file_get_contents('php://input'), true);
+		$search = is_array($data) && is_string($data['search'] ?? null)
+			? trim($smcFunc['strtolower']($data['search']))
+			: '';
 
-		if (empty($data['search'])) {
-			return;
+		if ($search === '') {
+			$this->respondWithHooks([]);
 		}
 
-		$search = trim($smcFunc['strtolower']($data['search']));
-		$hooks  = cache_get_data('all_smm_hooks', 30 * 24 * 60 * 60);
+		$hooks = cache_get_data('all_smm_hooks', 30 * 24 * 60 * 60);
 
 		if ($hooks === null) {
 			$hooks = $this->getHookList();
@@ -411,8 +415,21 @@ final class Handler
 			cache_put_data('all_smm_hooks', $hooks, 30 * 24 * 60 * 60);
 		}
 
+		$this->respondWithHooks($this->filterHookList($hooks, $search));
+	}
+
+	private function filterHookList(array $hooks, string $search): array
+	{
 		$results = array_filter($hooks, fn($item) => str_contains($item, $search));
 		$results = array_map(fn($item) => ['value' => $item], $results);
+
+		// The client iterates json.length, so a sparse result must be re-indexed.
+		return array_values($results);
+	}
+
+	private function respondWithHooks(array $results): never
+	{
+		header('Content-Type: application/json; charset=utf-8');
 
 		exit(json_encode($results));
 	}
@@ -424,7 +441,7 @@ final class Handler
 		$hooks = array_keys(get_integration_hooks());
 		$known = HookFactory::getAvailableHooks();
 
-		$list = array_merge($known, [
+		$list = array_unique(array_merge($known, [
 			Hook::FORUM_STATS,
 			Hook::HELP_ADMIN,
 			Hook::LOAD_THEME,
@@ -432,7 +449,7 @@ final class Handler
 			Hook::PRE_CSS_OUTPUT,
 			Hook::THEME_CONTEXT,
 			Hook::USER_INFO,
-		], $hooks);
+		], $hooks));
 
 		sort($list);
 
