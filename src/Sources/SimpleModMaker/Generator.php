@@ -101,8 +101,26 @@ class Generator
 			$hooks->addBody("add_integration_function(?, self::class . '::?#', false);", [$hook, $methodName])
 				->addComment("@uses $methodName");
 
-			$method       = $class->addMethod($methodName);
-			$hookInstance = HookFactory::create($hook, $context, $classname, $snakeName);
+			$method            = $class->addMethod($methodName);
+			$hookInstance      = HookFactory::create($hook, $context, $classname, $snakeName);
+			$withArea1Settings = $hook === Hook::GENERAL_MOD_SETTINGS && $skeleton['settings_area'] === 1;
+
+			// Default settings are initialized right in this hook
+			if ($withArea1Settings && $skeleton['smf_target_version'] !== '3.0') {
+				$globals = [];
+
+				if (! empty($this->getDefaultSettings($skeleton, $snakeName))) {
+					$globals[] = '$modSettings';
+				}
+
+				if ($this->hasSelectOptions($skeleton)) {
+					$globals[] = '$txt';
+				}
+
+				if (! empty($globals)) {
+					$method->addBody('global ' . implode(', ', $globals) . ';' . PHP_EOL);
+				}
+			}
 
 			if ($hookInstance !== null) {
 				$parameters = $hookInstance->getParameters();
@@ -125,11 +143,12 @@ class Generator
 				}
 			}
 
-			if ($hook === Hook::GENERAL_MOD_SETTINGS && $skeleton['settings_area'] === 1) {
+			if ($withArea1Settings) {
 				if (TemplateUtil::needsTemplate($skeleton)) {
 					$this->addLoadTemplate($method, $skeleton, $classname);
 				}
 
+				$this->addDefaultSettings($method, $skeleton, $snakeName);
 				$this->fillConfigVars($method, $skeleton, $snakeName);
 			}
 		}
@@ -167,6 +186,8 @@ class Generator
 
 	private function generateSettingsArea2(ClassType $class, array $skeleton, string $classname, string $snakeName, array $hookKeys): void
 	{
+		$hasDefaults = ! empty($this->getDefaultSettings($skeleton, $snakeName));
+
 		$settings = $class->addMethod('settings');
 
 		if (isset($hookKeys[Hook::ADMIN_SEARCH])) {
@@ -177,7 +198,7 @@ class Generator
 		}
 
 		if ($skeleton['smf_target_version'] !== '3.0') {
-			$settings->addBody("global \$context, \$txt, \$scripturl" . (empty($skeleton['options']) ? '' : ", \$modSettings") . ";" . PHP_EOL);
+			$settings->addBody("global \$context, \$txt, \$scripturl" . ($hasDefaults ? ", \$modSettings" : '') . ";" . PHP_EOL);
 			$settings->addBody("loadLanguage(?);" . PHP_EOL, [$classname . (empty($skeleton['use_lang_dir']) ? '' : '/')]);
 			$settings->addBody("\$context['page_title'] = \$context['settings_title'] = \$txt['{$snakeName}_title'];");
 			$settings->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=modsettings;save;sa=$snakeName';" . PHP_EOL);
@@ -280,6 +301,8 @@ class Generator
 
 	private function generateSectionExample(ClassType $class, array $skeleton, string $snakeName): void
 	{
+		$hasDefaults = ! empty($this->getDefaultSettings($skeleton, $snakeName));
+
 		$section = $class->addMethod('sectionExample1');
 		$section->addComment('@return array|void');
 
@@ -287,13 +310,17 @@ class Generator
 		$parameter->setType('bool');
 
 		if ($skeleton['smf_target_version'] !== '3.0') {
-			$section->addBody("global \$context, \$txt, \$scripturl, \$sourcedir;" . PHP_EOL);
+			$section->addBody("global \$context, \$txt, \$scripturl, \$sourcedir" . ($hasDefaults ? ", \$modSettings" : '') . ";" . PHP_EOL);
 			$section->addBody("require_once \$sourcedir . '/ManageServer.php';" . PHP_EOL);
 			$section->addBody("\$context['page_title'] .= ' - ' . \$txt['{$snakeName}_section1_title'];");
 			$section->addBody("\$context['post_url'] = \$scripturl . '?action=admin;area=$snakeName;sa=section1;save';" . PHP_EOL);
 		} else {
 			$section->addBody("Utils::\$context['page_title'] .= ' - ' . Lang::\$txt['{$snakeName}_section1_title'];");
 			$section->addBody("Utils::\$context['post_url'] = Config::\$scripturl . '?action=admin;area=$snakeName;sa=section1;save';" . PHP_EOL);
+		}
+
+		if ($hasDefaults) {
+			$this->addDefaultSettings($section, $skeleton, $snakeName);
 		}
 
 		$section->addBody("\$config_vars = [];");
@@ -322,22 +349,24 @@ class Generator
 
 	private function addDefaultSettings(Method $method, array $skeleton, string $snakeName): void
 	{
-		$method->addBody("// Add default settings");
+		$defaults = $this->getDefaultSettings($skeleton, $snakeName);
+
+		if (empty($defaults)) {
+			return;
+		}
+
+		$method->addBody('// Add default settings');
 		$method->addBody("\$addSettings = [];");
 
-		foreach ($skeleton['options'] as $option) {
-			if (! empty($option['default'])) {
-				$settingKey = $snakeName . '_' . $option['name'];
-
-				if ($skeleton['smf_target_version'] !== '3.0') {
-					$method->addBody("if (! isset(\$modSettings[" . var_export($settingKey, true) . '])) {');
-				} else {
-					$method->addBody("if (! isset(Config::\$modSettings[" . var_export($settingKey, true) . '])) {');
-				}
-
-				$method->addBody("\t\$addSettings[" . var_export($settingKey, true) . '] = ' . $this->getDefaultValue($option) . ';');
-				$method->addBody('}');
+		foreach ($defaults as $settingKey => $default) {
+			if ($skeleton['smf_target_version'] !== '3.0') {
+				$method->addBody("if (! isset(\$modSettings[" . var_export($settingKey, true) . '])) {');
+			} else {
+				$method->addBody("if (! isset(Config::\$modSettings[" . var_export($settingKey, true) . '])) {');
 			}
+
+			$method->addBody("\t\$addSettings[" . var_export($settingKey, true) . '] = ' . $default . ';');
+			$method->addBody('}');
 		}
 
 		if ($skeleton['smf_target_version'] !== '3.0') {
@@ -345,6 +374,36 @@ class Generator
 		} else {
 			$method->addBody("Config::updateModSettings(\$addSettings);" . PHP_EOL);
 		}
+	}
+
+	/**
+	 * The default is written only when explicitly entered: an empty string
+	 * means its absence, unlike '0' and other zero-ish values.
+	 */
+	private function getDefaultSettings(array $skeleton, string $snakeName): array
+	{
+		$defaults = [];
+
+		foreach ($skeleton['options'] as $option) {
+			$default = $this->getDefaultValue($option);
+
+			if ($default !== null) {
+				$defaults[$snakeName . '_' . $option['name']] = $default;
+			}
+		}
+
+		return $defaults;
+	}
+
+	private function hasSelectOptions(array $skeleton): bool
+	{
+		foreach ($skeleton['options'] as $option) {
+			if (in_array($option['type'], ['select', 'select-multiple'], true)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private function fillConfigVars(Method $method, array $skeleton, string $snakeName): void
@@ -537,7 +596,6 @@ class Generator
 
 			$method = $class->addMethod('run' . $task['classname']);
 			$method->setReturnType('void');
-
 			$method->addComment('Call this method to run a background task');
 
 			if ($skeleton['smf_target_version'] !== '3.0') {
@@ -610,15 +668,34 @@ class Generator
 		return $file;
 	}
 
-	private function getDefaultValue(array $option): string
+	private function getDefaultValue(array $option): ?string
 	{
-		$default = match ($option['type']) {
-			'int'   => (int) $option['default'],
-			'float' => (float) $option['default'],
-			default => $option['default'],
-		};
+		// An unticked checkbox is identical to the absent setting for SMF
+		if ($option['type'] === 'check') {
+			return ! empty($option['default']) ? var_export(true, true) : null;
+		}
 
-		return var_export($default, true);
+		if (trim((string) $option['default']) === '') {
+			return null;
+		}
+
+		return var_export(match ($option['type']) {
+			'int'             => (int) $option['default'],
+			'float'           => (float) $option['default'],
+			'select-multiple' => $this->getMultipleDefault((string) $option['default']),
+			default           => (string) $option['default'],
+		}, true);
+	}
+
+	private function getMultipleDefault(string $default): string
+	{
+		$values = array_values(array_unique(array_filter(
+			array_map(trim(...), preg_split('/[|,]/', $default) ?: []),
+			fn(string $value): bool => $value !== ''
+		)));
+
+		// SMF stores multiple selections as a JSON array
+		return json_encode($values) ?: '[]';
 	}
 
 	private function getMethodName(string $hook): string
