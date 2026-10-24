@@ -81,6 +81,7 @@ class SkeletonBuilder
 			'scheduled_tasks'    => [],
 			'background_tasks'   => [],
 			'legacy_tasks'       => [],
+			'languages'          => [],
 			'title'              => [],
 			'description'        => [],
 		];
@@ -291,10 +292,41 @@ class SkeletonBuilder
 			$this->processTaskTranslations($postData, $skeleton, $langFile);
 		}
 
+		// SMF always loads the english file as a fallback, so the other
+		// languages get a file only when the user actually filled a string
+		$skeleton['languages'] = array_values(array_unique(array_merge(
+			['english'],
+			array_keys(array_filter($title)),
+			array_keys(array_filter($description)),
+			$this->getTranslatedLanguages($skeleton)
+		)));
+
 		return [
 			'title'       => array_filter($title),
 			'description' => array_filter($description),
 		];
+	}
+
+	/**
+	 * Languages with at least one filled option or scheduled task translation.
+	 */
+	private function getTranslatedLanguages(array $skeleton): array
+	{
+		$languages = [];
+
+		foreach ($skeleton['options'] as $option) {
+			$languages = array_merge($languages, array_keys($option['translations'] ?? []));
+		}
+
+		foreach ($skeleton['scheduled_tasks'] as $task) {
+			$languages = array_merge(
+				$languages,
+				array_keys($task['names'] ?? []),
+				array_keys($task['descriptions'] ?? [])
+			);
+		}
+
+		return $languages;
 	}
 
 	private function processOptionTranslations(array $postData, array &$skeleton, string $langFile): void

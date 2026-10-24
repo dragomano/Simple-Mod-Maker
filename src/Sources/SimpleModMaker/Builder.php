@@ -26,6 +26,11 @@ final class Builder
 {
 	private array $skeleton;
 
+	/**
+	 * @var list<string>
+	 */
+	private array $created_languages = [];
+
 	private readonly string $classname;
 
 	private readonly string $snake_name;
@@ -106,12 +111,7 @@ final class Builder
 		}
 
 		$lang_dir = $this->path . '/Themes/default/languages';
-		if (
-			! empty($this->skeleton['title'])
-			|| ! empty($this->skeleton['description'])
-			|| ! empty($this->skeleton['options'])
-			|| ! empty($this->skeleton['scheduled_tasks'])
-		) {
+		if ($this->needsLangFiles()) {
 			mktree($lang_dir, 0777);
 		}
 
@@ -416,36 +416,58 @@ final class Builder
 		return var_export($value, true);
 	}
 
+	/**
+	 * The generated code references the language keys only when the mod has
+	 * settings, filled titles/descriptions, options or scheduled tasks, so a
+	 * basic mod must not request any language files at all.
+	 */
+	private function needsLangFiles(): bool
+	{
+		return ! empty($this->skeleton['title'])
+			|| ! empty($this->skeleton['description'])
+			|| ! empty($this->skeleton['options'])
+			|| ! empty($this->skeleton['scheduled_tasks'])
+			|| ! empty($this->skeleton['settings_area']);
+	}
+
 	private function createLangs(): void
 	{
 		global $txt;
 
-		$languages = [];
-
-		foreach ($this->skeleton['title'] as $lang => $value) {
-			$title = $value ?: $this->skeleton['name'];
-
-			$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_title'] = " . var_export($title, true) . ';';
+		if (! $this->needsLangFiles()) {
+			return;
 		}
 
-		foreach ($this->skeleton['description'] as $lang => $value) {
-			$description = $value ?: '';
+		$languages = $this->skeleton['languages'];
 
-			$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_description'] = " . var_export($description, true) . ';';
+		$entries = [];
+
+		// The generated code references the base keys unconditionally, so every
+		// language file must contain them, whatever translations are filled in
+		foreach ($languages as $lang) {
+			$title = ($this->skeleton['title'][$lang] ?? '') ?: $this->skeleton['name'];
+
+			$entries[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_title'] = "
+				. var_export($title, true) . ';';
+			$entries[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_description'] = "
+				. var_export($this->skeleton['description'][$lang] ?? '', true) . ';';
 
 			if ($this->skeleton['settings_area'] === 3) {
 				loadLanguage('SimpleModMaker/', $lang);
 
-				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section1_title'] = "
+				$entries[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section1_title'] = "
 					. var_export(sprintf($txt['smm_tab_example'], 1), true) . ';';
-				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section2_title'] = "
+				$entries[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_section2_title'] = "
 					. var_export(sprintf($txt['smm_tab_example'], 2), true) . ';';
 			}
 		}
 
 		foreach ($this->skeleton['options'] as $option) {
-			foreach ($option['translations'] as $lang => $value) {
-				$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_{$option['name']}'] = " . var_export($value, true) . ';';
+			foreach ($languages as $lang) {
+				$value = $option['translations'][$lang]
+					?? ($option['translations']['english'] ?? $option['name']);
+
+				$entries[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_{$option['name']}'] = " . var_export($value, true) . ';';
 
 				if (in_array($option['type'], ['select-multiple', 'select'])) {
 					if (! empty($option['variants'])) {
@@ -454,7 +476,7 @@ final class Builder
 							array_map(strval(...), explode('|', $option['variants']))
 						);
 
-						$languages[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_{$option['name']}_set'] = ["
+						$entries[$lang][] = PHP_EOL . "\$txt['{$this->snake_name}_{$option['name']}_set'] = ["
 							. implode(', ', $variants) . '];';
 					}
 				}
@@ -462,20 +484,22 @@ final class Builder
 		}
 
 		foreach ($this->skeleton['scheduled_tasks'] as $task) {
-			foreach ($task['names'] as $lang => $value) {
-				$languages[$lang][] = PHP_EOL . "\$txt['scheduled_task_{$task['slug']}'] = " . var_export($value, true) . ';';
-			}
+			foreach ($languages as $lang) {
+				$name = $task['names'][$lang] ?? ($task['names']['english'] ?? $task['slug']);
+				$desc = $task['descriptions'][$lang] ?? ($task['descriptions']['english'] ?? '');
 
-			foreach ($task['descriptions'] as $lang => $value) {
-				$languages[$lang][] = PHP_EOL . "\$txt['scheduled_task_desc_{$task['slug']}'] = " . var_export($value, true) . ';';
+				$entries[$lang][] = PHP_EOL . "\$txt['scheduled_task_{$task['slug']}'] = " . var_export($name, true) . ';';
+				$entries[$lang][] = PHP_EOL . "\$txt['scheduled_task_desc_{$task['slug']}'] = " . var_export($desc, true) . ';';
 			}
 		}
+
+		$this->created_languages = array_keys($entries);
 
 		$lang_dir = $this->path . '/Themes/default/languages/' . $this->classname . (
 			$this->skeleton['use_lang_dir'] ? '/.' : '.'
 		);
 
-		foreach ($languages as $lang => $data) {
+		foreach ($entries as $lang => $data) {
 			foreach ($data as $content) {
 				if (! is_file($lang_file = $lang_dir . $lang . '.php')) {
 					$header = "<?php\n\n";
@@ -585,7 +609,7 @@ final class Builder
 
 		$filename  = empty($this->skeleton['make_dir']) ? $this->skeleton['filename'] : $this->classname . '/Integration';
 		$coreclass = $this->skeleton['namespace'] . '\\' . $this->classname . (empty($this->skeleton['make_dir']) ? '' : '\Integration');
-		$languages = array_keys($this->skeleton['readmes']);
+		$readmes   = array_keys($this->skeleton['readmes'] ?? []);
 
 		$data['install'] = [
 			'@attributes' => [
@@ -615,7 +639,7 @@ final class Builder
 			$data['install']['database'] = 'database.php';
 
 		if ($this->skeleton['make_readme']) {
-			foreach ($languages as $lang) {
+			foreach ($readmes as $lang) {
 				$readmeData = [
 					'parsebbc' => 'true'
 				];
@@ -682,7 +706,7 @@ final class Builder
 		}
 
 		if (empty($this->skeleton['use_lang_dir'])) {
-			foreach ($languages as $lang) {
+			foreach ($this->created_languages as $lang) {
 				$language_file     = 'Themes/default/languages/' . $this->classname . '.' . $lang . '.php';
 				$language_filepath = $this->path . '/' . $language_file;
 
