@@ -48,8 +48,9 @@ class WhosOnlineHook extends AbstractHook
 	{
 		return [
 			"global \$txt, \$scripturl;" . PHP_EOL,
-			"if (empty(\$actions['action']) || \$actions['action'] !== 'your_action')",
-			"\treturn '';" . PHP_EOL,
+			"if (empty(\$actions['action']) || \$actions['action'] !== 'your_action') {",
+			"\treturn '';",
+			"}" . PHP_EOL,
 			"\$result = sprintf(\$txt['your_mod_who_viewing_your_action'], \$scripturl . '?action=' . \$actions['action']);" . PHP_EOL,
 			"if (isset(\$actions['subaction'])) {",
 			"\t\$result = sprintf(\$txt['your_mod_who_viewing_your_subaction'], \$scripturl . '?action=' . \$actions['action'] . ';' . \$actions['subaction']);",
@@ -61,8 +62,9 @@ class WhosOnlineHook extends AbstractHook
 	private function getModernBody(): array
 	{
 		return [
-			"if (empty(\$actions['action']) || \$actions['action'] !== 'your_action')",
-			"\treturn '';" . PHP_EOL,
+			"if (empty(\$actions['action']) || \$actions['action'] !== 'your_action') {",
+			"\treturn '';",
+			"}" . PHP_EOL,
 			"\$result = Lang::getTxt('your_mod_who_viewing_your_action', [",
 			"\tConfig::\$scripturl . '?action=' . \$actions['action']",
 			"]);" . PHP_EOL,
