@@ -1,4 +1,14 @@
-<?php
+<?php declare(strict_types=1);
+
+/**
+ * @package Simple Mod Maker
+ * @link https://github.com/dragomano/Simple-Mod-Maker
+ * @author Bugo <bugo@dragomano.ru>
+ * @copyright 2022-2026 Bugo
+ * @license https://opensource.org/licenses/BSD-3-Clause BSD
+ *
+ * @version 1.0
+ */
 
 function template_callback_smm_readme_editor()
 {
@@ -710,231 +720,42 @@ function template_modification_post()
 				</button>
 			</div>
 		</div>
-	</form>
+	</form>';
 
+	// All the dynamic data for simple_mod_maker.js in one object: the only
+	// serialization to JSON happens here, through the script-safe encoder
+	$smm_data = [
+		'hookUrl'         => $context['canonical_url'] . ';hooks',
+		'minSearchLength' => 3,
+		'texts'           => [
+			'remove'          => $txt['remove'],
+			'addHook'         => $txt['ban_add'],
+			'noMatches'       => $txt['no_matches'],
+			'minSearchLength' => sprintf($txt['smm_min_search_length'], 3),
+		],
+		'hookList'        => [
+			'data'  => $context['smm_hook_list']['data'],
+			'items' => $context['smm_hook_list']['items'],
+		],
+		'skeleton'        => [
+			'options'         => $context['smm_skeleton']['options'],
+			'tables'          => $context['smm_skeleton']['tables'],
+			'scheduledTasks'  => $context['smm_skeleton']['scheduled_tasks'] ?? [],
+			'backgroundTasks' => $context['smm_skeleton']['background_tasks'] ?? [],
+			'legacyTasks'     => $context['smm_skeleton']['legacy_tasks'] ?? [],
+		],
+	];
+
+	echo '
+	<script>
+		window.smmGenerator = ', \Bugo\SimpleModMaker\Serializer::json($smm_data), ';
+	</script>
 	<script type="module">
 		if (window.Alpine === undefined) {
 			const script = document.createElement("script");
 			script.defer = true;
 			script.src = "https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js";
 			document.body.appendChild(script);
-		}
-	</script>
-	<script>
-		new TomSelect("#hooks", {
-			plugins: {
-				remove_button:{
-					title: "', $txt['remove'], '",
-				}
-			},
-			searchField: "value",
-			allowEmptyOption: true,
-			closeAfterSelect: false,
-			placeholder: "integrate_load_theme",
-			options: ', $context['smm_hook_list']['data'], ',
-			items: ', $context['smm_hook_list']['items'], ',
-			shouldLoad: function (search) {
-				return search.length >= 3;
-			},
-			load: function (search, callback) {
-				fetch("', $context['canonical_url'], ';hooks", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json; charset=utf-8"
-					},
-					body: JSON.stringify({
-						search
-					})
-				})
-				.then(response => response.json())
-				.then(function (json) {
-					let data = [];
-					for (let i = 0; i < json.length; i++) {
-						data.push({text: json[i].value, value: json[i].value})
-					}
-
-					callback(data)
-				})
-				.catch(function (error) {
-					callback(false)
-				})
-			},
-			render: {
-				option: function (item, escape) {
-					return `<div>${escape(item.value)}</div>`;
-				},
-				item: function (item, escape) {
-					return `<div>${escape(item.value)}</div>`;
-				},
-				option_create: function (data, escape) {
-					return `<div class="create">', $txt['ban_add'], ' <strong>` + escape(data.input) + `</strong>&hellip;</div>`;
-				},
-				no_results: function (data, escape) {
-					return `<div class="no-results">', $txt['no_matches'], '</div>`;
-				},
-				not_loading: function (data, escape) {
-					return `<div class="optgroup-header">', sprintf($txt['smm_min_search_length'], 3), '</div>`;
-				}
-			},
-			create: function (input) {
-				return {value: input.toLowerCase(), text: input.toLowerCase()}
-			}
-		});
-
-		const smm = new class {
-			post(target) {
-				const formElements = target.elements;
-
-				for (let i = 0; i < formElements.length; i++) {
-					if ((formElements[i].required && formElements[i].value === "") || ! formElements[i].checkValidity()) {
-						let elem = formElements[i].closest("section").id;
-
-						document.getElementsByName("tabs").checked = false;
-						document.getElementById(elem.replace("content_", "")).checked = true;
-
-						let focusElement = document.getElementById(formElements[i].id);
-
-						if (focusElement) focusElement.focus();
-
-						return false
-					}
-				}
-			}
-
-			changeSettingPlacement(target) {
-				const settingTabFields = document.querySelectorAll(".pf_title")
-				const tabSettingTables = document.querySelector(".tab_setting_tables")
-
-				if (target > 0) {
-					settingTabFields.forEach(setting => setting.style.display = "block")
-					tabSettingTables.style.display = "block"
-				} else {
-					settingTabFields.forEach(setting => setting.style.display = "none")
-					tabSettingTables.style.display = "none"
-				}
-			}
-
-			handleOptions() {
-				return {
-					options: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['options']), ',
-					addOption() {
-						this.options.push({
-							name: "",
-							type: "check",
-							default: "",
-							variants: "",
-							translations: {},
-						});
-					},
-					removeOption(index) {
-						this.options.splice(index, 1);
-					}
-				}
-			}
-
-			handleTables() {
-				return {
-					tables: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['tables']), ',
-					init() {
-						this.tables.forEach(table => table.columns.forEach(column => this.watchColumn(column)));
-					},
-					addTable() {
-						this.tables.push({
-							name: "",
-							columns: [],
-						});
-					},
-					removeTable(index) {
-						this.tables.splice(index, 1);
-					},
-					addColumn(table_index) {
-						const column = {
-							name: "",
-							type: "int",
-							null: false,
-							size: 10,
-							auto: false,
-							default: ""
-						};
-
-						this.tables[table_index].columns.push(column);
-						this.watchColumn(column);
-					},
-					removeColumn(table_index, column_index) {
-						this.tables[table_index].columns.splice(column_index, 1);
-					},
-					watchColumn(column) {
-						this.$watch(() => column.type, type => this.normalizeColumn(column));
-						this.$watch(() => column.auto, auto => {
-							if (auto) column.default = "";
-						});
-						this.normalizeColumn(column);
-					},
-					normalizeColumn(column) {
-						const intTypes = ["tinyint", "int", "mediumint"];
-						const textTypes = ["text", "mediumtext"];
-
-						column.auto = intTypes.includes(column.type) && column.auto;
-						column.null = textTypes.includes(column.type) && column.null;
-
-						if (textTypes.includes(column.type)) {
-							column.size = 0;
-							column.default = "";
-						} else {
-							if (! column.size) {
-								column.size = intTypes.includes(column.type) ? 10 : 255;
-							}
-
-							if (column.auto) {
-								column.default = "";
-							}
-						}
-					}
-				}
-			}
-
-			handleTasks() {
-				return {
-					scheduledTasks: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['scheduled_tasks'] ?? []), ',
-					backgroundTasks: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['background_tasks'] ?? []), ',
-					legacyTasks: ', \Bugo\SimpleModMaker\Serializer::json($context['smm_skeleton']['legacy_tasks'] ?? []), ',
-					addTask(type = "scheduled") {
-						switch (type) {
-							case "scheduled":
-								this.scheduledTasks.push({
-									slug: "",
-									names: {},
-									descriptions: {},
-									regularity: 0,
-								});
-								break;
-							case "background":
-								this.backgroundTasks.push({
-									classname: "",
-									regularity: 0,
-								});
-								break;
-							default:
-								this.legacyTasks.push({
-									method: "",
-									regularity: 0,
-								});
-						}
-					},
-					removeTask(index, type = "scheduled") {
-						switch (type) {
-							case "scheduled":
-								this.scheduledTasks.splice(index, 1);
-								break;
-							case "background":
-								this.backgroundTasks.splice(index, 1);
-								break;
-							default:
-								this.legacyTasks.splice(index, 1);
-						}
-					}
-				}
-			}
 		}
 	</script>';
 }
@@ -946,11 +767,13 @@ function template_post_tab(array $fields, string $tab = 'basic'): bool
 	$fields['subject'] = ['no'];
 
 	foreach ($fields as $pfid => $pf) {
-		if (empty($pf['input']['tab']))
+		if (empty($pf['input']['tab'])) {
 			$pf['input']['tab'] = 'basic';
+		}
 
-		if ($pf['input']['tab'] !== $tab)
+		if ($pf['input']['tab'] !== $tab) {
 			$fields[$pfid] = ['no'];
+		}
 	}
 
 	$context['posting_fields'] = $fields;

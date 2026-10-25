@@ -10,6 +10,7 @@
 		<require-dir name="Sources/SimpleModMaker" destination="$sourcedir"/>
 		<require-file name="Themes/default/SimpleModMaker.template.php" destination="$themedir"/>
 		<require-file name="Themes/default/css/simple_mod_maker.css" destination="$themedir/css"/>
+		<require-file name="Themes/default/scripts/simple_mod_maker.js" destination="$themedir/scripts"/>
 		<require-dir name="Themes/default/languages/SimpleModMaker" destination="$languagedir"/>
 		<hook hook="integrate_pre_include" function="$sourcedir/SimpleModMaker/app.php"/>
 		<code type="inline"><![CDATA[<?php
@@ -31,6 +32,7 @@
 		<hook hook="integrate_pre_include" function="$sourcedir/SimpleModMaker/app.php" reverse="true"/>
 		<remove-file name="$themedir/SimpleModMaker.template.php"/>
 		<remove-file name="$themedir/css/simple_mod_maker.css"/>
+		<remove-file name="$themedir/scripts/simple_mod_maker.js"/>
 		<remove-dir name="$sourcedir/SimpleModMaker"/>
 		<remove-dir name="$languagedir/SimpleModMaker"/>
 	</uninstall>

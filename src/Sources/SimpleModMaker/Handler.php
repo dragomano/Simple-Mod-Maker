@@ -71,12 +71,15 @@ final class Handler
 	private function loadAssets(): void
 	{
 		loadJavaScriptFile('https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js', [
-			'external' => true
+			'external' => true,
+			'defer'    => true,
 		]);
 
 		loadCSSFile('https://cdn.jsdelivr.net/npm/tom-select@2/dist/css/tom-select.min.css', [
 			'external' => true
 		]);
+
+		loadJavaScriptFile('simple_mod_maker.js');
 
 		loadCSSFile('simple_mod_maker.css');
 	}
@@ -108,6 +111,10 @@ final class Handler
 			$this->buildSettingsFields($skeleton, $txt, $context),
 			$this->buildPackageFields($skeleton, $txt)
 		);
+
+		// The server-rendered options keep the native select behind Tom
+		// Select usable while the CDN is slow or unavailable
+		$context['posting_fields']['hooks']['input']['options'] = $context['smm_hook_list']['select_options'];
 
 		$this->postProcessFields($context['posting_fields']);
 	}
@@ -379,14 +386,25 @@ final class Handler
 
 		sort($hooks);
 
-		// The hook list is consumed by Tom Select inside an inline <script>. It is
-		// serialized as real data (JSON) instead of hand-built object literals, so a
-		// hook name can never break out of the script context or create markup.
-		$context['smm_hook_list']['data'] = Serializer::json(
-			array_map(fn(string $hook): array => ['text' => $hook, 'value' => $hook], $hooks)
+		// The hook list is consumed by Tom Select inside the data script of
+		// the template. It is passed as real data (serialized to JSON in one
+		// place), so a hook name can never break out of the script context
+		// or create markup.
+		$context['smm_hook_list']['data']  = array_map(
+			fn(string $hook): array => ['text' => $hook, 'value' => $hook], $hooks
 		);
 
-		$context['smm_hook_list']['items'] = Serializer::json(array_values($skeleton['hooks']));
+		$context['smm_hook_list']['items'] = array_values($skeleton['hooks']);
+
+		// The same entries are prepared as posting field options, so the
+		// native select behind Tom Select remains a working fallback
+		$context['smm_hook_list']['select_options'] = array_combine(
+			$hooks,
+			array_map(
+				fn(string $hook): array => ['value' => $hook, 'selected' => in_array($hook, $skeleton['hooks'])],
+				$hooks
+			)
+		);
 	}
 
 	private function searchHooks(): void
