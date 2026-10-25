@@ -18,6 +18,7 @@ use Exception;
 use InvalidArgumentException;
 use Phar;
 use PharData;
+use Throwable;
 
 if (! defined('SMF'))
 	die('No direct access...');
@@ -30,6 +31,10 @@ final class Builder
 	 * @var list<string>
 	 */
 	private array $created_languages = [];
+
+	private ?string $archive = null;
+
+	private bool $completed = false;
 
 	private readonly string $classname;
 
@@ -65,124 +70,128 @@ final class Builder
 
 	public function create(string $content): Builder
 	{
-		$this->addSecurityCheck($content);
-
 		require_once dirname(__DIR__) . '/Subs-Package.php';
 
-		$this->assertPathWithinAllowedBase();
+		try {
+			$this->addSecurityCheck($content);
+			$this->assertPathWithinAllowedBase();
 
-		deltree($this->path);
-		mktree($this->path, 0777);
+			deltree($this->path);
 
-		package_put_contents(
-			$this->path . '/license.txt',
-			str_replace(
-				'{copyright}', date('Y') . ' ' . $this->skeleton['author'],
-				package_get_contents(__DIR__ . '/licenses/' . $this->skeleton['license'] . '.txt')
-			)
-		);
+			$this->makeDir($this->path);
 
-		if (TemplateUtil::needsTemplate($this->skeleton)) {
-			mktree($this->path . '/Themes/default', 0777);
+			$this->writePackageFile(
+				$this->path . '/license.txt',
+				str_replace(
+					'{copyright}', date('Y') . ' ' . $this->skeleton['author'],
+					package_get_contents(__DIR__ . '/licenses/' . $this->skeleton['license'] . '.txt')
+				)
+			);
 
-			$template = "<?php\n\n";
-			$template .= "function template_my_area()\n";
-			$template .= "{\n";
-			$template .= "\t// Add your code here\n\n";
-			$template .= "\t// Example of using:\n";
-			$template .= "\t// loadTemplate('$this->classname');\n";
-			$template .= "\t// \$context['sub_template'] = 'my_area';\n";
-			$template .= "}\n";
+			if (TemplateUtil::needsTemplate($this->skeleton)) {
+				$this->makeDir($this->path . '/Themes/default');
 
-			file_put_contents($this->path . '/Themes/default/' . $this->classname . '.template.php', $template);
+				$template = "<?php\n\n";
+				$template .= "function template_my_area()\n";
+				$template .= "{\n";
+				$template .= "\t// Add your code here\n\n";
+				$template .= "\t// Example of using:\n";
+				$template .= "\t// loadTemplate('$this->classname');\n";
+				$template .= "\t// \$context['sub_template'] = 'my_area';\n";
+				$template .= "}\n";
 
-			foreach ($this->skeleton['callbacks'] as $callback) {
-				$callbackTemplate = "\nfunction template_callback_$callback()\n";
-				$callbackTemplate .= "{\n";
-				$callbackTemplate .= "\t// Add your code here\n";
-				$callbackTemplate .= "}\n";
+				$this->writeFile($this->path . '/Themes/default/' . $this->classname . '.template.php', $template);
 
-				file_put_contents(
-					$this->path . '/Themes/default/' . $this->classname . '.template.php',
-					$callbackTemplate,
-					FILE_APPEND
+				foreach ($this->skeleton['callbacks'] as $callback) {
+					$callbackTemplate = "\nfunction template_callback_$callback()\n";
+					$callbackTemplate .= "{\n";
+					$callbackTemplate .= "\t// Add your code here\n";
+					$callbackTemplate .= "}\n";
+
+					$this->writeFile(
+						$this->path . '/Themes/default/' . $this->classname . '.template.php',
+						$callbackTemplate,
+						FILE_APPEND | LOCK_EX
+					);
+				}
+			}
+
+			$lang_dir = $this->path . '/Themes/default/languages';
+			if ($this->needsLangFiles()) {
+				$this->makeDir($lang_dir);
+			}
+
+			if (! empty($this->skeleton['use_lang_dir'])) {
+				$this->makeDir($lang_dir . '/' . $this->classname);
+				$this->copyFile(__DIR__ . '/index.php', $lang_dir . '/' . $this->classname . '/index.php');
+			}
+
+			if (! empty($this->skeleton['make_script'])) {
+				$this->makeDir($this->path . '/Themes/default/scripts');
+
+				$this->writePackageFile(
+					$this->path . '/Themes/default/scripts/' . $this->snake_name . '.js',
+					"/* Put your JS here */"
 				);
 			}
+
+			if (! empty($this->skeleton['make_css'])) {
+				$this->makeDir($this->path . '/Themes/default/css');
+
+				$this->writePackageFile(
+					$this->path . '/Themes/default/css/' . $this->snake_name . '.css',
+					"/* Put your CSS here */"
+				);
+			}
+
+			$this->createReadmes();
+			$this->createTables();
+			$this->createLangs();
+
+			$this->makeDir($this->path . '/Sources');
+
+			if (empty($this->skeleton['make_dir'])) {
+				$this->writeFile($this->path . '/Sources/' . $this->skeleton['filename'] . '.php', $content);
+			} else {
+				$this->makeDir($this->path . '/Sources/' . $this->classname);
+
+				$this->copyFile(__DIR__ . '/index.php', $this->path . '/Sources/' . $this->classname . '/index.php');
+
+				$this->writeFile($this->path . '/Sources/' . $this->classname . '/Integration.php', $content);
+			}
+		} catch (Throwable $e) {
+			// A failed build must not leave partial files behind
+			$this->removeWorkingDir();
+
+			throw $e;
 		}
-
-		$lang_dir = $this->path . '/Themes/default/languages';
-		if ($this->needsLangFiles()) {
-			mktree($lang_dir, 0777);
-		}
-
-		if (! empty($this->skeleton['use_lang_dir'])) {
-			mktree($lang_dir . '/' . $this->classname, 0777);
-			copy(__DIR__ . '/index.php', $lang_dir . '/' . $this->classname . '/index.php');
-		}
-
-		if (! empty($this->skeleton['make_script'])) {
-			mktree($this->path . '/Themes/default/scripts', 0777);
-
-			package_put_contents(
-				$this->path . '/Themes/default/scripts/' . $this->snake_name . '.js',
-				"/* Put your JS here */"
-			);
-		}
-
-		if (! empty($this->skeleton['make_css'])) {
-			mktree($this->path . '/Themes/default/css', 0777);
-
-			package_put_contents(
-				$this->path . '/Themes/default/css/' . $this->snake_name . '.css',
-				"/* Put your CSS here */"
-			);
-		}
-
-		$this->createReadmes();
-		$this->createTables();
-		$this->createLangs();
-
-		mktree($this->path . '/Sources', 0777);
-
-		if (empty($this->skeleton['make_dir'])) {
-			file_put_contents(
-				$this->path . '/Sources/' . $this->skeleton['filename'] . '.php',
-				$content,
-				LOCK_EX
-			);
-
-			return $this;
-		}
-
-		mktree($this->path . '/Sources/' . $this->classname, 0777);
-
-		copy(__DIR__ . '/index.php', $this->path . '/Sources/' . $this->classname . '/index.php');
-
-		file_put_contents(
-			$this->path . '/Sources/' . $this->classname . '/Integration.php',
-			$content,
-			LOCK_EX
-		);
 
 		return $this;
 	}
 
 	public function createTasks(array $tasks): Builder
 	{
-		$this->assertPathWithinAllowedBase();
+		require_once dirname(__DIR__) . '/Subs-Package.php';
 
-		foreach ($tasks as $task) {
-			$this->addSecurityCheck($task['content']);
+		try {
+			$this->assertPathWithinAllowedBase();
 
-			mktree($this->path . '/Sources/' . $this->classname . '/Tasks', 0777);
+			foreach ($tasks as $task) {
+				$this->addSecurityCheck($task['content']);
 
-			copy(__DIR__ . '/index.php', $this->path . '/Sources/' . $this->classname . '/Tasks/index.php');
+				$this->makeDir($this->path . '/Sources/' . $this->classname . '/Tasks');
 
-			file_put_contents(
-				$this->path . '/Sources/' . $this->classname . '/Tasks/' . $task['filename'],
-				$task['content'],
-				LOCK_EX
-			);
+				$this->copyFile(__DIR__ . '/index.php', $this->path . '/Sources/' . $this->classname . '/Tasks/index.php');
+
+				$this->writeFile(
+					$this->path . '/Sources/' . $this->classname . '/Tasks/' . $task['filename'],
+					$task['content']
+				);
+			}
+		} catch (Throwable $e) {
+			$this->removeWorkingDir();
+
+			throw $e;
 		}
 
 		return $this;
@@ -190,25 +199,41 @@ final class Builder
 
 	public function createPackage(): void
 	{
-		$this->preparePackageInfo();
+		require_once dirname(__DIR__) . '/Subs-Package.php';
+
+		// The transfer can be interrupted at any moment, so the temporary
+		// archive files are released by the shutdown handler in any case
+		register_shutdown_function(function (): void {
+			$this->removeArchive();
+
+			if (! $this->completed) {
+				$this->removeWorkingDir();
+			}
+		});
 
 		try {
-			$filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . bin2hex(random_bytes(5)) . '_smf21';
+			$this->preparePackageInfo();
 
-			$phar = new PharData($filename . '.tmp');
-			$phar->buildFromDirectory($this->path);
-			$phar->convertToData(Phar::ZIP, Phar::NONE, 'zip');
+			$archive = $this->createArchive();
 
-			$this->download($filename . '.zip');
-		} catch (Exception $e) {
+			// The package is built, so the working folder remains in Packages
+			// and allows to install the mod right away without a new download
+			$this->completed = true;
+
+			$this->download($archive);
+		} catch (Throwable $e) {
+			$this->removeArchive();
+			$this->removeWorkingDir();
+
 			fatal_error($e->getMessage());
 		}
 	}
 
 	private function download(string $file): void
 	{
-		if (file_exists($file) === false)
-			return;
+		if (! is_file($file)) {
+			throw new Exception('The package archive is missing.');
+		}
 
 		ob_end_clean();
 
@@ -232,10 +257,102 @@ final class Builder
 			fclose($fd);
 		}
 
-		unlink($file);
-		unlink(str_replace('.zip', '.tmp', $file));
-
 		exit;
+	}
+
+	private function makeDir(string $path): void
+	{
+		if (! mktree($path, 0777)) {
+			throw new Exception('Cannot create the directory: ' . $path);
+		}
+	}
+
+	private function writeFile(string $path, string $content, int $flags = LOCK_EX): void
+	{
+		if (@file_put_contents($path, $content, $flags) === false) {
+			throw new Exception('Cannot write the file: ' . $path);
+		}
+	}
+
+	private function copyFile(string $source, string $target): void
+	{
+		if (! @copy($source, $target)) {
+			throw new Exception('Cannot copy the file: ' . $source);
+		}
+	}
+
+	private function writePackageFile(string $path, string $content): void
+	{
+		if (package_put_contents($path, $content) === false) {
+			// A failed write must not remain in the package cache, or the next
+			// package_flush_cache() call would abort with a warning
+			global $package_cache;
+
+			unset($package_cache[$path]);
+
+			throw new Exception('Cannot write the file: ' . $path);
+		}
+	}
+
+	/**
+	 * Builds the ready ZIP archive in the system temporary directory and
+	 * remembers its path, so that a failure at any stage allows the leftover
+	 * .tmp file to be removed.
+	 */
+	private function createArchive(): string
+	{
+		$filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . bin2hex(random_bytes(5)) . '_smf21';
+
+		$this->archive = $filename . '.zip';
+
+		$phar  = new PharData($filename . '.tmp');
+		$files = $phar->buildFromDirectory($this->path);
+
+		if (empty($files)) {
+			throw new Exception('Cannot build the package archive.');
+		}
+
+		$phar->convertToData(Phar::ZIP, Phar::NONE, 'zip');
+
+		unset($phar);
+
+		if (! is_file($this->archive) || (int) filesize($this->archive) === 0) {
+			throw new Exception('Cannot create the package archive.');
+		}
+
+		return $this->archive;
+	}
+
+	/**
+	 * Removes the temporary archive files, whatever the download outcome was.
+	 */
+	private function removeArchive(): void
+	{
+		if ($this->archive === null) {
+			return;
+		}
+
+		foreach ([$this->archive, str_replace('.zip', '.tmp', $this->archive)] as $file) {
+			if (is_file($file)) {
+				@unlink($file);
+			}
+		}
+	}
+
+	/**
+	 * Removes the working folder of a failed build. The folder of a successful
+	 * build is kept in Packages on purpose, to allow installing the mod right
+	 * away without a new download.
+	 */
+	private function removeWorkingDir(): void
+	{
+		try {
+			$this->assertPathWithinAllowedBase();
+		} catch (InvalidArgumentException) {
+			return;
+		}
+
+		deltree($this->path);
 	}
 
 	private function createReadmes(): void
@@ -243,10 +360,10 @@ final class Builder
 		if (empty($this->skeleton['make_readme']) || empty($this->skeleton['readmes']))
 			return;
 
-		mktree($this->path . '/readme', 0777);
+		$this->makeDir($this->path . '/readme');
 
 		foreach ($this->skeleton['readmes'] as $lang => $text) {
-			package_put_contents(
+			$this->writePackageFile(
 				$this->path . '/readme/' . $lang . '.txt',
 				strtr($text, [
 					'{mod_name}'    => $this->skeleton['name'],
@@ -355,9 +472,9 @@ final class Builder
 		$this->addScheduledTasks($database);
 
 		$database .= "if (SMF === 'SSI')\n";
-		$database .= "\techo 'Database changes are complete!';\n";
+		$database .= "\techo 'Database changes are complete!';";
 
-		package_put_contents($this->path . '/database.php', $database);
+		$this->writePackageFile($this->path . '/database.php', $database);
 	}
 
 	private function addScheduledTasks(string &$database): void
@@ -506,12 +623,12 @@ final class Builder
 					$header .= "/**\n";
 					$header .= " * @package " . Serializer::phpComment($this->skeleton['name']) . "\n";
 					$header .= " */\n";
-					$content = $header . $content;
-				}
-
-				file_put_contents($lang_file, $content, FILE_APPEND | LOCK_EX);
+				$content = $header . $content;
 			}
+
+			$this->writeFile($lang_file, $content, FILE_APPEND | LOCK_EX);
 		}
+	}
 	}
 
 	private function preparePackageInfo(): void
@@ -592,7 +709,7 @@ final class Builder
 				return str_repeat("\t", $tabs);
 			}, $xml_string);
 
-			package_put_contents($this->path . '/package-info.xml', rtrim($xml_string, PHP_EOL));
+			$this->writePackageFile($this->path . '/package-info.xml', rtrim($xml_string, PHP_EOL));
 		} catch (DOMException $e) {
 			fatal_error($e->getMessage());
 		}

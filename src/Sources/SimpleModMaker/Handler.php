@@ -14,6 +14,7 @@ namespace Bugo\SimpleModMaker;
 
 use Bugo\SimpleModMaker\Hooks\HookFactory;
 use Nette\Utils\Html;
+use Throwable;
 
 if (! defined('SMF'))
 	die('No direct access...');
@@ -480,9 +481,13 @@ final class Handler
 			'path'      => $packagesdir . '/' . $snakeName . '_' . $skeleton['version'] . '_' . bin2hex(random_bytes(8)),
 		]);
 
-		$plugin->create($result['content'])
-			->createTasks($result['tasks'])
-			->createPackage();
+		try {
+			$plugin->create($result['content'])
+				->createTasks($result['tasks'])
+				->createPackage();
+		} catch (Throwable $e) {
+			fatal_error($e->getMessage());
+		}
 	}
 
 	private function rememberUsedHooks(array $skeleton): void
