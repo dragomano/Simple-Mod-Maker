@@ -12,16 +12,23 @@
 
 namespace Bugo\SimpleModMaker;
 
-if (! defined('SMF'))
-	die('No direct access...');
-
-namespace Bugo\SimpleModMaker;
-
 use Bugo\SimpleModMaker\Hooks\HookFactory;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\Method;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
+use SMF\Actions\Admin\ACP;
+use SMF\Config;
+use SMF\Db\DatabaseApi;
+use SMF\IntegrationHook;
+use SMF\Lang;
+use SMF\Menu;
+use SMF\Theme;
+use SMF\User;
+use SMF\Utils;
+
+if (! defined('SMF'))
+	die('No direct access...');
 
 class Generator
 {
@@ -147,15 +154,15 @@ class Generator
 
 	private function addSMF3Imports(PhpNamespace $namespace): void
 	{
-		$namespace->addUse(\SMF\Actions\Admin\ACP::class);
-		$namespace->addUse(\SMF\Config::class);
-		$namespace->addUse(\SMF\Db\DatabaseApi::class, 'Db');
-		$namespace->addUse(\SMF\IntegrationHook::class);
-		$namespace->addUse(\SMF\Lang::class);
-		$namespace->addUse(\SMF\Menu::class);
-		$namespace->addUse(\SMF\Theme::class);
-		$namespace->addUse(\SMF\User::class);
-		$namespace->addUse(\SMF\Utils::class);
+		$namespace->addUse(ACP::class);
+		$namespace->addUse(Config::class);
+		$namespace->addUse(DatabaseApi::class, 'Db');
+		$namespace->addUse(IntegrationHook::class);
+		$namespace->addUse(Lang::class);
+		$namespace->addUse(Menu::class);
+		$namespace->addUse(Theme::class);
+		$namespace->addUse(User::class);
+		$namespace->addUse(Utils::class);
 	}
 
 	private function generateHooksMethods(ClassType $class, array $skeleton, string $classname, string $snakeName): void
@@ -180,7 +187,7 @@ class Generator
 		$modernLines = [];
 
 		foreach ($skeleton['hooks'] as $hook) {
-			$methodName = $this->getMethodName($hook);
+			$methodName = Hook::toMethodName($hook);
 
 			if ($this->needsSmf3Code($skeleton)) {
 				$modernLines[] = 'IntegrationHook::add(' . var_export($hook, true) . ", self::class . '::" . $methodName . "#');";
@@ -756,7 +763,7 @@ class Generator
 
 	private function fillBackgroundTask(PhpNamespace $namespace, ClassType $class, array $skeleton, string $baseClassname, string $filename, array $task): void
 	{
-		$namespace->addUse(\SMF\Db\DatabaseApi::class, 'Db');
+		$namespace->addUse(DatabaseApi::class, 'Db');
 
 		$method = $this->createExecuteMethod($class, $skeleton);
 
@@ -1023,11 +1030,6 @@ class Generator
 
 		// SMF stores multiple selections as a JSON array
 		return json_encode($values) ?: '[]';
-	}
-
-	private function getMethodName(string $hook): string
-	{
-		return lcfirst(str_replace(' ', '', ucwords(strtr($hook, ['integrate' => '', '_' => ' ']))));
 	}
 
 	private function toCamelCase(string $value): string

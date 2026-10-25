@@ -47,4 +47,12 @@ class Hook
 	public const USER_INFO = 'integrate_user_info';
 
 	public const WEEKLY_MAINTENANCE = 'integrate_weekly_maintenance';
+
+	/**
+	 * The name of the generated method that serves the given hook
+	 */
+	public static function toMethodName(string $hook): string
+	{
+		return lcfirst(str_replace(' ', '', ucwords(strtr($hook, ['integrate' => '', '_' => ' ']))));
+	}
 }

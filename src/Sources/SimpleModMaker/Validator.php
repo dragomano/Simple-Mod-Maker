@@ -627,8 +627,7 @@ final class Validator
 				continue;
 			}
 
-			// Mirrors Generator::getMethodName()
-			$methods[] = lcfirst(str_replace(' ', '', ucwords(strtr($hook, ['integrate' => '', '_' => ' ']))));
+			$methods[] = Hook::toMethodName($hook);
 		}
 
 		return $methods;

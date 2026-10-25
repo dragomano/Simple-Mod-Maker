@@ -15,8 +15,6 @@ namespace Bugo\SimpleModMaker;
 if (! defined('SMF'))
 	die('No direct access...');
 
-namespace Bugo\SimpleModMaker;
-
 class SkeletonBuilder
 {
 	public function build(): array

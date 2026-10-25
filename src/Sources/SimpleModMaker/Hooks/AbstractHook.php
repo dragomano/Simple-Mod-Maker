@@ -12,6 +12,8 @@
 
 namespace Bugo\SimpleModMaker\Hooks;
 
+use Bugo\SimpleModMaker\Hook;
+
 abstract class AbstractHook implements HookInterface
 {
 	protected string $name;
@@ -34,7 +36,7 @@ abstract class AbstractHook implements HookInterface
 
 	public function getMethodName(): string
 	{
-		return lcfirst(str_replace(' ', '', ucwords(strtr($this->name, ['integrate' => '', '_' => ' ']))));
+		return Hook::toMethodName($this->name);
 	}
 
 	public function getReturnType(): string

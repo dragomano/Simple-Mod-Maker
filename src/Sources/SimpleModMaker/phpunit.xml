@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.x/phpunit.xsd"
+         bootstrap="tests/Bootstrap.php"
+         cacheDirectory=".phpunit.cache"
+         failOnDeprecation="true"
+         failOnEmptyTestSuite="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         beStrictAboutOutputDuringTests="true"
+         beStrictAboutTestsThatDoNotTestAnything="false"
+         displayDetailsOnIncompleteTests="true"
+         displayDetailsOnSkippedTests="true"
+         colors="true">
+    <testsuites>
+        <testsuite name="default">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <php>
+        <const name="SMF" value="true"/>
+        <const name="SMM_NAME" value="Simple Mod Maker"/>
+        <!-- The branch of the mixed-target packages that runs in the tests -->
+        <const name="SMF_VERSION" value="3.0.0"/>
+        <const name="SMM_FILENAME_PATTERN" value="^(?:Class-)?[A-Z][a-zA-Z]+$"/>
+        <const name="SMM_MODNAME_DEFAULT" value="My New Mod"/>
+        <const name="SMM_VENDOR_DEFAULT" value="MyMods"/>
+    </php>
+
+    <source>
+        <include>
+            <directory suffix=".php">./</directory>
+        </include>
+        <exclude>
+            <directory>./tests</directory>
+            <directory>./vendor</directory>
+        </exclude>
+    </source>
+</phpunit>
