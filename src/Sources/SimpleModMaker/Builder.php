@@ -152,6 +152,7 @@ final class Builder
 
 			$this->createReadmes();
 			$this->createTables();
+			$this->createUninstallScripts();
 			$this->createLangs();
 
 			$this->makeDir($this->path . '/Sources');
@@ -397,11 +398,7 @@ final class Builder
 			$database .= "use SMF\\Db\\DatabaseApi as Db;\n\n";
 		}
 
-		$database .= "if (file_exists(dirname(__FILE__) . '/SSI.php') && ! defined('SMF'))\n";
-		$database .= "\trequire_once(dirname(__FILE__) . '/SSI.php');\n";
-		$database .= "elseif (! defined('SMF'))\n";
-		$database .= "\tdie('<b>Error:</b> Cannot install - please verify that you put this file in the same place as SMF\'s index.php and SSI.php files.');";
-		$database .= "\n\n";
+		$database .= $this->getScriptHeader('install');
 
 		if (! empty($this->skeleton['min_php_version'])) {
 			$minPhpVersion = (string) $this->skeleton['min_php_version'];
@@ -415,9 +412,9 @@ final class Builder
 		}
 
 		if (! empty($this->skeleton['tables'])) {
-			$database .= "if (SMF === 'SSI' && ! \$user_info['is_admin'])\n";
-			$database .= "\tdie('Admin privileges required.');";
-			$database .= "\n\n";
+			$database .= "if (SMF === 'SSI' && ! \$user_info['is_admin']) {\n";
+			$database .= "\tdie('Admin privileges required.');\n";
+			$database .= "}\n\n";
 		}
 
 		foreach ($this->skeleton['tables'] as $table) {
@@ -496,64 +493,22 @@ final class Builder
 
 		$this->addScheduledTasks($database);
 
-		$database .= "if (SMF === 'SSI')\n";
-		$database .= "\techo 'Database changes are complete!';";
+		$database .= "if (SMF === 'SSI') {\n";
+		$database .= "\techo 'Database changes are complete!';\n";
+		$database .= "}";
 
 		$this->writePackageFile($this->path . '/database.php', $database);
 	}
 
+	/**
+	 * The registration of the scheduled tasks: the rows that are already in
+	 * the database are kept as is (with their schedule and enabled state), and
+	 * only the missing ones are inserted, so a repeated installation never
+	 * creates duplicates.
+	 */
 	private function addScheduledTasks(string &$database): void
 	{
-		if ($this->isMixedTarget()) {
-			$this->addScheduledTasksForBothVersions($database);
-
-			return;
-		}
-
-		foreach ($this->skeleton['scheduled_tasks'] as $task) {
-			[$regularity, $unit] = $this->getScheduledTaskRegularities($task);
-
-			$columns = [
-				"\t\t'next_time'       => 'int',",
-				"\t\t'time_offset'     => 'int',",
-				"\t\t'time_regularity' => 'int',",
-				"\t\t'time_unit'       => 'string',",
-				"\t\t'disabled'        => 'int',",
-				"\t\t'task'            => 'string',",
-				"\t\t'callable'        => 'string'",
-			];
-
-			$data = [
-				"\t\tstrtotime('tomorrow'),",
-				"\t\t0,",
-				"\t\t$regularity,",
-				"\t\t" . var_export($unit, true) . ",",
-				"\t\t0,",
-				"\t\t" . var_export($task['slug'], true) . ",",
-				"\t\t" . var_export($task['callable'] ?? '', true),
-			];
-
-			if ($this->needsSmf3Code()) {
-				$database .= "Db::\$db->insert('',\n";
-			} else {
-				$database .= "\$smcFunc['db_insert']('',\n";
-			}
-
-			$database .= "\t'{db_prefix}scheduled_tasks',\n";
-			$database .= "\t[\n" . implode("\n", $columns) . "\n\t],\n";
-			$database .= "\t[\n" . implode("\n", $data) . "\n\t],\n";
-			$database .= "\t['id_task']\n";
-			$database .= ");\n\n";
-		}
-	}
-
-	/**
-	 * A single version check and a single multi-row insert for all the tasks,
-	 * instead of repeating both for every task.
-	 */
-	private function addScheduledTasksForBothVersions(string &$database): void
-	{
-		if ($this->skeleton['scheduled_tasks'] === []) {
+		if (empty($this->skeleton['scheduled_tasks'])) {
 			return;
 		}
 
@@ -568,29 +523,82 @@ final class Builder
 		];
 
 		$database .= "\$taskColumns = [\n" . implode("\n", $columns) . "\n];\n\n";
-		$database .= "\$taskRows = [\n";
+
+		$rows = [];
 
 		foreach ($this->skeleton['scheduled_tasks'] as $task) {
 			[$regularity, $unit] = $this->getScheduledTaskRegularities($task);
 
-			$database .= "\t[\n";
-			$database .= "\t\tstrtotime('tomorrow'),\n";
-			$database .= "\t\t0,\n";
-			$database .= "\t\t$regularity,\n";
-			$database .= "\t\t" . var_export($unit, true) . ",\n";
-			$database .= "\t\t0,\n";
-			$database .= "\t\t" . var_export($task['slug'], true) . ",\n";
-			$database .= "\t\t" . var_export($task['callable'] ?? '', true) . "\n";
-			$database .= "\t],\n";
+			$rows[] = "\t[\n"
+				. "\t\t'next_time'       => strtotime('tomorrow'),\n"
+				. "\t\t'time_offset'     => 0,\n"
+				. "\t\t'time_regularity' => $regularity,\n"
+				. "\t\t'time_unit'       => " . var_export($unit, true) . ",\n"
+				. "\t\t'disabled'        => 0,\n"
+				. "\t\t'task'            => " . var_export($task['slug'], true) . ",\n"
+				. "\t\t'callable'        => " . var_export($task['callable'] ?? '', true) . "\n"
+				. "\t]";
 		}
 
-		$database .= "];\n\n";
+		$database .= "\$taskRows = [\n" . implode(",\n", $rows) . "\n];\n\n";
 
-		$database .= "if (" . self::SMF3_CHECK . ") {\n";
-		$database .= "\tDb::\$db->insert('', '{db_prefix}scheduled_tasks', \$taskColumns, \$taskRows, ['id_task']);\n";
-		$database .= "} else {\n";
-		$database .= "\tglobal \$smcFunc;\n\n";
-		$database .= "\t\$smcFunc['db_insert']('', '{db_prefix}scheduled_tasks', \$taskColumns, \$taskRows, ['id_task']);\n";
+		$database .= "// Repeated installation must not create duplicate tasks\n";
+		$database .= "\$existingTasks = [];\n\n";
+
+		$query = "\n"
+			. "\tSELECT task\n"
+			. "\tFROM {db_prefix}scheduled_tasks\n"
+			. "\tWHERE task IN ({array_string:tasks})',\n"
+			. "\t[\n"
+			. "\t\t'tasks' => array_column(\$taskRows, 'task'),\n"
+			. "\t]\n"
+			. ")";
+
+		$legacyCheck = "\$request = \$smcFunc['db_query']('', '" . $query
+			. ";\n\nwhile (\$row = \$smcFunc['db_fetch_assoc'](\$request)) {"
+			. "\n\t\$existingTasks[] = \$row['task'];"
+			. "\n}\n\n"
+			. "\$smcFunc['db_free_result'](\$request);";
+
+		$modernCheck = "\$request = Db::\$db->query('" . $query
+			. ";\n\nwhile (\$row = Db::\$db->fetch_assoc(\$request)) {"
+			. "\n\t\$existingTasks[] = \$row['task'];"
+			. "\n}\n\n"
+			. "Db::\$db->free_result(\$request);";
+
+		if ($this->isMixedTarget()) {
+			$database .= "if (" . self::SMF3_CHECK . ") {\n";
+			$database .= $this->indentLines($modernCheck) . "\n";
+			$database .= "} else {\n";
+			$database .= "\tglobal \$smcFunc;\n\n";
+			$database .= $this->indentLines($legacyCheck) . "\n";
+			$database .= "}\n\n";
+		} elseif ($this->needsSmf3Code()) {
+			$database .= $modernCheck . "\n\n";
+		} else {
+			$database .= $legacyCheck . "\n\n";
+		}
+
+		$database .= "foreach (\$taskRows as \$key => \$taskRow) {\n";
+		$database .= "\tif (in_array(\$taskRow['task'], \$existingTasks)) {\n";
+		$database .= "\t\tunset(\$taskRows[\$key]);\n";
+		$database .= "\t}\n";
+		$database .= "}\n\n";
+
+		$database .= "if (\$taskRows) {\n";
+
+		if ($this->isMixedTarget()) {
+			$database .= "\tif (" . self::SMF3_CHECK . ") {\n";
+			$database .= "\t\tDb::\$db->insert('', '{db_prefix}scheduled_tasks', \$taskColumns, \$taskRows, ['id_task']);\n";
+			$database .= "\t} else {\n";
+			$database .= "\t\t\$smcFunc['db_insert']('', '{db_prefix}scheduled_tasks', \$taskColumns, \$taskRows, ['id_task']);\n";
+			$database .= "\t}\n";
+		} elseif ($this->needsSmf3Code()) {
+			$database .= "\tDb::\$db->insert('', '{db_prefix}scheduled_tasks', \$taskColumns, \$taskRows, ['id_task']);\n";
+		} else {
+			$database .= "\t\$smcFunc['db_insert']('', '{db_prefix}scheduled_tasks', \$taskColumns, \$taskRows, ['id_task']);\n";
+		}
+
 		$database .= "}\n\n";
 	}
 
@@ -604,6 +612,191 @@ final class Builder
 			1       => [1, 'w'],
 			default => [4, 'w'],
 		};
+	}
+
+	/**
+	 * The uninstall helpers: the plain script removes the task registrations
+	 * of this mod on every uninstall, and the database script removes the
+	 * settings and tables — the latter is executed by the package manager only
+	 * when the user opts into the data removal during the uninstall.
+	 */
+	private function createUninstallScripts(): void
+	{
+		$hasTasks = ! empty($this->skeleton['scheduled_tasks']) || ! empty($this->skeleton['background_tasks']);
+		$hasData  = ! empty($this->skeleton['options']) || ! empty($this->skeleton['tables']);
+
+		if (! $hasTasks && ! $hasData) {
+			return;
+		}
+
+		$prefix = "<?php\n\n";
+
+		// The short alias of the SMF 3.0 database API keeps the modern calls readable
+		if ($this->needsSmf3Code()) {
+			$prefix .= "use SMF\\Db\\DatabaseApi as Db;\n\n";
+		}
+
+		$prefix .= $this->getScriptHeader('uninstall');
+
+		if ($hasTasks) {
+			$this->writePackageFile($this->path . '/uninstall.php', $prefix . $this->getUninstallTasksScript());
+		}
+
+		if ($hasData) {
+			$script = $prefix;
+
+			$script .= "if (SMF === 'SSI' && ! \$user_info['is_admin']) {\n";
+			$script .= "\tdie('Admin privileges required.');\n";
+			$script .= "}\n\n";
+
+			$this->writePackageFile($this->path . '/uninstall-database.php', $script . $this->getUninstallDataScript());
+		}
+	}
+
+	/**
+	 * After the uninstall the mod's classes are gone, so its scheduled tasks
+	 * and queued background tasks must not stay active: both would fail on
+	 * every run while the mod is not installed.
+	 */
+	private function getUninstallTasksScript(): string
+	{
+		$legacyLines = [];
+		$modernLines = [];
+
+		if (! empty($this->skeleton['scheduled_tasks'])) {
+			$taskSlugs = array_map(
+				fn (array $task): string => (string) $task['slug'],
+				$this->skeleton['scheduled_tasks']
+			);
+
+			$query  = "\n\tDELETE FROM {db_prefix}scheduled_tasks\n\tWHERE task IN ({array_string:tasks})";
+			$params = "\t[\n\t\t'tasks' => " . $this->getExportedValues($taskSlugs) . "\n\t]";
+
+			$legacyLines[] = "\$smcFunc['db_query']('', '" . $query . "',\n" . $params . "\n);";
+			$modernLines[] = "Db::\$db->query('" . $query . "',\n" . $params . "\n);";
+		}
+
+		if (! empty($this->skeleton['background_tasks'])) {
+			$taskFiles = array_map(
+				fn (array $task): string => '$sourcedir/' . $this->classname . '/Tasks/' . $task['classname'] . '.php',
+				$this->skeleton['background_tasks']
+			);
+
+			$query  = "\n\tDELETE FROM {db_prefix}background_tasks\n\tWHERE task_file IN ({array_string:files})";
+			$params = "\t[\n\t\t'files' => " . $this->getExportedValues($taskFiles) . "\n\t]";
+
+			$legacyLines[] = "\$smcFunc['db_query']('', '" . $query . "',\n" . $params . "\n);";
+			$modernLines[] = "Db::\$db->query('" . $query . "',\n" . $params . "\n);";
+		}
+
+		return $this->attachVersionLines($legacyLines, $modernLines);
+	}
+
+	/**
+	 * The settings and tables of this mod are the user data: they are removed
+	 * only when the uninstall database script is actually executed, i.e. when
+	 * the user has chosen to remove all the data along with the mod.
+	 */
+	private function getUninstallDataScript(): string
+	{
+		$legacyLines = [];
+		$modernLines = [];
+
+		if (! empty($this->skeleton['options'])) {
+			$settingKeys = array_map(
+				fn (array $option): string => $this->snake_name . '_' . $option['name'],
+				$this->skeleton['options']
+			);
+
+			$query  = "\n\tDELETE FROM {db_prefix}settings\n\tWHERE variable IN ({array_string:settings})";
+			$params = "\t[\n\t\t'settings' => " . $this->getExportedValues($settingKeys) . "\n\t]";
+
+			$legacyLines[] = "\$smcFunc['db_query']('', '" . $query . "',\n" . $params . "\n);";
+			$modernLines[] = "Db::\$db->query('" . $query . "',\n" . $params . "\n);";
+		}
+
+		foreach ($this->skeleton['tables'] as $table) {
+			$legacyLines[] = "\$smcFunc['db_drop_table']('{db_prefix}" . $table['name'] . "');";
+			$modernLines[] = "Db::\$db->drop_table('{db_prefix}" . $table['name'] . "');";
+		}
+
+		return $this->attachVersionLines($legacyLines, $modernLines);
+	}
+
+	/**
+	 * Emits the given statements for the selected SMF version: separately for a
+	 * single target version, or wrapped into a runtime version check for the
+	 * mixed one.
+	 *
+	 * @param list<string> $legacyLines
+	 * @param list<string> $modernLines
+	 */
+	private function attachVersionLines(array $legacyLines, array $modernLines): string
+	{
+		if (! $this->isMixedTarget()) {
+			$lines = $this->needsSmf3Code() ? $modernLines : $legacyLines;
+
+			return $lines === [] ? '' : implode("\n\n", $lines) . "\n\n";
+		}
+
+		if ($legacyLines === [] && $modernLines === []) {
+			return '';
+		}
+
+		$script = "if (" . self::SMF3_CHECK . ") {\n";
+
+		foreach ($modernLines as $line) {
+			$script .= $this->indentLines($line) . "\n";
+		}
+
+		$script .= "} else {\n";
+
+		if ($legacyLines !== []) {
+			$script .= "\tglobal \$smcFunc;\n\n";
+
+			foreach ($legacyLines as $line) {
+				$script .= $this->indentLines($line) . "\n";
+			}
+		}
+
+		$script .= "}\n\n";
+
+		return $script;
+	}
+
+	/**
+	 * @param list<string|int|float|bool> $values
+	 */
+	private function getExportedValues(array $values): string
+	{
+		return '[' . implode(', ', array_map(
+			static fn (string|int|float|bool $value): string => var_export($value, true),
+			$values
+		)) . ']';
+	}
+
+	/**
+	 * The shared bootstrap of the generated scripts: standalone runs via SSI
+	 * are allowed, everything else requires the SMF context.
+	 */
+	private function getScriptHeader(string $action): string
+	{
+		$header  = "if (file_exists(dirname(__FILE__) . '/SSI.php') && ! defined('SMF')) {\n";
+		$header .= "\trequire_once(dirname(__FILE__) . '/SSI.php');\n";
+		$header .= "} elseif (! defined('SMF')) {\n";
+		$header .= "\tdie('<b>Error:</b> Cannot $action - please verify that you put this file in the same place as SMF\'s index.php and SSI.php files.');\n";
+		$header .= "}\n\n";
+
+		return $header;
+	}
+
+	/**
+	 * Shifts every non-empty line of the given code one level deeper,
+	 * including the lines of embedded multi-line statements.
+	 */
+	private function indentLines(string $code): string
+	{
+		return preg_replace_callback('/^[^\n]/m', static fn (array $match): string => "\t" . $match[0], $code);
 	}
 
 	private function getDefaultValue(array $column): string
@@ -830,11 +1023,21 @@ final class Builder
 			'@attributes' => [
 				'for' => $this->getTargetVersion(),
 			],
-			'hook' => [
-				array_merge((array) $data['install']['hook'][0], [
-					'reverse' => 'true',
-				]),
-			],
+		];
+
+		// The uninstall scripts run before the hook is removed and the files
+		// are deleted: the plain script cleans the task registrations, and the
+		// database one removes the user data only on request
+		if (is_file($this->path . '/uninstall.php'))
+			$data['uninstall']['code'] = 'uninstall.php';
+
+		if (is_file($this->path . '/uninstall-database.php'))
+			$data['uninstall']['database'] = 'uninstall-database.php';
+
+		$data['uninstall']['hook'] = [
+			array_merge((array) $data['install']['hook'][0], [
+				'reverse' => 'true',
+			]),
 		];
 
 		if (is_file($this->path . '/database.php'))
