@@ -29,7 +29,20 @@ class FetchAlertsHook extends AbstractHook
 
 	public function getBody(): array
 	{
-		return $this->context['smm_skeleton']['smf_target_version'] !== '3.0' ? [
+		return $this->isModernTarget() ? $this->getModernBody() : $this->getLegacyBody();
+	}
+
+	public function getDualBody(): ?array
+	{
+		return [
+			'legacy' => $this->getLegacyBody(),
+			'modern' => $this->getModernBody(),
+		];
+	}
+
+	private function getLegacyBody(): array
+	{
+		return [
 			"global \$user_info;" . PHP_EOL,
 			"if (empty(\$alerts))",
 			"\treturn;" . PHP_EOL,
@@ -49,7 +62,12 @@ class FetchAlertsHook extends AbstractHook
 			"\t\t}",
 			"\t}",
 			"}"
-		] : [
+		];
+	}
+
+	private function getModernBody(): array
+	{
+		return [
 			"if (empty(\$alerts))",
 			"\treturn;" . PHP_EOL,
 			"foreach (\$alerts as \$id => \$alert) {",

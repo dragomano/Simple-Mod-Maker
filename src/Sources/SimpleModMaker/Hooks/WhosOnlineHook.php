@@ -33,7 +33,20 @@ class WhosOnlineHook extends AbstractHook
 
 	public function getBody(): array
 	{
-		return $this->context['smm_skeleton']['smf_target_version'] !== '3.0' ? [
+		return $this->isModernTarget() ? $this->getModernBody() : $this->getLegacyBody();
+	}
+
+	public function getDualBody(): ?array
+	{
+		return [
+			'legacy' => $this->getLegacyBody(),
+			'modern' => $this->getModernBody(),
+		];
+	}
+
+	private function getLegacyBody(): array
+	{
+		return [
 			"global \$txt, \$scripturl;" . PHP_EOL,
 			"if (empty(\$actions['action']) || \$actions['action'] !== 'your_action')",
 			"\treturn '';" . PHP_EOL,
@@ -42,7 +55,12 @@ class WhosOnlineHook extends AbstractHook
 			"\t\$result = sprintf(\$txt['your_mod_who_viewing_your_subaction'], \$scripturl . '?action=' . \$actions['action'] . ';' . \$actions['subaction']);",
 			"}" . PHP_EOL,
 			"return \$result;",
-		] : [
+		];
+	}
+
+	private function getModernBody(): array
+	{
+		return [
 			"if (empty(\$actions['action']) || \$actions['action'] !== 'your_action')",
 			"\treturn '';" . PHP_EOL,
 			"\$result = Lang::getTxt('your_mod_who_viewing_your_action', [",

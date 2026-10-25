@@ -41,4 +41,23 @@ abstract class AbstractHook implements HookInterface
 	{
 		return 'void';
 	}
+
+	/**
+	 * Both body variants for a mod built for both SMF versions at once.
+	 * Null means the body is identical for all supported versions.
+	 *
+	 * @return array{legacy: list<string>, modern: list<string>}|null
+	 */
+	public function getDualBody(): ?array
+	{
+		return null;
+	}
+
+	/**
+	 * Whether the generated code must use the modern API of SMF 3.0.
+	 */
+	protected function isModernTarget(): bool
+	{
+		return $this->context['smm_skeleton']['smf_target_version'] === '3.0';
+	}
 }

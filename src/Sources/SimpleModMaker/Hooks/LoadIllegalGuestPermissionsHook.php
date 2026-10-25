@@ -26,10 +26,28 @@ class LoadIllegalGuestPermissionsHook extends AbstractHook
 
 	public function getBody(): array
 	{
-		return $this->context['smm_skeleton']['smf_target_version'] !== '3.0' ? [
+		return $this->isModernTarget() ? $this->getModernBody() : $this->getLegacyBody();
+	}
+
+	public function getDualBody(): ?array
+	{
+		return [
+			'legacy' => $this->getLegacyBody(),
+			'modern' => $this->getModernBody(),
+		];
+	}
+
+	private function getLegacyBody(): array
+	{
+		return [
 			"global \$context;" . PHP_EOL,
 			"\$context['non_guest_permissions'][] = '{$this->snakeName}_example_permission';",
-		] : [
+		];
+	}
+
+	private function getModernBody(): array
+	{
+		return [
 			"Utils::\$context['non_guest_permissions'][] = '{$this->snakeName}_example_permission';",
 		];
 	}

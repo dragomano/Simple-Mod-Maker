@@ -25,6 +25,12 @@ if (! defined('SMF'))
 
 final class Builder
 {
+	/**
+	 * The runtime check that separates the code branches of a package built
+	 * for both SMF versions at once.
+	 */
+	private const SMF3_CHECK = "version_compare(SMF_VERSION, '3.0', '>=')";
+
 	private array $skeleton;
 
 	/**
@@ -237,7 +243,7 @@ final class Builder
 
 		ob_end_clean();
 
-		$pretty_name = $this->snake_name . '_' . $this->skeleton['version'] . '_smf21.zip';
+		$pretty_name = $this->snake_name . '_' . $this->skeleton['version'] . $this->getVersionSuffix() . '.zip';
 
 		header_remove('content-encoding');
 		header('Content-Description: File Transfer');
@@ -301,7 +307,7 @@ final class Builder
 	 */
 	private function createArchive(): string
 	{
-		$filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . bin2hex(random_bytes(5)) . '_smf21';
+		$filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . bin2hex(random_bytes(5)) . $this->getVersionSuffix();
 
 		$this->archive = $filename . '.zip';
 
@@ -385,6 +391,12 @@ final class Builder
 			return;
 
 		$database = "<?php\n\n";
+
+		// The short alias of the SMF 3.0 database API keeps the modern calls readable
+		if ($this->needsSmf3Code() && (! empty($this->skeleton['tables']) || ! empty($this->skeleton['scheduled_tasks']))) {
+			$database .= "use SMF\\Db\\DatabaseApi as Db;\n\n";
+		}
+
 		$database .= "if (file_exists(dirname(__FILE__) . '/SSI.php') && ! defined('SMF'))\n";
 		$database .= "\trequire_once(dirname(__FILE__) . '/SSI.php');\n";
 		$database .= "elseif (! defined('SMF'))\n";
@@ -465,7 +477,20 @@ final class Builder
 
 		if (! empty($this->skeleton['tables'])) {
 			$database .= "foreach (\$tables as \$table) {\n";
-			$database .= "\t\$smcFunc['db_create_table']('{db_prefix}' . \$table['name'], \$table['columns'], \$table['indexes']);\n";
+
+			if ($this->isMixedTarget()) {
+				$database .= "\tif (" . self::SMF3_CHECK . ") {\n";
+				$database .= "\t\tDb::\$db->create_table('{db_prefix}' . \$table['name'], \$table['columns'], \$table['indexes']);\n";
+				$database .= "\t} else {\n";
+				$database .= "\t\tglobal \$smcFunc;\n\n";
+				$database .= "\t\t\$smcFunc['db_create_table']('{db_prefix}' . \$table['name'], \$table['columns'], \$table['indexes']);\n";
+				$database .= "\t}\n";
+			} elseif ($this->needsSmf3Code()) {
+				$database .= "\tDb::\$db->create_table('{db_prefix}' . \$table['name'], \$table['columns'], \$table['indexes']);\n";
+			} else {
+				$database .= "\t\$smcFunc['db_create_table']('{db_prefix}' . \$table['name'], \$table['columns'], \$table['indexes']);\n";
+			}
+
 			$database .= "}\n\n";
 		}
 
@@ -479,34 +504,75 @@ final class Builder
 
 	private function addScheduledTasks(string &$database): void
 	{
+		if ($this->isMixedTarget()) {
+			$this->addScheduledTasksForBothVersions($database);
+
+			return;
+		}
+
 		foreach ($this->skeleton['scheduled_tasks'] as $task) {
-			switch ($task['regularity']) {
-				case 0:
-					$regularity = 1;
-					$unit = 'd';
-					break;
+			[$regularity, $unit] = $this->getScheduledTaskRegularities($task);
 
-				case 1:
-					$regularity = 1;
-					$unit = 'w';
-					break;
+			$columns = [
+				"\t\t'next_time'       => 'int',",
+				"\t\t'time_offset'     => 'int',",
+				"\t\t'time_regularity' => 'int',",
+				"\t\t'time_unit'       => 'string',",
+				"\t\t'disabled'        => 'int',",
+				"\t\t'task'            => 'string',",
+				"\t\t'callable'        => 'string'",
+			];
 
-				default:
-					$regularity = 4;
-					$unit = 'w';
+			$data = [
+				"\t\tstrtotime('tomorrow'),",
+				"\t\t0,",
+				"\t\t$regularity,",
+				"\t\t" . var_export($unit, true) . ",",
+				"\t\t0,",
+				"\t\t" . var_export($task['slug'], true) . ",",
+				"\t\t" . var_export($task['callable'] ?? '', true),
+			];
+
+			if ($this->needsSmf3Code()) {
+				$database .= "Db::\$db->insert('',\n";
+			} else {
+				$database .= "\$smcFunc['db_insert']('',\n";
 			}
 
-			$database .= "\$smcFunc['db_insert']('',\n";
 			$database .= "\t'{db_prefix}scheduled_tasks',\n";
-			$database .= "\t[\n";
-			$database .= "\t\t'next_time'       => 'int',\n";
-			$database .= "\t\t'time_offset'     => 'int',\n";
-			$database .= "\t\t'time_regularity' => 'int',\n";
-			$database .= "\t\t'time_unit'       => 'string',\n";
-			$database .= "\t\t'disabled'        => 'int',\n";
-			$database .= "\t\t'task'            => 'string',\n";
-			$database .= "\t\t'callable'        => 'string'\n";
-			$database .= "\t],\n";
+			$database .= "\t[\n" . implode("\n", $columns) . "\n\t],\n";
+			$database .= "\t[\n" . implode("\n", $data) . "\n\t],\n";
+			$database .= "\t['id_task']\n";
+			$database .= ");\n\n";
+		}
+	}
+
+	/**
+	 * A single version check and a single multi-row insert for all the tasks,
+	 * instead of repeating both for every task.
+	 */
+	private function addScheduledTasksForBothVersions(string &$database): void
+	{
+		if ($this->skeleton['scheduled_tasks'] === []) {
+			return;
+		}
+
+		$columns = [
+			"\t'next_time'       => 'int',",
+			"\t'time_offset'     => 'int',",
+			"\t'time_regularity' => 'int',",
+			"\t'time_unit'       => 'string',",
+			"\t'disabled'        => 'int',",
+			"\t'task'            => 'string',",
+			"\t'callable'        => 'string'",
+		];
+
+		$database .= "\$taskColumns = [\n" . implode("\n", $columns) . "\n];\n\n";
+		$database .= "\$taskRows = [\n";
+
+		foreach ($this->skeleton['scheduled_tasks'] as $task) {
+			[$regularity, $unit] = $this->getScheduledTaskRegularities($task);
+
 			$database .= "\t[\n";
 			$database .= "\t\tstrtotime('tomorrow'),\n";
 			$database .= "\t\t0,\n";
@@ -516,9 +582,28 @@ final class Builder
 			$database .= "\t\t" . var_export($task['slug'], true) . ",\n";
 			$database .= "\t\t" . var_export($task['callable'] ?? '', true) . "\n";
 			$database .= "\t],\n";
-			$database .= "\t['id_task']\n";
-			$database .= ");\n\n";
 		}
+
+		$database .= "];\n\n";
+
+		$database .= "if (" . self::SMF3_CHECK . ") {\n";
+		$database .= "\tDb::\$db->insert('', '{db_prefix}scheduled_tasks', \$taskColumns, \$taskRows, ['id_task']);\n";
+		$database .= "} else {\n";
+		$database .= "\tglobal \$smcFunc;\n\n";
+		$database .= "\t\$smcFunc['db_insert']('', '{db_prefix}scheduled_tasks', \$taskColumns, \$taskRows, ['id_task']);\n";
+		$database .= "}\n\n";
+	}
+
+	/**
+	 * @return array{0: int, 1: string} The regularity value and the time unit
+	 */
+	private function getScheduledTaskRegularities(array $task): array
+	{
+		return match ((int) $task['regularity']) {
+			0       => [1, 'd'],
+			1       => [1, 'w'],
+			default => [4, 'w'],
+		};
 	}
 
 	private function getDefaultValue(array $column): string
@@ -851,12 +936,51 @@ final class Builder
 
 		if (! empty($this->skeleton['options'])) {
 			$data['install']['redirect'][] = [
-				'url'     => '?action=admin;area=modsettings;sa=' . $this->snake_name,
+				'url'     => $this->getSettingsRedirectUrl(),
 				'timeout' => '3000',
 			];
 		}
 
 		return $data;
+	}
+
+	/**
+	 * After installation, the user is taken to the page with the mod settings:
+	 * the general section of Modification Settings for area 1, the mod's own
+	 * subsection or admin area for areas 2 and 3.
+	 */
+	private function getSettingsRedirectUrl(): string
+	{
+		return match ((int) $this->skeleton['settings_area']) {
+			1       => '?action=admin;area=modsettings;sa=general',
+			3       => '?action=admin;area=' . $this->snake_name,
+			default => '?action=admin;area=modsettings;sa=' . $this->snake_name,
+		};
+	}
+
+	/**
+	 * The archive suffix reflects the SMF versions the package is built for.
+	 */
+	private function getVersionSuffix(): string
+	{
+		return match ($this->skeleton['smf_target_version']) {
+			'3.0'     => '_smf30',
+			'2.1/3.0' => '_smf21_smf30',
+			default   => '_smf21',
+		};
+	}
+
+	/**
+	 * Whether the generated code must use the modern API of SMF 3.0.
+	 */
+	private function needsSmf3Code(): bool
+	{
+		return in_array($this->skeleton['smf_target_version'], ['3.0', '2.1/3.0'], true);
+	}
+
+	private function isMixedTarget(): bool
+	{
+		return $this->skeleton['smf_target_version'] === '2.1/3.0';
 	}
 
 	private function getLanguagesPath(): string

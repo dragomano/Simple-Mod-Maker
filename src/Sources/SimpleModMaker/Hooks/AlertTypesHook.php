@@ -29,7 +29,41 @@ class AlertTypesHook extends AbstractHook
 
 	public function getBody(): array
 	{
-		$alertTypeCode = "\$alert_types['$this->snakeName']['some_action'] = [
+		return $this->isModernTarget() ? $this->getModernBody() : $this->getLegacyBody();
+	}
+
+	public function getDualBody(): ?array
+	{
+		return [
+			'legacy' => $this->getLegacyBody(),
+			'modern' => $this->getModernBody(),
+		];
+	}
+
+	private function getLegacyBody(): array
+	{
+		return [
+			"global \$txt;" . PHP_EOL,
+			"\$txt['alert_group_$this->snakeName'] = \$txt['{$this->snakeName}_title'];" . PHP_EOL,
+			$this->getAlertTypeCode(),
+		];
+	}
+
+	private function getModernBody(): array
+	{
+		return [
+			"Lang::\$txt['alert_group_$this->snakeName'] = Lang::\$txt['{$this->snakeName}_title'];" . PHP_EOL,
+			$this->getAlertTypeCode(),
+		];
+	}
+
+	/**
+	 * The internal indentation of this multi-line snippet is preserved as is,
+	 * whatever the nesting level of the version check around it.
+	 */
+	private function getAlertTypeCode(): string
+	{
+		return "\$alert_types['$this->snakeName']['some_action'] = [
 	'alert' => 'yes', // or 'never'
 	'email' => 'yes', // or 'never'
 	'permission' => [
@@ -37,18 +71,5 @@ class AlertTypesHook extends AbstractHook
 		'is_board' => false,
 	]
 ];";
-
-		if ($this->context['smm_skeleton']['smf_target_version'] !== '3.0') {
-			return [
-				"global \$txt;" . PHP_EOL,
-				"\$txt['alert_group_$this->snakeName'] = \$txt['{$this->snakeName}_title'];" . PHP_EOL,
-				$alertTypeCode
-			];
-		} else {
-			return [
-				"Lang::\$txt['alert_group_$this->snakeName'] = Lang::\$txt['{$this->snakeName}_title'];" . PHP_EOL,
-				$alertTypeCode
-			];
-		}
 	}
 }

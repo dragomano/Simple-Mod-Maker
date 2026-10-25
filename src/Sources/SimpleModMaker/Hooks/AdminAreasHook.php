@@ -28,24 +28,30 @@ class AdminAreasHook extends AbstractHook
 
 	public function getBody(): array
 	{
+		return $this->isModernTarget() ? $this->getModernBody() : $this->getLegacyBody();
+	}
+
+	public function getDualBody(): ?array
+	{
+		return [
+			'legacy' => $this->getLegacyBody(),
+			'modern' => $this->getModernBody(),
+		];
+	}
+
+	private function getLegacyBody(): array
+	{
 		$area = [];
 
 		if ($this->context['smm_skeleton']['settings_area'] === 2) {
-			if ($this->context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$area = [
-					"\$admin_areas['config']['areas']['modsettings']['subsections']['$this->snakeName'] = [\$txt['{$this->snakeName}_title']];"
-				];
-			} else {
-				$area = [
-					"\$admin_areas['config']['areas']['modsettings']['subsections']['$this->snakeName'] = [Lang::\$txt['{$this->snakeName}_title']];"
-				];
-			}
+			$area = [
+				"\$admin_areas['config']['areas']['modsettings']['subsections']['$this->snakeName'] = [\$txt['{$this->snakeName}_title']];"
+			];
 		}
 
 		if ($this->context['smm_skeleton']['settings_area'] === 3) {
-			if ($this->context['smm_skeleton']['smf_target_version'] !== '3.0') {
-				$area = [
-					<<<PHP
+			$area = [
+				<<<PHP
 \$admin_areas['config']['areas']['$this->snakeName'] = [
 	'label'       => \$txt['{$this->snakeName}_title'],
 	'function'    => [\$this, 'settings'],
@@ -57,10 +63,28 @@ class AdminAreasHook extends AbstractHook
 	]
 ];
 PHP
-				];
-			} else {
-				$area = [
-					<<<PHP
+			];
+		}
+
+		return array_merge([
+			"global \$txt;" . PHP_EOL,
+			"loadLanguage('$this->classname" . (empty($this->context['smm_skeleton']['use_lang_dir']) ? '' : '/') . "');" . PHP_EOL,
+		], $area);
+	}
+
+	private function getModernBody(): array
+	{
+		$area = [];
+
+		if ($this->context['smm_skeleton']['settings_area'] === 2) {
+			$area = [
+				"\$admin_areas['config']['areas']['modsettings']['subsections']['$this->snakeName'] = [Lang::\$txt['{$this->snakeName}_title']];"
+			];
+		}
+
+		if ($this->context['smm_skeleton']['settings_area'] === 3) {
+			$area = [
+				<<<PHP
 \$admin_areas['config']['areas']['$this->snakeName'] = [
 	'label'       => Lang::\$txt['{$this->snakeName}_title'],
 	'function'    => [\$this, 'settings'],
@@ -72,17 +96,11 @@ PHP
 	]
 ];
 PHP
-				];
-			}
+			];
 		}
 
-		return $this->context['smm_skeleton']['smf_target_version'] !== '3.0'
-			? array_merge([
-				"global \$txt;" . PHP_EOL,
-				"loadLanguage('$this->classname" . (empty($this->context['smm_skeleton']['use_lang_dir']) ? '' : '/') . "');" . PHP_EOL,
-			], $area)
-			: array_merge([
-				"Lang::load('$this->classname" . (empty($this->context['smm_skeleton']['use_lang_dir']) ? '' : '/') . "');" . PHP_EOL,
-			], $area);
+		return array_merge([
+			"Lang::load('$this->classname" . (empty($this->context['smm_skeleton']['use_lang_dir']) ? '' : '/') . "');" . PHP_EOL,
+		], $area);
 	}
 }

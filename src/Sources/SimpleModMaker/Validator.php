@@ -60,7 +60,7 @@ final class Validator
 		'unset', 'use', 'var', 'void', 'while', 'xor', 'yield',
 	];
 
-	private const SMF3_IMPORTS = ['ACP', 'Config', 'Db', 'Lang', 'Menu', 'Theme', 'User', 'Utils'];
+	private const SMF3_IMPORTS = ['ACP', 'Config', 'Db', 'IntegrationHook', 'Lang', 'Menu', 'Theme', 'User', 'Utils'];
 
 	private const IDENTIFIER_PATTERNS = [
 		'option_names'               => '/^[a-z][a-z_]+$/',

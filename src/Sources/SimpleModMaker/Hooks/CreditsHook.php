@@ -26,20 +26,39 @@ class CreditsHook extends AbstractHook
 
 	public function getBody(): array
 	{
+		return $this->isModernTarget() ? $this->getModernBody() : $this->getLegacyBody();
+	}
+
+	public function getDualBody(): ?array
+	{
+		return [
+			'legacy' => $this->getLegacyBody(),
+			'modern' => $this->getModernBody(),
+		];
+	}
+
+	private function getLegacyBody(): array
+	{
 		$name   = $this->context['smm_skeleton']['name'];
 		$author = $this->context['smm_skeleton']['author'];
 
 		$copyright = var_export("$name by $author &copy; " . date('Y'), true);
 
-		if ($this->context['smm_skeleton']['smf_target_version'] !== '3.0') {
-			return [
-				"global \$context;" . PHP_EOL,
-				"\$context['copyrights']['mods'][] = $copyright;",
-			];
-		} else {
-			return [
-				"Utils::\$context['copyrights']['mods'][] = $copyright;",
-			];
-		}
+		return [
+			"global \$context;" . PHP_EOL,
+			"\$context['copyrights']['mods'][] = $copyright;",
+		];
+	}
+
+	private function getModernBody(): array
+	{
+		$name   = $this->context['smm_skeleton']['name'];
+		$author = $this->context['smm_skeleton']['author'];
+
+		$copyright = var_export("$name by $author &copy; " . date('Y'), true);
+
+		return [
+			"Utils::\$context['copyrights']['mods'][] = $copyright;",
+		];
 	}
 }

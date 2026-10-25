@@ -28,7 +28,20 @@ class DownloadRequestHook extends AbstractHook
 
 	public function getBody(): array
 	{
-		return $this->context['smm_skeleton']['smf_target_version'] !== '3.0' ? [
+		return $this->isModernTarget() ? $this->getModernBody() : $this->getLegacyBody();
+	}
+
+	public function getDualBody(): ?array
+	{
+		return [
+			'legacy' => $this->getLegacyBody(),
+			'modern' => $this->getModernBody(),
+		];
+	}
+
+	private function getLegacyBody(): array
+	{
+		return [
 			"global \$smcFunc;" . PHP_EOL,
 			"if ((!empty(\$attachRequest) && is_resource(\$attachRequest)) || empty(\$_REQUEST['item']))",
 			"\treturn;" . PHP_EOL,
@@ -38,7 +51,12 @@ class DownloadRequestHook extends AbstractHook
 			"\t\t'item'   => (int) \$_REQUEST['item'],",
 			"\t]",
 			");"
-		] : [
+		];
+	}
+
+	private function getModernBody(): array
+	{
+		return [
 			"if ((!empty(\$attachRequest) && is_resource(\$attachRequest)) || empty(\$_REQUEST['item']))",
 			"\treturn;" . PHP_EOL,
 			"\$attachRequest = Db::\$db->query('', 'Here is your SQL',",
