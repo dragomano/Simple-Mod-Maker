@@ -76,7 +76,7 @@ final class Builder
 
 	public function create(string $content): Builder
 	{
-		require_once dirname(__DIR__) . '/Subs-Package.php';
+		$this->loadPackageHelpers();
 
 		try {
 			$this->addSecurityCheck($content);
@@ -178,7 +178,7 @@ final class Builder
 
 	public function createTasks(array $tasks): Builder
 	{
-		require_once dirname(__DIR__) . '/Subs-Package.php';
+		$this->loadPackageHelpers();
 
 		try {
 			$this->assertPathWithinAllowedBase();
@@ -206,7 +206,7 @@ final class Builder
 
 	public function createPackage(): void
 	{
-		require_once dirname(__DIR__) . '/Subs-Package.php';
+		$this->loadPackageHelpers();
 
 		// The transfer can be interrupted at any moment, so the temporary
 		// archive files are released by the shutdown handler in any case
@@ -265,6 +265,16 @@ final class Builder
 		}
 
 		exit;
+	}
+
+	/**
+	 * Load the SMF package helpers only when they are not already available
+	 */
+	private function loadPackageHelpers(): void
+	{
+		if (! function_exists('package_put_contents')) {
+			require_once dirname(__DIR__) . '/Subs-Package.php';
+		}
 	}
 
 	private function makeDir(string $path): void

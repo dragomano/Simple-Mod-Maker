@@ -40,6 +40,8 @@ class Hook
 
 	public const PRE_LOAD = 'integrate_pre_load';
 
+	public const PRE_LOG_STATS = 'integrate_pre_log_stats';
+
 	public const THEME_CONTEXT = 'integrate_theme_context';
 
 	public const USER_INFO = 'integrate_user_info';

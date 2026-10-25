@@ -147,15 +147,15 @@ class Generator
 
 	private function addSMF3Imports(PhpNamespace $namespace): void
 	{
-		$namespace->addUse('SMF\Actions\Admin\ACP');
-		$namespace->addUse('SMF\Config');
+		$namespace->addUse(\SMF\Actions\Admin\ACP::class);
+		$namespace->addUse(\SMF\Config::class);
 		$namespace->addUse(\SMF\Db\DatabaseApi::class, 'Db');
-		$namespace->addUse('SMF\IntegrationHook');
-		$namespace->addUse('SMF\Lang');
-		$namespace->addUse('SMF\Menu');
-		$namespace->addUse('SMF\Theme');
-		$namespace->addUse('SMF\User');
-		$namespace->addUse('SMF\Utils');
+		$namespace->addUse(\SMF\IntegrationHook::class);
+		$namespace->addUse(\SMF\Lang::class);
+		$namespace->addUse(\SMF\Menu::class);
+		$namespace->addUse(\SMF\Theme::class);
+		$namespace->addUse(\SMF\User::class);
+		$namespace->addUse(\SMF\Utils::class);
 	}
 
 	private function generateHooksMethods(ClassType $class, array $skeleton, string $classname, string $snakeName): void

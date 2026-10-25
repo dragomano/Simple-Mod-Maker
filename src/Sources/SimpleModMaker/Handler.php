@@ -437,7 +437,10 @@ final class Handler
 
 	private function getHookList(): array
 	{
-		require_once dirname(__DIR__) . '/ManageMaintenance.php';
+		// Load the SMF hook helpers only when they are not already available
+		if (! function_exists('get_integration_hooks')) {
+			require_once dirname(__DIR__) . '/ManageMaintenance.php';
+		}
 
 		$hooks = array_keys(get_integration_hooks());
 		$known = HookFactory::getAvailableHooks();
