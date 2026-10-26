@@ -8,8 +8,6 @@ use Bugo\SimpleModMaker\Serializer;
  * @author Bugo <bugo@dragomano.ru>
  * @copyright 2022-2026 Bugo
  * @license https://opensource.org/licenses/BSD-3-Clause BSD
- *
- * @version 1.0
  */
 
 function template_callback_smm_readme_editor()
