@@ -1,13 +1,34 @@
 {
+  "name": "bugo/simple-mod-maker",
+  "description": "A generator of ready-made modification packages for SMF 2.1 and 3.0, built right in the admin panel",
+  "license": "BSD-3-Clause",
   "require": {
     "php": "^8.2"
   },
   "require-dev": {
+    "phpunit/phpunit": "^11.5",
     "rector/rector": "^2.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "Bugo\\SimpleModMaker\\": "src/Sources/SimpleModMaker"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests"
+    }
   },
   "scripts": {
     "check": "vendor/bin/rector process --dry-run --clear-cache",
-    "rector": "vendor/bin/rector process"
+    "rector": "vendor/bin/rector process",
+    "test": "phpunit --colors=always",
+    "test-coverage": "phpunit --colors=always --coverage-html coverage"
   },
-  "prefer-stable": true
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2"
+    }
+  }
 }

@@ -21,7 +21,6 @@
     <php>
         <const name="SMF" value="true"/>
         <const name="SMM_NAME" value="Simple Mod Maker"/>
-        <!-- The branch of the mixed-target packages that runs in the tests -->
         <const name="SMF_VERSION" value="3.0.0"/>
         <const name="SMM_FILENAME_PATTERN" value="^(?:Class-)?[A-Z][a-zA-Z]+$"/>
         <const name="SMM_MODNAME_DEFAULT" value="My New Mod"/>
@@ -30,11 +29,17 @@
 
     <source>
         <include>
-            <directory suffix=".php">./</directory>
+            <directory suffix=".php">./src/Sources/SimpleModMaker</directory>
         </include>
         <exclude>
             <directory>./tests</directory>
             <directory>./vendor</directory>
+            <directory>./src/Sources/SimpleModMaker/vendor</directory>
+            <file>./src/Sources/SimpleModMaker/app.php</file>
+            <file>./src/Sources/SimpleModMaker/index.php</file>
+            <file>./src/Sources/SimpleModMaker/Printer.php</file>
+            <file>./src/Sources/SimpleModMaker/Hooks/index.php</file>
+            <file>./src/Sources/SimpleModMaker/licenses/index.php</file>
         </exclude>
     </source>
 </phpunit>

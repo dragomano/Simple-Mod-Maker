@@ -1,0 +1,69 @@
+# .github/workflows/tests.yml
+
+name: Tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Rector check (PHP 8.2 - Ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install root dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Rector check
+        run: composer check
+
+  tests:
+    name: PHP ${{ matrix.php }} - ${{ matrix.os }}
+    needs: check
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        php: ['8.2', '8.3', '8.4', '8.5']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, phar, zip
+          coverage: none
+
+      - name: Install root dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install mod dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+        working-directory: src/Sources/SimpleModMaker
+
+      - name: PHPUnit
+        run: composer test

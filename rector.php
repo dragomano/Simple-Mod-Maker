@@ -6,6 +6,7 @@ use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
 return RectorConfig::configure()
 	->withPaths([
 		__DIR__ . '/src/*',
+		__DIR__ . '/tests',
 	])
 	->withSkip([
 		__DIR__ . '**/vendor/*',
