@@ -256,3 +256,92 @@
 .ts-wrapper .ts-dropdown .ts-dropdown-content .option div {
     margin: 0 !important;
 }
+
+/* Readme editor: language list + active editor pane */
+.smm_readme {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin: 10px 0;
+}
+
+.smm_readme_list {
+    flex: 0 0 185px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.smm_readme_item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 11px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: #444;
+    font-size: 0.9em;
+    text-align: left;
+    cursor: pointer;
+}
+
+.smm_readme_item:hover {
+    background: #f0f4f8;
+}
+
+.smm_readme_item.active {
+    background: #e7eef6;
+    border-color: #b9cade;
+    font-weight: 600;
+}
+
+.smm_readme_dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #b6bfca;
+}
+
+.smm_readme_dot.filled {
+    background: #4ca64c;
+}
+
+.smm_readme_editor {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+/* All panes are parked off screen by default; the per-language rule generated
+   in the template brings the checked radio's pane back into flow. Off screen
+   instead of display:none keeps SCEditor layout alive for init and submit */
+.smm_readme_pane {
+    position: absolute;
+    left: -10000px;
+    top: 0;
+    width: 90%;
+}
+
+.smm_readme_radio {
+    display: none;
+}
+
+/* Copy-from-English button sits left of the save button */
+.smm_readme_copy {
+    margin-right: 8px;
+}
+
+@media (max-width: 640px) {
+    .smm_readme {
+        flex-direction: column;
+    }
+
+    .smm_readme_list {
+        flex: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+}

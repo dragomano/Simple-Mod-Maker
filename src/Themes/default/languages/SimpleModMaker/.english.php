@@ -162,3 +162,4 @@ $txt['smm_error_duplicate_columns'] = 'Column names within a table must be uniqu
 $txt['smm_error_multiple_auto_columns'] = 'Only one auto-increment column is allowed per table!';
 $txt['smm_error_invalid_column_attributes'] = 'The column attributes do not suit the selected column type!';
 $txt['smm_error_invalid_default'] = 'The default value is not valid for the selected column type!';
+$txt['smm_readme_copy_from_english'] = 'Copy from English';

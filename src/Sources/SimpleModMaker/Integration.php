@@ -87,6 +87,9 @@ final class Integration
 		$this->extendReadmeDesc();
 		$this->prepareBbcEditor();
 
+		loadCSSFile('simple_mod_maker.css');
+		loadJavaScriptFile('simple_mod_maker.js');
+
 		$config_vars = [
 			['title', 'smm_basic'],
 			['text', 'smm_mod_author'],

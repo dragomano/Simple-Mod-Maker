@@ -3,6 +3,7 @@ const smm = new class {
 		window.addEventListener("DOMContentLoaded", () => {
 			this.initHookSelect();
 			this.restoreSettingPlacement();
+			this.initReadmeEditor();
 		});
 	}
 
@@ -230,5 +231,117 @@ const smm = new class {
 				}
 			}
 		}
+	}
+
+	// Readme language tabs are pure CSS (radio inputs). JS only refreshes
+	// the status dots and handles the copy-from-english button
+	initReadmeEditor() {
+		const root = document.querySelector(".smm_readme");
+
+		if (! root) {
+			return;
+		}
+
+		this.smmReadmeBindEditors(root);
+		this.smmReadmePlaceCopyButton(root);
+	}
+
+	smmReadmeBindEditors(root, attempt = 0) {
+		let pending = 0;
+
+		root.querySelectorAll(".smm_readme_radio").forEach(radio => {
+			const textarea = document.getElementById("smm_readme_" + radio.value);
+
+			if (! textarea) {
+				return;
+			}
+
+			const instance = window.sceditor ? sceditor.instance(textarea) : null;
+
+			if (instance) {
+				instance.bind("input", () => this.smmReadmeUpdateDot(root, radio.value));
+			} else {
+				pending++;
+
+				if (! textarea.dataset.smmBound) {
+					textarea.dataset.smmBound = "1";
+					textarea.addEventListener("input", () => this.smmReadmeUpdateDot(root, radio.value));
+				}
+			}
+		});
+
+		// SCEditor instances are created inside jQuery's ready handler, which
+		// may not have run yet — retry briefly to bind the live events
+		if (pending && attempt < 30) {
+			setTimeout(() => this.smmReadmeBindEditors(root, attempt + 1), 50);
+		}
+	}
+
+	smmReadmeUpdateDot(root, lang) {
+		const dot = root.querySelector(`.smm_readme_dot[data-lang="${lang}"]`);
+
+		if (! dot) {
+			return;
+		}
+
+		const textarea = document.getElementById("smm_readme_" + lang);
+		const instance = window.sceditor && textarea ? sceditor.instance(textarea) : null;
+		const value = instance ? instance.val() : (textarea ? textarea.value : "");
+
+		dot.classList.toggle("filled", String(value).trim() !== "");
+	}
+
+	smmReadmePlaceCopyButton(root) {
+		const form = root.closest("form");
+		const save = form && form.querySelector("input[type=submit]");
+
+		if (! save) {
+			return;
+		}
+
+		const button = document.createElement("button");
+
+		button.type = "button";
+		button.className = "button smm_readme_copy";
+		button.textContent = root.dataset.copyLabel;
+		button.addEventListener("click", () => this.smmReadmeCopy(root, button));
+
+		// Admin area buttons float right, so the DOM-first one packs rightmost —
+		// inserting after the save input puts the button visually to its left
+		save.parentElement.insertBefore(button, save.nextSibling);
+
+		root.querySelectorAll(".smm_readme_radio").forEach(radio => {
+			radio.addEventListener("change", () => this.smmReadmeSyncButton(button));
+		});
+
+		this.smmReadmeSyncButton(button);
+	}
+
+	smmReadmeSyncButton(button) {
+		const active = document.querySelector(".smm_readme_radio:checked");
+
+		button.disabled = active === null || active.value === "english";
+	}
+
+	smmReadmeCopy(root, button) {
+		const active = document.querySelector(".smm_readme_radio:checked");
+		const source = document.getElementById("smm_readme_english");
+		const target = active && document.getElementById("smm_readme_" + active.value);
+
+		if (! source || ! target || target === source) {
+			return;
+		}
+
+		const sourceInstance = window.sceditor ? sceditor.instance(source) : null;
+		const targetInstance = window.sceditor ? sceditor.instance(target) : null;
+		const content = sourceInstance ? sourceInstance.val() : source.value;
+
+		if (targetInstance) {
+			targetInstance.val(content);
+		} else {
+			target.value = content;
+		}
+
+		this.smmReadmeUpdateDot(root, active.value);
 	}
 }

@@ -1,5 +1,7 @@
 <?php declare(strict_types=1);
 
+use Bugo\SimpleModMaker\Serializer;
+
 /**
  * @package Simple Mod Maker
  * @link https://github.com/dragomano/Simple-Mod-Maker
@@ -12,17 +14,64 @@
 
 function template_callback_smm_readme_editor()
 {
-	global $context;
+	global $context, $txt;
 
-	foreach ($context['smm_languages'] as $lang) {
-		echo '
-		<div class="title_bar">
-			<h3 class="titlebg">', $lang['name'], '</h3>
-		</div>
-		<div class="windowbg">
-			', template_control_richedit($context['smm_readme_editor'][$lang['filename']], null, 'bbcBox_message'), '
-		</div>';
+	$filenames = array_column($context['smm_languages'], 'name', 'filename');
+
+	$default = $context['user']['language'];
+	if (! isset($filenames[$default])) {
+		$default = isset($filenames['english']) ? 'english' : array_key_first($filenames);
 	}
+
+	// The tabs are plain radio inputs, so switching languages is pure CSS and
+	// keeps working even when JavaScript fails to load or initialize
+	$tabCss = '';
+	foreach (array_keys($filenames) as $filename) {
+		$tabCss .=
+			'#smm_readme_tab_' . $filename . ':checked ~ .smm_readme_list label[for="smm_readme_tab_' . $filename . '"]{background:#e7eef6;border-color:#b9cade;font-weight:600}'
+			. '#smm_readme_tab_' . $filename . ':checked ~ .smm_readme_editor .smm_readme_pane[data-lang="' . $filename . '"]{position:static;left:auto;top:auto;width:auto}';
+	}
+
+	echo '
+	<div class="smm_readme" data-copy-label="', Serializer::html($txt['smm_readme_copy_from_english']), '">
+		<style>', $tabCss, '</style>';
+
+	foreach ($filenames as $filename => $name) {
+		echo '
+		<input type="radio" name="smm_readme_tabs" id="smm_readme_tab_', $filename, '" value="', $filename, '" class="smm_readme_radio"', $filename === $default ? ' checked' : '', '>';
+	}
+
+	echo '
+		<div class="smm_readme_list">';
+
+	foreach ($filenames as $filename => $name) {
+		$filled = trim((string) ($context['smm_readme'][$filename] ?? '')) !== '';
+
+		echo '
+			<label for="smm_readme_tab_', $filename, '" class="smm_readme_item">
+				<span class="smm_readme_dot', $filled ? ' filled' : '', '" data-lang="', $filename, '"></span>', $name, '
+			</label>';
+	}
+
+	echo '
+		</div>
+		<div class="smm_readme_editor">';
+
+	foreach ($filenames as $filename => $name) {
+		echo '
+			<div class="smm_readme_pane" data-lang="', $filename, '">
+				<div class="title_bar">
+					<h3 class="titlebg">', $name, '</h3>
+				</div>
+				<div class="windowbg">
+					', template_control_richedit($context['smm_readme_editor'][$filename], null, 'bbcBox_message'), '
+				</div>
+			</div>';
+	}
+
+	echo '
+		</div>
+	</div>';
 }
 
 function template_modification_post()
@@ -57,7 +106,7 @@ function template_modification_post()
 		method="post"
 		accept-charset="', $context['character_set'], '"
 		onsubmit="submitonce(this);"
-		x-data="', \Bugo\SimpleModMaker\Serializer::jsonAttribute([
+		x-data="', Serializer::jsonAttribute([
 			'tab'       => $language,
 			'className' => $context['smm_skeleton']['name'],
 		]), '"
@@ -748,7 +797,7 @@ function template_modification_post()
 
 	echo '
 	<script>
-		window.smmGenerator = ', \Bugo\SimpleModMaker\Serializer::json($smm_data), ';
+		window.smmGenerator = ', Serializer::json($smm_data), ';
 	</script>
 	<script type="module">
 		if (window.Alpine === undefined) {
